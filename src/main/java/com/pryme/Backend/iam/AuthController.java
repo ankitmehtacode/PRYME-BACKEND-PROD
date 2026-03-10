@@ -1,50 +1,85 @@
 package com.pryme.Backend.iam;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.Instant;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/auth")
-@CrossOrigin(origins = "*")
+@Validated
 public class AuthController {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final SessionManager sessionManager;
 
-    public AuthController(UserRepository userRepository) {
+    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder, SessionManager sessionManager) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.sessionManager = sessionManager;
     }
 
     @PostMapping("/login")
-    public Map<String, Object> login(@RequestBody LoginRequest request) {
-        // 🧠 160 IQ: Log exactly what is arriving from the frontend
-        System.out.println("DEBUG: Login Attempt for Email: [" + request.email() + "]");
-
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         User user = userRepository.findByEmail(request.email().trim().toLowerCase())
-                .orElseThrow(() -> {
-                    System.out.println("DEBUG: User not found in database.");
-                    return new RuntimeException("Invalid email or password");
-                });
+                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
 
-        // 🧠 160 IQ: Trim whitespaces to prevent hidden space errors
-        String receivedPassword = request.password().trim();
-        String storedPassword = user.getPasswordHash().trim();
-
-        System.out.println("DEBUG: Comparing Received: [" + receivedPassword + "] vs Stored: [" + storedPassword + "]");
-
-        if (!storedPassword.equals(receivedPassword)) {
-            System.out.println("DEBUG: Password Mismatch!");
+        if (!passwordEncoder.matches(request.password().trim(), user.getPasswordHash())) {
             throw new RuntimeException("Invalid email or password");
         }
 
-        String token = "PRYME-" + user.getId() + "-" + System.currentTimeMillis();
+        SessionRecord session = sessionManager.issueSession(user.getId(), request.deviceId());
 
-        return Map.of(
-                "token", token,
-                "role", user.getRole(),
-                "name", user.getFullName(),
-                "message", "Login Successful"
-        );
+        return ResponseEntity.ok(new LoginResponse(
+                session.token(),
+                user.getRole().name(),
+                user.getFullName(),
+                session.expiresAt(),
+                "Login successful"
+        ));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, String>> logout(@RequestHeader("Authorization") String authHeader) {
+        String token = extractBearerToken(authHeader);
+        sessionManager.invalidate(token);
+        return ResponseEntity.ok(Map.of("message", "Logged out"));
+    }
+
+    @GetMapping("/sessions/{userId}")
+    public ResponseEntity<List<SessionRecord>> sessions(@PathVariable UUID userId) {
+        return ResponseEntity.ok(sessionManager.activeSessions(userId));
+    }
+
+    private String extractBearerToken(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("Missing Bearer token");
+        }
+        return authHeader.substring(7);
     }
 }
 
-record LoginRequest(String email, String password) {}
+record LoginRequest(
+        @Email @NotBlank String email,
+        @NotBlank String password,
+        String deviceId
+) {
+}
+
+record LoginResponse(
+        String token,
+        String role,
+        String name,
+        Instant expiresAt,
+        String message
+) {
+}
