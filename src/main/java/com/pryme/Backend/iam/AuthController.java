@@ -84,6 +84,8 @@ public class AuthController {
         if (!isAdmin && !currentUserId.equals(userId)) {
             throw new ForbiddenException("Unauthorized to view sessions");
         }
+        return userId;
+    }
 
         return ResponseEntity.ok(sessionManager.activeSessions(userId));
     }
