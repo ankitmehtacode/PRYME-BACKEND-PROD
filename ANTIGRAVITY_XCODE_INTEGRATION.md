@@ -45,7 +45,7 @@ Admin:
 - Use `integration_templates/frontend/src/contexts/AuthContext.tsx` as the auth bootstrap pattern.
 - Use `integration_templates/frontend/src/components/auth/ProtectedRoute.tsx` for role-guarded routes.
 - Keep token in `localStorage` key `pryme_token`, then call `/api/v1/auth/me` on app boot to restore session.
-
+- Listen to browser events `pryme:session-expired` and `pryme:login-success` for auth pop-up/toast UX.
 
 ## 5) Swift/Xcode client pattern
 Use `URLSession` with JSON request/response models.
@@ -55,7 +55,7 @@ Use `URLSession` with JSON request/response models.
 - Document upload must use `multipart/form-data` with server-validated MIME types (`application/pdf`, `image/jpeg`, `image/png`).
 
 ## 6) Production checklist
-
+- Enable lead WAL backup path (`app.leads.backup-dir`) so inbound lead payloads are durably journaled before DB commit.
 - Put backend behind HTTPS only.
 - Restrict `allowed-origins` to exact production hosts.
 - Move secrets (JWT keys, DB credentials) to environment variables.

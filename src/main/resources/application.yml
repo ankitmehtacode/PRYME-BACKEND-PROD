@@ -57,7 +57,6 @@ app:
     backup-dir: ./var/lead-wal
   recommendation:
     max-results: 8
-
   security:
     enable-h2-console: false
     session:

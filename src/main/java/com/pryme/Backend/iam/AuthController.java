@@ -84,6 +84,8 @@ public class AuthController {
         if (!isAdmin && !currentUserId.equals(userId)) {
             throw new ForbiddenException("Unauthorized to view sessions");
         }
+        return userId;
+    }
 
         return ResponseEntity.ok(sessionManager.activeSessions(userId));
     }
@@ -101,32 +103,7 @@ public class AuthController {
         }
         return authHeader.substring(7);
     }
-
-    private String extractBearerToken(String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new RuntimeException("Missing Bearer token");
- main
-        }
-        return authHeader.substring(7);
-    }
 }
-
-record LoginRequest(
-        @Email @NotBlank String email,
-        @NotBlank String password,
-        String deviceId
-) {
-}
-
-record LoginResponse(
-        String token,
-        String role,
-        String name,
-        Instant expiresAt,
-        String message
-) {
-}
-codex/create-45-day-execution-plan-0e2u1d
 
 record LoginRequest(
         @Email @NotBlank String email,

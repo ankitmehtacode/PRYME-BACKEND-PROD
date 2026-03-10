@@ -49,7 +49,6 @@ api.interceptors.response.use(
 
     if (status === 401 || status === 403) {
       localStorage.removeItem("pryme_token");
-
       window.dispatchEvent(
         new CustomEvent("pryme:session-expired", {
           detail: { message: "Session expired. Please login again." },
@@ -107,6 +106,7 @@ export type DocumentUploadResponse = {
     fileSize: number;
     storagePath: string;
     createdAt: string;
+    checksum: string;
   };
 };
 

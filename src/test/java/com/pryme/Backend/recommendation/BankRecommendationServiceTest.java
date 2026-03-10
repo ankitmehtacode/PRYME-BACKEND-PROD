@@ -104,5 +104,4 @@ class BankRecommendationServiceTest {
                 .extracting(LoanProduct::getInterestRate)
                 .containsExactly(new BigDecimal("8.75"), new BigDecimal("12.50"));
     }
-
 }

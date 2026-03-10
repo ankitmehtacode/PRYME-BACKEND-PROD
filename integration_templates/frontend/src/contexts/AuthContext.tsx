@@ -22,17 +22,11 @@ type LoginResponse = {
 type AuthContextValue = {
   user: AuthUser | null;
   isLoading: boolean;
-
   toastMessage: string | null;
   login: (email: string, password: string, deviceId?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   clearToast: () => void;
-
-  login: (email: string, password: string, deviceId?: string) => Promise<void>;
-  logout: () => Promise<void>;
-  refreshUser: () => Promise<void>;
-
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -40,7 +34,6 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const clearToast = useCallback(() => setToastMessage(null), []);
@@ -67,12 +60,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     [refreshUser]
   );
 
-  const login = useCallback(async (email: string, password: string, deviceId = "web") => {
-    const { data } = await api.post<LoginResponse>("/api/v1/auth/login", { email, password, deviceId });
-    localStorage.setItem("pryme_token", data.token);
-    await refreshUser();
-  }, [refreshUser]);
-
   const logout = useCallback(async () => {
     try {
       await api.post("/api/v1/auth/logout", {});
@@ -83,7 +70,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
-
     const onSessionExpired = (event: Event) => {
       const detail = (event as CustomEvent<{ message?: string }>).detail;
       setToastMessage(detail?.message ?? "Session expired. Please login again.");
@@ -94,7 +80,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
-
     refreshUser()
       .catch(() => {
         localStorage.removeItem("pryme_token");
@@ -104,13 +89,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [refreshUser]);
 
   const value = useMemo<AuthContextValue>(
-
     () => ({ user, isLoading, toastMessage, login, logout, refreshUser, clearToast }),
     [user, isLoading, toastMessage, login, logout, refreshUser, clearToast]
-
-    () => ({ user, isLoading, login, logout, refreshUser }),
-    [user, isLoading, login, logout, refreshUser]
-
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
