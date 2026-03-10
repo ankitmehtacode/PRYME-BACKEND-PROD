@@ -6,15 +6,76 @@ spring:
     driverClassName: org.h2.Driver
     username: sa
     password: password
+    hikari:
+      maximum-pool-size: 24
+      minimum-idle: 8
+      connection-timeout: 2000
+      validation-timeout: 1000
+      idle-timeout: 300000
+      max-lifetime: 1800000
+      leak-detection-threshold: 2000
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: update # For the H2 database, we'll let it auto-create tables
-    show-sql: true
+      ddl-auto: update
+    open-in-view: false
+    show-sql: false
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
   h2:
     console:
-      enabled: true
+      enabled: false
       path: /h2-console
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 12MB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+
+app:
+  runtime:
+    scheduler:
+      pool-size: 2
+      await-termination-seconds: 30
+  documents:
+    storage-root: ./var/document-vault
+  leads:
+    backup-dir: ./var/lead-wal
+  recommendation:
+    max-results: 8
+  security:
+    enable-h2-console: false
+    session:
+      max-sessions-per-user: 3
+      ttl-hours: 8
+      cleanup-ms: 300000
+    allowed-origins: http://localhost:3000,http://localhost:5173,https://pryme.in
 
 server:
   port: 8080
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 20
+    accept-count: 500
+    max-connections: 8192
+    connection-timeout: 20000
+  compression:
+    enabled: true
+    min-response-size: 1024
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain,text/css,application/javascript

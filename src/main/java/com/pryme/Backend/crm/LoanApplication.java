@@ -1,10 +1,13 @@
 package com.pryme.Backend.crm;
 
+import com.pryme.Backend.document.DocumentRecord;
 import com.pryme.Backend.iam.User;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -17,26 +20,29 @@ public class LoanApplication {
     private UUID id;
 
     @Column(unique = true, nullable = false)
-    private String applicationId; // e.g., PRY-9021
+    private String applicationId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
-    private User applicant; // Link to Authenticated User
+    private User applicant;
 
-    private String loanType; // LAP, PL, HL
+    private String loanType;
     private BigDecimal requestedAmount;
     private Integer declaredCibilScore;
 
     @Enumerated(EnumType.STRING)
     private ApplicationStatus status;
 
-    // 🧠 NEW: CRM Assignment Tracking
+    @OneToMany(mappedBy = "loanApplication", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<DocumentRecord> documents = new ArrayList<>();
+
     @Builder.Default
     @Column(name = "assignee_id")
     private String assignee = "UNASSIGNED";
 
     @Version
-    private Long version; // Optimistic locking for concurrent Employee edits
+    private Long version;
 
     private LocalDateTime createdAt;
 
@@ -44,6 +50,6 @@ public class LoanApplication {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         if (status == null) status = ApplicationStatus.SUBMITTED;
-        if (assignee == null) assignee = "UNASSIGNED"; // Failsafe for direct entity instantiations
+        if (assignee == null) assignee = "UNASSIGNED";
     }
 }

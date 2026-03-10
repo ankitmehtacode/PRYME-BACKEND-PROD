@@ -16,11 +16,11 @@ public class User {
     private String email;
 
     @Column(nullable = false)
-    private String passwordHash; // Will be BCrypt encrypted [cite: 85]
+    private String passwordHash;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Role role; //
+    private Role role;
 
     private String fullName;
     private String phone;
