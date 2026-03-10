@@ -10,4 +10,8 @@ public interface LoanApplicationRepository extends JpaRepository<LoanApplication
     Optional<LoanApplication> findByApplicationId(String applicationId);
 
     List<LoanApplication> findAllByOrderByCreatedAtDesc();
+
+
+    List<LoanApplication> findAllByApplicant_IdOrderByCreatedAtDesc(UUID applicantId);
+ main
 }
