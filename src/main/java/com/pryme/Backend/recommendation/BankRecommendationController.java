@@ -29,11 +29,16 @@ public class BankRecommendationController {
     ) {
         return bankRecommendationService.recommend(salary, cibil)
                 .stream()
-                .map(BankRecommendationController::toResponse)
+                .map(product -> toResponse(product, salary, cibil, bankRecommendationService))
                 .toList();
     }
 
-    private static BankRecommendationResponse toResponse(LoanProduct product) {
+    private static BankRecommendationResponse toResponse(
+            LoanProduct product,
+            BigDecimal salary,
+            Integer cibil,
+            BankRecommendationService service
+    ) {
         return new BankRecommendationResponse(
                 product.getId(),
                 product.getBank().getId(),
@@ -41,7 +46,8 @@ public class BankRecommendationController {
                 product.getBank().getLogoUrl(),
                 product.getInterestRate(),
                 product.getProcessingFee(),
-                product.getType().name()
+                product.getType().name(),
+                service.fitScore(product, salary, cibil)
         );
     }
 }

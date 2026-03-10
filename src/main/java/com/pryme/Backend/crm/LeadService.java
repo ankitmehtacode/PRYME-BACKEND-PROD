@@ -18,27 +18,34 @@ public class LeadService {
     private static final Set<String> ALLOWED_LOAN_TYPES = Set.of("personal", "business", "home", "education");
 
     private final LeadRepository leadRepository;
+    private final LeadBackupService leadBackupService;
 
     @Transactional
     public LeadResponse submitLead(LeadSubmitRequest request, String idempotencyKey) {
+        UUID opId = leadBackupService.begin(request, idempotencyKey);
+
         String normalizedLoanType = normalizeLoanType(request.loanType());
 
+        LeadResponse result;
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
             String normalizedKey = normalizeKey(idempotencyKey);
-            return leadRepository.findByIdempotencyKey(normalizedKey)
+            result = leadRepository.findByIdempotencyKey(normalizedKey)
                     .map(LeadResponse::from)
                     .orElseGet(() -> saveLead(request, normalizedLoanType, normalizedKey));
+        } else {
+            LocalDateTime duplicateWindow = LocalDateTime.now().minusMinutes(2);
+            result = leadRepository.findTopByPhoneAndLoanAmountAndLoanTypeAndCreatedAtAfterOrderByCreatedAtDesc(
+                            request.phone().trim(),
+                            request.loanAmount(),
+                            normalizedLoanType,
+                            duplicateWindow
+                    )
+                    .map(LeadResponse::from)
+                    .orElseGet(() -> saveLead(request, normalizedLoanType, null));
         }
 
-        LocalDateTime duplicateWindow = LocalDateTime.now().minusMinutes(2);
-        return leadRepository.findTopByPhoneAndLoanAmountAndLoanTypeAndCreatedAtAfterOrderByCreatedAtDesc(
-                        request.phone().trim(),
-                        request.loanAmount(),
-                        normalizedLoanType,
-                        duplicateWindow
-                )
-                .map(LeadResponse::from)
-                .orElseGet(() -> saveLead(request, normalizedLoanType, null));
+        leadBackupService.markCommitted(opId);
+        return result;
     }
 
     @Transactional(readOnly = true)

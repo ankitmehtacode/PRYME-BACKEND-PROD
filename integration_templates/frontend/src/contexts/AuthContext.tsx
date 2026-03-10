@@ -22,9 +22,17 @@ type LoginResponse = {
 type AuthContextValue = {
   user: AuthUser | null;
   isLoading: boolean;
+
+  toastMessage: string | null;
   login: (email: string, password: string, deviceId?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  clearToast: () => void;
+
+  login: (email: string, password: string, deviceId?: string) => Promise<void>;
+  logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
+
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -32,6 +40,10 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const clearToast = useCallback(() => setToastMessage(null), []);
 
   const refreshUser = useCallback(async () => {
     const token = localStorage.getItem("pryme_token");
@@ -43,6 +55,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data } = await api.get<AuthUser>("/api/v1/auth/me");
     setUser(data);
   }, []);
+
+  const login = useCallback(
+    async (email: string, password: string, deviceId = "web") => {
+      const { data } = await api.post<LoginResponse>("/api/v1/auth/login", { email, password, deviceId });
+      localStorage.setItem("pryme_token", data.token);
+      await refreshUser();
+      setToastMessage(`Welcome back, ${data.name}`);
+      window.dispatchEvent(new CustomEvent("pryme:login-success", { detail: { name: data.name } }));
+    },
+    [refreshUser]
+  );
 
   const login = useCallback(async (email: string, password: string, deviceId = "web") => {
     const { data } = await api.post<LoginResponse>("/api/v1/auth/login", { email, password, deviceId });
@@ -60,6 +83,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
+
+    const onSessionExpired = (event: Event) => {
+      const detail = (event as CustomEvent<{ message?: string }>).detail;
+      setToastMessage(detail?.message ?? "Session expired. Please login again.");
+    };
+
+    window.addEventListener("pryme:session-expired", onSessionExpired as EventListener);
+    return () => window.removeEventListener("pryme:session-expired", onSessionExpired as EventListener);
+  }, []);
+
+  useEffect(() => {
+
     refreshUser()
       .catch(() => {
         localStorage.removeItem("pryme_token");
@@ -69,8 +104,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [refreshUser]);
 
   const value = useMemo<AuthContextValue>(
+
+    () => ({ user, isLoading, toastMessage, login, logout, refreshUser, clearToast }),
+    [user, isLoading, toastMessage, login, logout, refreshUser, clearToast]
+
     () => ({ user, isLoading, login, logout, refreshUser }),
     [user, isLoading, login, logout, refreshUser]
+
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

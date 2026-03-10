@@ -10,6 +10,7 @@ public record BankRecommendationResponse(
         String logoUrl,
         BigDecimal interestRate,
         BigDecimal processingFee,
-        String loanType
+        String loanType,
+        BigDecimal fitScore
 ) {
 }

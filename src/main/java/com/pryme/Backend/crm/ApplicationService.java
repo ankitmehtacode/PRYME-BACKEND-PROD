@@ -20,7 +20,7 @@ public class ApplicationService {
         return applicationRepository.findAllByOrderByCreatedAtDesc().stream().map(ApplicationResponse::from).toList();
     }
 
- codex/create-45-day-execution-plan-0e2u1d
+
 
     @Transactional(readOnly = true)
     public List<ApplicationResponse> listMyApplications(java.util.UUID applicantId) {
@@ -29,7 +29,7 @@ public class ApplicationService {
                 .toList();
     }
 
-main
+
     @Transactional
     public ApplicationResponse updateStatus(String applicationId, UpdateStatusRequest request) {
         LoanApplication application = applicationRepository.findByApplicationId(applicationId)

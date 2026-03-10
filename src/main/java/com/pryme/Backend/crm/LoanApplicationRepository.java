@@ -11,7 +11,5 @@ public interface LoanApplicationRepository extends JpaRepository<LoanApplication
 
     List<LoanApplication> findAllByOrderByCreatedAtDesc();
 
-
     List<LoanApplication> findAllByApplicant_IdOrderByCreatedAtDesc(UUID applicantId);
- main
 }

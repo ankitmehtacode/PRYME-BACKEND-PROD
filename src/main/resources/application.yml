@@ -53,6 +53,11 @@ app:
       await-termination-seconds: 30
   documents:
     storage-root: ./var/document-vault
+  leads:
+    backup-dir: ./var/lead-wal
+  recommendation:
+    max-results: 8
+
   security:
     enable-h2-console: false
     session:

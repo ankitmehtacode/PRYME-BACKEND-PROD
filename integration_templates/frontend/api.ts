@@ -49,6 +49,12 @@ api.interceptors.response.use(
 
     if (status === 401 || status === 403) {
       localStorage.removeItem("pryme_token");
+
+      window.dispatchEvent(
+        new CustomEvent("pryme:session-expired", {
+          detail: { message: "Session expired. Please login again." },
+        })
+      );
       if (window.location.pathname !== "/auth") {
         window.location.href = "/auth";
       }

@@ -71,4 +71,38 @@ class BankRecommendationServiceTest {
                 .extracting(p -> p.getBank().getBankName())
                 .containsExactly("Active Bank");
     }
+
+    @Test
+    void recommend_ordersByFitScoreThenPricing() {
+        Bank bank = new Bank(null, "Fit Bank", "/logos/f.png", true);
+        entityManager.persist(bank);
+
+        LoanProduct highRate = LoanProduct.builder()
+                .bank(bank)
+                .minSalary(new BigDecimal("30000.00"))
+                .minCibil(650)
+                .interestRate(new BigDecimal("12.50"))
+                .processingFee(new BigDecimal("2.50"))
+                .type(LoanProductType.PERSONAL)
+                .build();
+
+        LoanProduct balanced = LoanProduct.builder()
+                .bank(bank)
+                .minSalary(new BigDecimal("50000.00"))
+                .minCibil(700)
+                .interestRate(new BigDecimal("8.75"))
+                .processingFee(new BigDecimal("1.00"))
+                .type(LoanProductType.HOME)
+                .build();
+
+        loanProductRepository.saveAll(List.of(highRate, balanced));
+
+        List<LoanProduct> recommendations = bankRecommendationService.recommend(new BigDecimal("85000.00"), 780);
+
+        assertThat(recommendations)
+                .hasSize(2)
+                .extracting(LoanProduct::getInterestRate)
+                .containsExactly(new BigDecimal("8.75"), new BigDecimal("12.50"));
+    }
+
 }
