@@ -1,55 +1,72 @@
 package com.pryme.Backend.eligibility;
 
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.math.BigDecimal;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/eligibility")
-@CrossOrigin(origins = "*") // Allows your frontend to connect
+@RequestMapping("/api/v1/public/eligibility/lnt-lap")
+@RequiredArgsConstructor
 public class EligibilityController {
 
-    // L&T Finance Normal Income Program (NIP)
-    @PostMapping("/lnt-lap/nip")
-    public Map<String, Object> calculateNipEligibility(@RequestBody NipRequest request) {
-        // Gross = PAT + Depreciation + Interest
-        BigDecimal grossIncome = request.pat().add(request.depreciation()).add(request.interest());
-        // FOIR is 95% (0.95)
-        BigDecimal maxEmiAllowed = grossIncome.multiply(new BigDecimal("0.95"));
-        BigDecimal actualEligibleEmi = maxEmiAllowed.subtract(request.existingEmis());
+    private final EligibilityEngineService eligibilityEngineService;
 
-        return Map.of(
-                "bank", "L&T Finance",
-                "program", "LAP - Normal Income",
-                "grossIncomeCalculated", grossIncome,
-                "maxEligibleEmi", actualEligibleEmi.max(BigDecimal.ZERO)
-        );
+    @PostMapping("/best-match")
+    public ResponseEntity<BestMatchResponse> bestMatch(@Valid @RequestBody EligibilityRequest request) {
+        return ResponseEntity.ok(eligibilityEngineService.evaluate(request));
     }
 
-    // L&T Finance GST Surrogate Program
-    @PostMapping("/lnt-lap/gst")
-    public Map<String, Object> calculateGstEligibility(@RequestBody GstRequest request) {
-        BigDecimal profitMargin = switch(request.businessType().toUpperCase()) {
-            case "SERVICE" -> new BigDecimal("0.10"); // 10%
-            case "RETAILER" -> new BigDecimal("0.12"); // 12%
-            case "WHOLESALER" -> new BigDecimal("0.08"); // 8%
-            case "MANUFACTURER" -> new BigDecimal("0.04"); // 4%
-            default -> BigDecimal.ZERO;
-        };
-
-        BigDecimal estimatedIncome = request.turnover12M().multiply(profitMargin);
-        BigDecimal maxEmiAllowed = estimatedIncome.multiply(new BigDecimal("0.65")); // 65% FOIR for GST
-        BigDecimal actualEligibleEmi = maxEmiAllowed.subtract(request.existingEmis());
-
-        return Map.of(
-                "bank", "L&T Finance",
-                "program", "LAP - GST Surrogate",
-                "estimatedIncome", estimatedIncome,
-                "maxEligibleEmi", actualEligibleEmi.max(BigDecimal.ZERO)
+    @PostMapping("/nip")
+    public ResponseEntity<EligibilityResult> nip(@RequestBody NipRequest request) {
+        EligibilityRequest normalized = new EligibilityRequest(
+                request.pat(),
+                request.depreciation(),
+                request.interest(),
+                request.existingEmis(),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BusinessType.OTHER,
+                3,
+                2,
+                BigDecimal.ZERO,
+                12,
+                true,
+                BigDecimal.ZERO,
+                new BigDecimal("12.00"),
+                240
         );
+        return ResponseEntity.ok(eligibilityEngineService.evaluateNip(normalized));
     }
+
+    @PostMapping("/gst")
+    public ResponseEntity<EligibilityResult> gst(@RequestBody GstRequest request) {
+        EligibilityRequest normalized = new EligibilityRequest(
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                request.existingEmis(),
+                BigDecimal.ZERO,
+                request.turnover12M(),
+                BigDecimal.ZERO,
+                request.businessType(),
+                3,
+                2,
+                BigDecimal.ZERO,
+                12,
+                true,
+                BigDecimal.ZERO,
+                new BigDecimal("12.00"),
+                240
+        );
+        return ResponseEntity.ok(eligibilityEngineService.evaluateGst(normalized));
+    }
+
+    public record NipRequest(BigDecimal pat, BigDecimal depreciation, BigDecimal interest, BigDecimal existingEmis) {}
+
+    public record GstRequest(BigDecimal turnover12M, BusinessType businessType, BigDecimal existingEmis) {}
 }
-
-// Data Transfer Objects (DTOs)
-record NipRequest(BigDecimal pat, BigDecimal depreciation, BigDecimal interest, BigDecimal existingEmis) {}
-record GstRequest(BigDecimal turnover12M, String businessType, BigDecimal existingEmis) {}
