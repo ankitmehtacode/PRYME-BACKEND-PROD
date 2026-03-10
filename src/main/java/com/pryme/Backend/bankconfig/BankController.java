@@ -1,36 +1,45 @@
 package com.pryme.Backend.bankconfig;
 
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/admin/banks")
+@RequiredArgsConstructor
 public class BankController {
 
-    // In a real flow, you inject the BankRepository here
+    private final BankService bankService;
 
     @PostMapping
-    public String createBank(@RequestBody Bank bank) {
-        // Full CRUD: Create
-        return "Bank " + bank.getBankName() + " created successfully in CMS.";
+    public ResponseEntity<BankResponse> createBank(@Valid @RequestBody BankRequest request) {
+        return ResponseEntity.ok(bankService.create(request));
     }
 
     @GetMapping
-    public List<Bank> getAllBanks() {
-        // Full CRUD: Read
-        return List.of(new Bank(UUID.randomUUID(), "L&T Finance", "/logos/lnt.png", true));
+    public ResponseEntity<List<BankResponse>> getAllBanks() {
+        return ResponseEntity.ok(bankService.getAll());
     }
 
     @PutMapping("/{id}")
-    public String updateBank(@PathVariable UUID id, @RequestBody Bank bank) {
-        // Full CRUD: Update
-        return "Bank " + id + " updated successfully.";
+    public ResponseEntity<BankResponse> updateBank(@PathVariable UUID id, @Valid @RequestBody BankRequest request) {
+        return ResponseEntity.ok(bankService.update(id, request));
+    }
+
+    @PatchMapping("/{id}/visibility")
+    public ResponseEntity<BankResponse> toggleVisibility(@PathVariable UUID id, @RequestBody Map<String, Boolean> payload) {
+        boolean active = Boolean.TRUE.equals(payload.get("active"));
+        return ResponseEntity.ok(bankService.toggleVisibility(id, active));
     }
 
     @DeleteMapping("/{id}")
-    public String deleteBank(@PathVariable UUID id) {
-        // Full CRUD: Delete
-        return "Bank " + id + " deleted from system.";
+    public ResponseEntity<Void> deleteBank(@PathVariable UUID id) {
+        bankService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }
