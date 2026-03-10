@@ -1,13 +1,18 @@
 package com.pryme.Backend.iam;
 
+
 import com.pryme.Backend.common.ForbiddenException;
 import com.pryme.Backend.common.UnauthorizedException;
+
+ main
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+ main
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +40,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         User user = userRepository.findByEmail(request.email().trim().toLowerCase())
+ 
                 .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
 
         if (!passwordEncoder.matches(request.password().trim(), user.getPasswordHash())) {
@@ -98,6 +104,40 @@ public class AuthController {
     private String extractBearerToken(String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new UnauthorizedException("Missing Bearer token");
+
+                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+
+        if (!passwordEncoder.matches(request.password().trim(), user.getPasswordHash())) {
+            throw new RuntimeException("Invalid email or password");
+        }
+
+        SessionRecord session = sessionManager.issueSession(user.getId(), request.deviceId());
+
+        return ResponseEntity.ok(new LoginResponse(
+                session.token(),
+                user.getRole().name(),
+                user.getFullName(),
+                session.expiresAt(),
+                "Login successful"
+        ));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, String>> logout(@RequestHeader("Authorization") String authHeader) {
+        String token = extractBearerToken(authHeader);
+        sessionManager.invalidate(token);
+        return ResponseEntity.ok(Map.of("message", "Logged out"));
+    }
+
+    @GetMapping("/sessions/{userId}")
+    public ResponseEntity<List<SessionRecord>> sessions(@PathVariable UUID userId) {
+        return ResponseEntity.ok(sessionManager.activeSessions(userId));
+    }
+
+    private String extractBearerToken(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("Missing Bearer token");
+ main
         }
         return authHeader.substring(7);
     }
@@ -118,6 +158,7 @@ record LoginResponse(
         String message
 ) {
 }
+codex/create-45-day-execution-plan-0e2u1d
 
 record MeResponse(
         UUID id,
@@ -127,3 +168,4 @@ record MeResponse(
         String phone
 ) {
 }
+main
