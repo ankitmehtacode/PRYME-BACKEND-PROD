@@ -19,10 +19,8 @@ class LeadServiceTest {
 
     @Mock
     private LeadRepository leadRepository;
-
     @Mock
     private LeadBackupService leadBackupService;
-
     @InjectMocks
     private LeadService leadService;
 
@@ -30,7 +28,6 @@ class LeadServiceTest {
     void submitLead_returnsExistingLeadForSameIdempotencyKey() {
         UUID opId = UUID.randomUUID();
         when(leadBackupService.begin(any(), any())).thenReturn(opId);
-
         Lead existing = Lead.builder()
                 .id(UUID.randomUUID())
                 .userName("Rahul")
@@ -52,13 +49,13 @@ class LeadServiceTest {
         assertThat(response.userName()).isEqualTo("Rahul");
         verify(leadRepository, never()).save(any());
         verify(leadBackupService).markCommitted(opId);
+
     }
 
     @Test
     void submitLead_persistsNewLeadWithoutIdempotencyKey() {
         UUID opId = UUID.randomUUID();
         when(leadBackupService.begin(any(), any())).thenReturn(opId);
-
         Lead saved = Lead.builder()
                 .id(UUID.randomUUID())
                 .userName("Asha")
@@ -81,5 +78,6 @@ class LeadServiceTest {
         assertThat(response.offerId()).isEqualTo("icici-cashback");
         verify(leadRepository, times(1)).save(any(Lead.class));
         verify(leadBackupService).markCommitted(opId);
+
     }
 }

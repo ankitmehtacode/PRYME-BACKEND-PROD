@@ -9,6 +9,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+
 import java.math.RoundingMode;
 import java.util.Comparator;
 import java.util.List;
@@ -21,6 +22,7 @@ public class BankRecommendationService {
 
     @Value("${app.recommendation.max-results:8}")
     private int maxResults;
+
 
     @Cacheable(cacheNames = "banks:recommendation", key = "#salary.toPlainString() + ':' + #cibil")
     public List<LoanProduct> recommend(BigDecimal salary, Integer cibil) {

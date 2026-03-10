@@ -21,12 +21,14 @@ public class ApplicationService {
     }
 
 
+
     @Transactional(readOnly = true)
     public List<ApplicationResponse> listMyApplications(java.util.UUID applicantId) {
         return applicationRepository.findAllByApplicant_IdOrderByCreatedAtDesc(applicantId).stream()
                 .map(ApplicationResponse::from)
                 .toList();
     }
+
 
     @Transactional
     public ApplicationResponse updateStatus(String applicationId, UpdateStatusRequest request) {
