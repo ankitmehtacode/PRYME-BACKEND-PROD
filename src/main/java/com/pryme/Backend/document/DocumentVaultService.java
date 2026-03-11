@@ -203,10 +203,10 @@ public class DocumentVaultService {
 
     private UUID userIdFromAuth() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !(auth.getPrincipal() instanceof UUID userId)) {
+        if (auth == null || !(auth.getPrincipal() instanceof UUID)) {
             throw new ForbiddenException("Authentication required");
         }
-        return userId;
+        return (UUID) auth.getPrincipal();
     }
 
     private String sanitizeDocType(String docType) {

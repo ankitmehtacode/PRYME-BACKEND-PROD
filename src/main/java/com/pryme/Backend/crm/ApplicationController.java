@@ -22,9 +22,10 @@ public class ApplicationController {
 
     @GetMapping("/me")
     public ResponseEntity<List<ApplicationResponse>> myApplications(Authentication authentication) {
-        if (authentication == null || !(authentication.getPrincipal() instanceof UUID userId)) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof UUID)) {
             throw new ForbiddenException("Authentication required");
         }
+        UUID userId = (UUID) authentication.getPrincipal();
         return ResponseEntity.ok(applicationService.listMyApplications(userId));
     }
 }

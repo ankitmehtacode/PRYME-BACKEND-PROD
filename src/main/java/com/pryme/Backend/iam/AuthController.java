@@ -90,11 +90,14 @@ public class AuthController {
         return ResponseEntity.ok(sessionManager.activeSessions(userId));
     }
 
+        return ResponseEntity.ok(sessionManager.activeSessions(userId));
+    }
+
     private UUID userIdFromAuth(Authentication authentication) {
-        if (authentication == null || !(authentication.getPrincipal() instanceof UUID userId)) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof UUID)) {
             throw new UnauthorizedException("Authentication required");
         }
-        return userId;
+        return (UUID) authentication.getPrincipal();
     }
 
     private String extractBearerToken(String authHeader) {

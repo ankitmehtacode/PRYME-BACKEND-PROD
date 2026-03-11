@@ -48,10 +48,16 @@ public class GlobalExceptionHandler {
                 .body(new ApiError("VERSION_CONFLICT", "Record changed by another user. Refresh and retry."));
     }
 
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ApiError> handleRuntime(RuntimeException ex) {
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ApiError("REQUEST_ERROR", ex.getMessage()));
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ApiError> handleRuntime(RuntimeException ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiError("INTERNAL_ERROR", "Something went wrong. Please try again."));
     }
 
     @ExceptionHandler(Exception.class)
