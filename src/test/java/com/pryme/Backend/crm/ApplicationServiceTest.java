@@ -2,6 +2,8 @@ package com.pryme.Backend.crm;
 
 import com.pryme.Backend.common.ConflictException;
 import com.pryme.Backend.common.NotFoundException;
+import com.pryme.Backend.iam.User;
+import com.pryme.Backend.iam.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -13,22 +15,28 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ApplicationServiceTest {
 
+    // 🧠 PRODUCTION FIX: Mock both required repositories
     @Mock
-    private LoanApplicationRepository repository;
+    private LoanApplicationRepository applicationRepository;
+
+    @Mock
+    private UserRepository userRepository;
 
     @InjectMocks
     private ApplicationService service;
 
     @Test
     void assign_throwsNotFound_whenMissingApplication() {
-        when(repository.findByApplicationId("PRY-1")).thenReturn(Optional.empty());
+        when(applicationRepository.findByApplicationId("PRY-1")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.assign("PRY-1", new AssignLeadRequest("EMP001", null)))
+        // 🧠 Valid UUID format used instead of "EMP001" to pass the updated strict validation
+        assertThatThrownBy(() -> service.assign("PRY-1", new AssignLeadRequest(UUID.randomUUID().toString(), null)))
                 .isInstanceOf(NotFoundException.class);
     }
 
@@ -37,30 +45,38 @@ class ApplicationServiceTest {
         LoanApplication app = LoanApplication.builder()
                 .id(UUID.randomUUID())
                 .applicationId("PRY-2")
-                .assignee("UNASSIGNED")
+                // 🧠 PRODUCTION FIX: Removed the illegal String injection.
+                // Unassigned relationships naturally default to null in Relational Databases.
                 .version(1L)
                 .build();
-        when(repository.findByApplicationId("PRY-2")).thenReturn(Optional.of(app));
+
+        when(applicationRepository.findByApplicationId("PRY-2")).thenReturn(Optional.of(app));
 
         assertThatThrownBy(() -> service.updateStatus("PRY-2", new UpdateStatusRequest("WRONG", 1L)))
                 .isInstanceOf(ConflictException.class);
     }
 
     @Test
-    void assign_setsNormalizedAssignee() {
+    void assign_setsUserAssignee() {
+        UUID employeeId = UUID.randomUUID();
         LoanApplication app = LoanApplication.builder()
                 .id(UUID.randomUUID())
                 .applicationId("PRY-3")
-                .assignee("UNASSIGNED")
                 .status(ApplicationStatus.SUBMITTED)
                 .version(2L)
                 .build();
 
-        when(repository.findByApplicationId("PRY-3")).thenReturn(Optional.of(app));
-        when(repository.save(app)).thenReturn(app);
+        // 🧠 PRODUCTION FIX: Mocking the actual User entity to satisfy the Foreign Key constraint
+        User mockEmployee = mock(User.class);
+        when(mockEmployee.getFullName()).thenReturn("John Doe");
 
-        ApplicationResponse response = service.assign("PRY-3", new AssignLeadRequest("emp001", 2L));
+        when(applicationRepository.findByApplicationId("PRY-3")).thenReturn(Optional.of(app));
+        when(userRepository.findById(employeeId)).thenReturn(Optional.of(mockEmployee));
+        when(applicationRepository.save(app)).thenReturn(app);
 
-        assertThat(response.assignee()).isEqualTo("EMP001");
+        ApplicationResponse response = service.assign("PRY-3", new AssignLeadRequest(employeeId.toString(), 2L));
+
+        // Ensures the DTO safely unpacked the User entity's string name
+        assertThat(response.assignee()).isEqualTo("John Doe");
     }
 }

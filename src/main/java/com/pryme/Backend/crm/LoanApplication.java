@@ -37,9 +37,10 @@ public class LoanApplication {
     @Builder.Default
     private List<DocumentRecord> documents = new ArrayList<>();
 
-    @Builder.Default
-    @Column(name = "assignee_id")
-    private String assignee = "UNASSIGNED";
+    // 🧠 Production Grade Foreign Key mapping
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assignee_id")
+    private User assignee;
 
     @Version
     private Long version;
@@ -50,6 +51,5 @@ public class LoanApplication {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         if (status == null) status = ApplicationStatus.SUBMITTED;
-        if (assignee == null) assignee = "UNASSIGNED";
     }
 }

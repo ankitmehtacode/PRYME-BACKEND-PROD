@@ -2,27 +2,30 @@ package com.pryme.Backend.crm;
 
 import com.pryme.Backend.common.ConflictException;
 import com.pryme.Backend.common.NotFoundException;
+import com.pryme.Backend.iam.User;
+import com.pryme.Backend.iam.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class ApplicationService {
 
     private final LoanApplicationRepository applicationRepository;
+    // 🧠 PRODUCTION FIX: Inject UserRepository to validate dynamic employees, not hardcoded Enums
+    private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
     public List<ApplicationResponse> listApplications() {
         return applicationRepository.findAllByOrderByCreatedAtDesc().stream().map(ApplicationResponse::from).toList();
     }
 
-
     @Transactional(readOnly = true)
-    public List<ApplicationResponse> listMyApplications(java.util.UUID applicantId) {
+    public List<ApplicationResponse> listMyApplications(UUID applicantId) {
         return applicationRepository.findAllByApplicant_IdOrderByCreatedAtDesc(applicantId).stream()
                 .map(ApplicationResponse::from)
                 .toList();
@@ -53,13 +56,20 @@ public class ApplicationService {
 
         validateVersion(application.getVersion(), request.version());
 
-        String normalizedAssignee = request.assigneeId().trim().toUpperCase();
-        boolean allowed = Arrays.stream(ApplicationAssignee.values()).map(Enum::name).anyMatch(a -> a.equals(normalizedAssignee));
-        if (!allowed) {
-            throw new ConflictException("Invalid assigneeId");
+        // 🧠 PRODUCTION FIX: Safely parse the Assignee ID and fetch the actual Relational User Entity
+        UUID empId;
+        try {
+            empId = UUID.fromString(request.assigneeId().trim());
+        } catch (IllegalArgumentException ex) {
+            throw new ConflictException("Invalid assigneeId format. Expected a valid User UUID.");
         }
 
-        application.setAssignee(normalizedAssignee);
+        User employee = userRepository.findById(empId)
+                .orElseThrow(() -> new NotFoundException("Assignee not found in IAM system records."));
+
+        // Successfully pass the User Entity, resolving the compilation error
+        application.setAssignee(employee);
+
         return ApplicationResponse.from(applicationRepository.save(application));
     }
 

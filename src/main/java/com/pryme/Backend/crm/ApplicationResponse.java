@@ -20,6 +20,11 @@ public record ApplicationResponse(
                 ? "Unknown"
                 : app.getApplicant().getFullName();
 
+        // 🧠 PRODUCTION FIX: Safely unpack the Relational User Entity into a String
+        String assigneeName = app.getAssignee() == null || app.getAssignee().getFullName() == null
+                ? "UNASSIGNED"
+                : app.getAssignee().getFullName();
+
         return new ApplicationResponse(
                 app.getId().toString(),
                 app.getApplicationId(),
@@ -28,7 +33,7 @@ public record ApplicationResponse(
                 app.getRequestedAmount(),
                 app.getDeclaredCibilScore(),
                 app.getStatus() == null ? null : app.getStatus().name(),
-                app.getAssignee(),
+                assigneeName, // Pass the safely extracted String, preventing the Type Mismatch
                 app.getCreatedAt(),
                 app.getVersion()
         );

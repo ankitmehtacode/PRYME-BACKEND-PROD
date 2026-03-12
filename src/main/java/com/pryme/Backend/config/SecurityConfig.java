@@ -61,11 +61,16 @@ public class SecurityConfig {
                             .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                             .anyRequest().authenticated();
                 })
-                .headers(headers -> headers
-                        .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'; frame-ancestors 'self'; object-src 'none'"))
-                        .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31536000))
-                        .frameOptions(frame -> frame.sameOrigin())
-                )
+                .headers(headers -> {
+                    // 🧠 PRODUCTION FIX: Dynamically adapt CSP for H2 inline scripts during local testing
+                    String cspDirective = enableH2Console
+                            ? "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; frame-ancestors 'self'; object-src 'none'"
+                            : "default-src 'self'; frame-ancestors 'self'; object-src 'none'";
+
+                    headers.contentSecurityPolicy(csp -> csp.policyDirectives(cspDirective))
+                            .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31536000))
+                            .frameOptions(frame -> frame.sameOrigin()); // Same-origin is required for H2 console frames
+                })
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .addFilterBefore(sessionAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

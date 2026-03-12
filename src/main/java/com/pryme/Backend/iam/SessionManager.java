@@ -1,6 +1,7 @@
 package com.pryme.Backend.iam;
 
 import jakarta.annotation.PreDestroy;
+import org.springframework.beans.factory.annotation.Autowired; // 🧠 ADDED: Required for Spring DI
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -28,6 +29,8 @@ public class SessionManager {
     private final Map<String, SessionRecord> tokenIndex = new ConcurrentHashMap<String, SessionRecord>();
     private final Map<UUID, Deque<SessionRecord>> userSessions = new ConcurrentHashMap<UUID, Deque<SessionRecord>>();
 
+    // 🧠 PRODUCTION FIX: @Autowired commands Spring to use this specific constructor
+    @Autowired
     public SessionManager(
             @Value("${app.security.session.max-sessions-per-user:3}") int maxSessionsPerUser,
             @Value("${app.security.session.ttl-hours:8}") long sessionTtlHours

@@ -77,6 +77,7 @@ public class AuthController {
     @GetMapping("/sessions/{userId}")
     public ResponseEntity<List<SessionRecord>> sessions(@PathVariable UUID userId, Authentication authentication) {
         UUID currentUserId = userIdFromAuth(authentication);
+
         boolean isAdmin = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .anyMatch(role -> role.equals("ROLE_ADMIN") || role.equals("ROLE_SUPER_ADMIN"));
@@ -84,11 +85,6 @@ public class AuthController {
         if (!isAdmin && !currentUserId.equals(userId)) {
             throw new ForbiddenException("Unauthorized to view sessions");
         }
-        return userId;
-    }
-
-        return ResponseEntity.ok(sessionManager.activeSessions(userId));
-    }
 
         return ResponseEntity.ok(sessionManager.activeSessions(userId));
     }
@@ -108,12 +104,13 @@ public class AuthController {
     }
 }
 
+// --- DTO Records ---
+
 record LoginRequest(
         @Email @NotBlank String email,
         @NotBlank String password,
         String deviceId
-) {
-}
+) {}
 
 record LoginResponse(
         String token,
@@ -121,8 +118,7 @@ record LoginResponse(
         String name,
         Instant expiresAt,
         String message
-) {
-}
+) {}
 
 record MeResponse(
         UUID id,
@@ -130,5 +126,4 @@ record MeResponse(
         String role,
         String fullName,
         String phone
-) {
-}
+) {}
