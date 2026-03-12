@@ -36,6 +36,14 @@ public class Lead {
     @Column(nullable = false, length = 30)
     private String loanType;
 
+    // 🧠 PRODUCTION FIX: Natively capturing the core financial metric for the Elevation Engine
+    @Column(name = "cibil_score")
+    private Integer cibilScore;
+
+    // 🧠 PRODUCTION FIX: A robust JSON text blob to capture email, panCard, monthlyIncome, city, state
+    @Column(columnDefinition = "TEXT")
+    private String metadata;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default

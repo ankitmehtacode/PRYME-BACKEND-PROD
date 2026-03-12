@@ -1,5 +1,6 @@
 package com.pryme.Backend.crm;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pryme.Backend.common.ConflictException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -15,7 +16,11 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class LeadService {
 
-    private static final Set<String> ALLOWED_LOAN_TYPES = Set.of("personal", "business", "home", "education");
+    // 🧠 PRODUCTION FIX: Aligned with frontend product catalog
+    private static final Set<String> ALLOWED_LOAN_TYPES = Set.of("personal", "business", "home", "education", "lap");
+
+    // 🧠 PRODUCTION FIX: Static, thread-safe mapper prevents memory leaks during high-volume JSON serialization
+    private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
     private final LeadRepository leadRepository;
     private final LeadBackupService leadBackupService;
@@ -54,11 +59,32 @@ public class LeadService {
     }
 
     private LeadResponse saveLead(LeadSubmitRequest request, String loanType, String idempotencyKey) {
+        Integer extractedCibil = null;
+        String metaString = null;
+
+        // 🧠 DATA LOSS PREVENTION: Safely parse and serialize the incoming React metadata payload
+        if (request.metadata() != null) {
+            if (request.metadata().get("cibilScore") != null) {
+                try {
+                    extractedCibil = Integer.parseInt(request.metadata().get("cibilScore").toString());
+                } catch (NumberFormatException ignored) {
+                    // Failsafe in case frontend sends invalid number
+                }
+            }
+            try {
+                metaString = JSON_MAPPER.writeValueAsString(request.metadata());
+            } catch (Exception e) {
+                metaString = "{}";
+            }
+        }
+
         Lead lead = Lead.builder()
                 .userName(request.userName().trim())
                 .phone(request.phone().trim())
                 .loanAmount(request.loanAmount())
                 .loanType(loanType)
+                .cibilScore(extractedCibil) // Injects the captured CIBIL directly into the column
+                .metadata(metaString)       // Injects the JSON blob into the TEXT column
                 .status(LeadStatus.NEW)
                 .offerId(request.offerId())
                 .idempotencyKey(idempotencyKey)
@@ -74,7 +100,7 @@ public class LeadService {
     private String normalizeLoanType(String loanType) {
         String normalized = loanType == null ? "" : loanType.trim().toLowerCase();
         if (!ALLOWED_LOAN_TYPES.contains(normalized)) {
-            throw new ConflictException("Unsupported loanType. Allowed: personal, business, home, education");
+            throw new ConflictException("Unsupported loanType. Allowed: personal, business, home, education, lap");
         }
         return normalized;
     }
