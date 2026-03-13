@@ -2,7 +2,28 @@ package com.pryme.Backend.iam;
 
 import com.pryme.Backend.common.ForbiddenException;
 import com.pryme.Backend.common.UnauthorizedException;
-import com.pryme.Backend.common.ConflictException; // 🧠 REQUIRED FOR DUPLICATE EMAIL TESTS
+import com.pryme.Backend.common.ConflictException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+package com.pryme.Backend.iam;
+
+import com.pryme.Backend.common.ForbiddenException;
+import com.pryme.Backend.common.UnauthorizedException;
+import com.pryme.Backend.common.ConflictException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,7 +41,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -38,11 +58,12 @@ class AuthControllerTest {
 
     @BeforeEach
     void setUp() {
+        // 🧠 Core Engine Initialization
         authController = new AuthController(userRepository, passwordEncoder, sessionManager);
     }
 
     // ==========================================
-    // 🧠 NEW: SIGNUP ENGINE TESTS
+    // 🧠 SIGNUP ENGINE TESTS
     // ==========================================
     @Test
     void signup_SuccessfullyCreatesNewUser() {
@@ -56,20 +77,25 @@ class AuthControllerTest {
         assertNotNull(response.getBody());
         assertEquals("newclient@pryme.com", response.getBody().get("email"));
 
-        // Verify the user was actually saved with the correct hashed password and default USER role
+        // Verify the database persistence layer receives the correct encrypted payload
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(userCaptor.capture());
 
         User savedUser = userCaptor.getValue();
         assertEquals("New Client", savedUser.getFullName());
         assertEquals("hashed_securePass123", savedUser.getPasswordHash());
-        assertEquals(Role.USER, savedUser.getRole()); // Assures no privilege escalation vulnerabilities
+
+        // 🧠 STRICT SECURITY ASSERTION: Assures no privilege escalation vulnerabilities
+        assertEquals(Role.USER, savedUser.getRole());
     }
 
     @Test
     void signup_RejectsDuplicateEmailWithConflictException() {
-        // Simulate an existing user already in the database
-        when(userRepository.findByEmail("existing@pryme.com")).thenReturn(Optional.of(new User()));
+        // Simulate a collision with an existing user in the database
+        User existingUser = new User();
+        existingUser.setEmail("existing@pryme.com");
+
+        when(userRepository.findByEmail("existing@pryme.com")).thenReturn(Optional.of(existingUser));
 
         SignupRequest request = new SignupRequest("Imposter", "existing@pryme.com", "password");
 
@@ -87,13 +113,14 @@ class AuthControllerTest {
     @Test
     void meReturnsCurrentUserProfile() {
         UUID userId = UUID.randomUUID();
-        User user = User.builder()
-                .id(userId)
-                .email("admin@pryme.com")
-                .fullName("Admin")
-                .phone("9999999999")
-                .role(Role.ADMIN)
-                .build();
+
+        // 🧠 PRODUCTION FIX: Bypassing Lombok Builder to mathematically guarantee CI/CD compilation
+        User user = new User();
+        user.setId(userId);
+        user.setEmail("admin@pryme.com");
+        user.setFullName("Admin");
+        user.setPhone("9999999999");
+        user.setRole(Role.ADMIN);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
@@ -107,6 +134,8 @@ class AuthControllerTest {
 
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
+
+        // Assumes MeResponse is a modern Java Record
         assertEquals(userId, response.getBody().id());
         assertEquals("admin@pryme.com", response.getBody().email());
         assertEquals("ADMIN", response.getBody().role());
@@ -135,7 +164,11 @@ class AuthControllerTest {
                 List.of(new SimpleGrantedAuthority("ROLE_EMPLOYEE"))
         );
 
-        ForbiddenException ex = assertThrows(ForbiddenException.class, () -> authController.sessions(otherUserId, auth));
+        ForbiddenException ex = assertThrows(
+                ForbiddenException.class,
+                () -> authController.sessions(otherUserId, auth)
+        );
+
         assertEquals("Unauthorized to view sessions", ex.getMessage());
     }
 }
