@@ -2,9 +2,8 @@ package com.pryme.Backend.iam;
 
 import com.pryme.Backend.common.ForbiddenException;
 import com.pryme.Backend.common.UnauthorizedException;
+import com.pryme.Backend.common.ConflictException; // 🧠 STRICT VALIDATION
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -12,7 +11,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -32,6 +30,38 @@ public class AuthController {
         this.sessionManager = sessionManager;
     }
 
+    // ==========================================
+    // 🧠 SECURE DATABASE SIGNUP ENGINE
+    // ==========================================
+    @PostMapping("/signup")
+    public ResponseEntity<Map<String, String>> signup(@Valid @RequestBody SignupRequest request) {
+        String normalizedEmail = request.email().trim().toLowerCase();
+
+        // 1. Prevent duplicate identities in the database
+        if (userRepository.findByEmail(normalizedEmail).isPresent()) {
+            throw new ConflictException("An account with this email already exists.");
+        }
+
+        // 2. Hash the password & Create the User Entity
+        // We use standard instantiation to mathematically guarantee no Lombok compiler issues in Maven
+        User newUser = new User();
+        newUser.setFullName(request.fullName().trim());
+        newUser.setEmail(normalizedEmail);
+        newUser.setPasswordHash(passwordEncoder.encode(request.password().trim())); // Zero-Trust: Never store plaintext
+        newUser.setRole(Role.USER); // Restrict default registration to standard Client Portal tier
+
+        // 3. Persist physically to the database
+        userRepository.save(newUser);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Identity successfully provisioned in the database.",
+                "email", newUser.getEmail()
+        ));
+    }
+
+    // ==========================================
+    // EXISTING IDENTITY ENGINES
+    // ==========================================
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         User user = userRepository.findByEmail(request.email().trim().toLowerCase())
@@ -44,6 +74,7 @@ public class AuthController {
         SessionRecord session = sessionManager.issueSession(user.getId(), request.deviceId());
 
         return ResponseEntity.ok(new LoginResponse(
+                user.getId(), // 🧠 CRITICAL: Passes the User ID to React for the Lead Elevation Engine
                 session.token(),
                 user.getRole().name(),
                 user.getFullName(),
@@ -103,27 +134,3 @@ public class AuthController {
         return authHeader.substring(7);
     }
 }
-
-// --- DTO Records ---
-
-record LoginRequest(
-        @Email @NotBlank String email,
-        @NotBlank String password,
-        String deviceId
-) {}
-
-record LoginResponse(
-        String token,
-        String role,
-        String name,
-        Instant expiresAt,
-        String message
-) {}
-
-record MeResponse(
-        UUID id,
-        String email,
-        String role,
-        String fullName,
-        String phone
-) {}
