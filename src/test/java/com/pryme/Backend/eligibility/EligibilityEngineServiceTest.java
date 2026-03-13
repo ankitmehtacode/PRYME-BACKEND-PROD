@@ -1,7 +1,6 @@
 package com.pryme.Backend.eligibility;
 
 import org.junit.jupiter.api.Test;
-
 import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -71,7 +70,9 @@ class EligibilityEngineServiceTest {
 
         BestMatchResponse response = service.evaluate(req);
 
-        assertThat(response.bestMatch().program()).isIn(LapProgram.values());
+        // 🧠 PRODUCTION FIX: Explicitly cast to (Object[]) to resolve the ambiguous varargs compiler error cleanly.
+        assertThat(response.bestMatch().program()).isIn((Object[]) LapProgram.values());
+
         assertThat(response.bestMatch().estimatedEligibleLoanAmount()).isNotNull();
         assertThat(response.evaluated()).hasSize(5);
     }
