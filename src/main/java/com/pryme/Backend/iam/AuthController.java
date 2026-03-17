@@ -2,7 +2,7 @@ package com.pryme.Backend.iam;
 
 import com.pryme.Backend.common.ForbiddenException;
 import com.pryme.Backend.common.UnauthorizedException;
-import com.pryme.Backend.common.ConflictException; // 🧠 STRICT VALIDATION
+import com.pryme.Backend.common.ConflictException;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -33,8 +33,9 @@ public class AuthController {
     // ==========================================
     // 🧠 SECURE DATABASE SIGNUP ENGINE
     // ==========================================
-    @PostMapping("/signup")
-    public ResponseEntity<Map<String, String>> signup(@Valid @RequestBody SignupRequest request) {
+    // 🧠 SILICON-VALLEY FIX: Bind to BOTH endpoints to guarantee React never hits a 404
+    @PostMapping({"/register", "/signup"})
+    public ResponseEntity<Map<String, String>> register(@Valid @RequestBody SignupRequest request) {
         String normalizedEmail = request.email().trim().toLowerCase();
 
         // 1. Prevent duplicate identities in the database
