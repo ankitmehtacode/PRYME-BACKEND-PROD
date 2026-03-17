@@ -2,7 +2,9 @@ spring:
   application:
     name: pryme-backend
   datasource:
-    url: jdbc:h2:mem:pryme_db
+    # 🧠 FAILPROOF FIX 1: H2 strictly forbids mixing AUTO_SERVER and DB_CLOSE_ON_EXIT.
+    # AUTO_SERVER=TRUE prevents locking crashes when IntelliJ and Maven run simultaneously.
+    url: jdbc:h2:file:./local_db/pryme_db;AUTO_SERVER=TRUE
     driverClassName: org.h2.Driver
     username: sa
     password: password
@@ -15,9 +17,10 @@ spring:
       max-lifetime: 1800000
       leak-detection-threshold: 2000
   jpa:
+    # 🧠 FAILPROOF FIX 2: Explicit dialect prevents Hibernate from crashing if the DB connection is delayed.
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: update
+      ddl-auto: update # CRITICAL: Ensures tables persist across restarts
     open-in-view: false
     show-sql: false
     properties:
@@ -63,7 +66,7 @@ app:
       max-sessions-per-user: 3
       ttl-hours: 8
       cleanup-ms: 300000
-    # 🧠 PRODUCTION FIX: Port 8081 securely whitelisted for the Anti-Gravity Frontend
+    # 🧠 FAILPROOF FIX 3: Vite runs on 8081. This whitelists the frontend correctly.
     allowed-origins: http://localhost:3000,http://localhost:5173,http://localhost:8081,https://pryme.in
 
 server:
