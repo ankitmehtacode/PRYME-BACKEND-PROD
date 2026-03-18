@@ -4,11 +4,15 @@ import com.pryme.Backend.document.DocumentRecord;
 import com.pryme.Backend.iam.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Entity
@@ -63,6 +67,13 @@ public class LoanApplication {
     @Builder.Default
     private String currentStep = "COMPLEX_PROFILING";
 
+    // 🧠 SILICON-VALLEY FIX: The Hybrid NoSQL Column
+    // This allows Hibernate to natively serialize/deserialize React's dynamic Funnel Map directly into a JSON database column!
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "metadata")
+    @Builder.Default
+    private Map<String, Object> metadata = new HashMap<>();
+
     // ==========================================
     // RELATIONSHIPS
     // ==========================================
@@ -94,6 +105,7 @@ public class LoanApplication {
         if (status == null) status = ApplicationStatus.SUBMITTED;
         if (completionPercentage == null) completionPercentage = 50;
         if (currentStep == null) currentStep = "COMPLEX_PROFILING";
+        if (metadata == null) metadata = new HashMap<>();
     }
 
     @PreUpdate
