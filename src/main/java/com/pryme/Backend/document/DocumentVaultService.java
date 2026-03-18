@@ -19,6 +19,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -37,7 +39,7 @@ public class DocumentVaultService {
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of("application/pdf", "image/jpeg", "image/png");
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("pdf", "jpg", "jpeg", "png");
     private static final long MAX_FILE_SIZE_BYTES = 10L * 1024 * 1024; // 10 MB limit
-    private static final int MAX_DOC_TYPE_LENGTH = 64; // 🧠 Expanded to support longer React document names
+    private static final int MAX_DOC_TYPE_LENGTH = 64;
 
     private static final Map<String, Set<String>> MIME_TO_EXTENSIONS = Map.of(
             "application/pdf", Set.of("pdf"),
@@ -52,14 +54,17 @@ public class DocumentVaultService {
     public DocumentVaultService(
             LoanApplicationRepository loanApplicationRepository,
             DocumentRecordRepository documentRecordRepository,
-            @Value("${app.documents.storage-root:./secure_vault}") String storageRoot // 🧠 Defaulted to our new secure directory
+            @Value("${app.documents.storage-root:./secure_vault}") String storageRoot
     ) {
         this.loanApplicationRepository = loanApplicationRepository;
         this.documentRecordRepository = documentRecordRepository;
-        this.storageRoot = Path.of(storageRoot).toAbsolutePath().normalize();
+
+        // 🧠 OS-AGNOSTIC FIX: Force absolute resolution immediately
+        this.storageRoot = Paths.get(storageRoot).toAbsolutePath().normalize();
 
         try {
             Files.createDirectories(this.storageRoot);
+            log.info("Secure Vault Initialized at: {}", this.storageRoot);
         } catch (IOException ex) {
             throw new RuntimeException("CRITICAL: Unable to initialize document storage root", ex);
         }
@@ -84,8 +89,6 @@ public class DocumentVaultService {
     @Transactional
     public DocumentMetadataResponse securelyStoreDocument(String applicationId, String docType, MultipartFile file) {
         String safeApplicationId = sanitizeApplicationId(applicationId);
-
-        // 🧠 Converts "Salary Slip" to "SALARY_SLIP" automatically to pass secure file system rules
         String safeDocType = sanitizeDocType(docType);
 
         LoanApplication application = getAuthorizedApplication(safeApplicationId);
@@ -104,37 +107,44 @@ public class DocumentVaultService {
         Path target = null;
 
         try {
-            Path applicationDir = storageRoot.resolve(safeApplicationId).normalize();
+            // 🧠 WINDOWS PATH FIX: Ensure both paths are absolute before comparing
+            Path applicationDir = storageRoot.resolve(safeApplicationId).toAbsolutePath().normalize();
+
             if (!applicationDir.startsWith(storageRoot)) {
+                log.error("Path Traversal Blocked. Dir: {}, Root: {}", applicationDir, storageRoot);
                 throw new IllegalArgumentException("Path Traversal Attack Blocked.");
             }
             Files.createDirectories(applicationDir);
 
-            target = applicationDir.resolve(storedFilename).normalize();
+            target = applicationDir.resolve(storedFilename).toAbsolutePath().normalize();
+
             if (!target.startsWith(storageRoot)) {
+                log.error("Path Traversal Blocked. Target: {}, Root: {}", target, storageRoot);
                 throw new IllegalArgumentException("Path Traversal Attack Blocked.");
             }
 
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             try (InputStream stream = file.getInputStream(); DigestInputStream dis = new DigestInputStream(stream, digest)) {
-                Files.copy(dis, target);
+                Files.copy(dis, target, StandardCopyOption.REPLACE_EXISTING);
             }
             String checksum = HexFormat.of().formatHex(digest.digest());
 
             UUID uploaderId = userIdFromAuth();
+
+            // Store relative path in DB for easy migration across servers
+            String relativeStoragePath = storageRoot.relativize(target).toString().replace('\\', '/');
 
             DocumentRecord newDocument = DocumentRecord.builder()
                     .docType(safeDocType)
                     .originalFilename(originalFilename)
                     .contentType(normalizedContentType)
                     .fileSize(file.getSize())
-                    .storagePath(storageRoot.relativize(target).toString().replace('\\', '/'))
+                    .storagePath(relativeStoragePath)
                     .checksum(checksum)
                     .uploadedBy(uploaderId)
-                    .status("UPLOADED") // Explicitly set status for UI rendering
+                    .status("UPLOADED")
                     .build();
 
-            // 🧠 BI-DIRECTIONAL SYNC: This properly links the entity in Hibernate's L1 Cache
             application.addDocument(newDocument);
 
             DocumentRecord saved = documentRecordRepository.save(newDocument);
@@ -217,7 +227,6 @@ public class DocumentVaultService {
                 .anyMatch(role -> role.equals("ROLE_ADMIN") || role.equals("ROLE_SUPER_ADMIN") || role.equals("ROLE_EMPLOYEE"));
     }
 
-    // 🧠 FAILPROOF PRINCIPAL EXTRACTOR (Eliminates the 403 Crash)
     private UUID userIdFromAuth() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || auth.getPrincipal() == null) {
@@ -235,12 +244,10 @@ public class DocumentVaultService {
         }
     }
 
-    // 🧠 SMART DOC TYPE SANITIZER (Eliminates the Spacebar Crash)
     private String sanitizeDocType(String docType) {
         if (docType == null || docType.isBlank()) {
             throw new IllegalArgumentException("Document Name is required");
         }
-        // Transmutes spaces to underscores automatically (e.g. "Salary Slip" -> "SALARY_SLIP")
         String cleaned = docType.trim().toUpperCase(Locale.ROOT).replaceAll("\\s+", "_");
 
         if (cleaned.length() > MAX_DOC_TYPE_LENGTH || !cleaned.matches("^[A-Z0-9_\\-]{2,64}$")) {
