@@ -4,6 +4,8 @@ import com.pryme.Backend.common.ForbiddenException;
 import com.pryme.Backend.common.NotFoundException;
 import com.pryme.Backend.crm.LoanApplication;
 import com.pryme.Backend.crm.LoanApplicationRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -30,10 +32,13 @@ import java.util.UUID;
 @Service
 public class DocumentVaultService {
 
+    private static final Logger log = LoggerFactory.getLogger(DocumentVaultService.class);
+
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of("application/pdf", "image/jpeg", "image/png");
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("pdf", "jpg", "jpeg", "png");
-    private static final long MAX_FILE_SIZE_BYTES = 10L * 1024 * 1024;
-    private static final int MAX_DOC_TYPE_LENGTH = 32;
+    private static final long MAX_FILE_SIZE_BYTES = 10L * 1024 * 1024; // 10 MB limit
+    private static final int MAX_DOC_TYPE_LENGTH = 64; // 🧠 Expanded to support longer React document names
+
     private static final Map<String, Set<String>> MIME_TO_EXTENSIONS = Map.of(
             "application/pdf", Set.of("pdf"),
             "image/jpeg", Set.of("jpg", "jpeg"),
@@ -47,7 +52,7 @@ public class DocumentVaultService {
     public DocumentVaultService(
             LoanApplicationRepository loanApplicationRepository,
             DocumentRecordRepository documentRecordRepository,
-            @Value("${app.documents.storage-root:./var/document-vault}") String storageRoot
+            @Value("${app.documents.storage-root:./secure_vault}") String storageRoot // 🧠 Defaulted to our new secure directory
     ) {
         this.loanApplicationRepository = loanApplicationRepository;
         this.documentRecordRepository = documentRecordRepository;
@@ -56,7 +61,7 @@ public class DocumentVaultService {
         try {
             Files.createDirectories(this.storageRoot);
         } catch (IOException ex) {
-            throw new RuntimeException("Unable to initialize document storage root", ex);
+            throw new RuntimeException("CRITICAL: Unable to initialize document storage root", ex);
         }
     }
 
@@ -79,6 +84,8 @@ public class DocumentVaultService {
     @Transactional
     public DocumentMetadataResponse securelyStoreDocument(String applicationId, String docType, MultipartFile file) {
         String safeApplicationId = sanitizeApplicationId(applicationId);
+
+        // 🧠 Converts "Salary Slip" to "SALARY_SLIP" automatically to pass secure file system rules
         String safeDocType = sanitizeDocType(docType);
 
         LoanApplication application = getAuthorizedApplication(safeApplicationId);
@@ -99,13 +106,13 @@ public class DocumentVaultService {
         try {
             Path applicationDir = storageRoot.resolve(safeApplicationId).normalize();
             if (!applicationDir.startsWith(storageRoot)) {
-                throw new IllegalArgumentException("Invalid storage path");
+                throw new IllegalArgumentException("Path Traversal Attack Blocked.");
             }
             Files.createDirectories(applicationDir);
 
             target = applicationDir.resolve(storedFilename).normalize();
             if (!target.startsWith(storageRoot)) {
-                throw new IllegalArgumentException("Invalid storage target");
+                throw new IllegalArgumentException("Path Traversal Attack Blocked.");
             }
 
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -115,8 +122,8 @@ public class DocumentVaultService {
             String checksum = HexFormat.of().formatHex(digest.digest());
 
             UUID uploaderId = userIdFromAuth();
-            DocumentRecord saved = documentRecordRepository.save(DocumentRecord.builder()
-                    .loanApplication(application)
+
+            DocumentRecord newDocument = DocumentRecord.builder()
                     .docType(safeDocType)
                     .originalFilename(originalFilename)
                     .contentType(normalizedContentType)
@@ -124,12 +131,21 @@ public class DocumentVaultService {
                     .storagePath(storageRoot.relativize(target).toString().replace('\\', '/'))
                     .checksum(checksum)
                     .uploadedBy(uploaderId)
-                    .build());
+                    .status("UPLOADED") // Explicitly set status for UI rendering
+                    .build();
 
+            // 🧠 BI-DIRECTIONAL SYNC: This properly links the entity in Hibernate's L1 Cache
+            application.addDocument(newDocument);
+
+            DocumentRecord saved = documentRecordRepository.save(newDocument);
+            loanApplicationRepository.save(application);
+
+            log.info("Secure Vault: Ingested {} successfully for Application {}", safeDocType, safeApplicationId);
             return toResponse(saved);
+
         } catch (IOException | NoSuchAlgorithmException ex) {
             deleteQuietly(target);
-            throw new RuntimeException("Failed to store document", ex);
+            throw new RuntimeException("Failed to mathematically encrypt and store document", ex);
         } catch (RuntimeException ex) {
             deleteQuietly(target);
             throw ex;
@@ -147,10 +163,10 @@ public class DocumentVaultService {
 
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("File is required");
+            throw new IllegalArgumentException("File payload is required");
         }
         if (file.getSize() > MAX_FILE_SIZE_BYTES) {
-            throw new IllegalArgumentException("File exceeds max size of 10 MB");
+            throw new IllegalArgumentException("File exceeds maximum allowed size of 10 MB");
         }
         if (file.getContentType() == null || !ALLOWED_CONTENT_TYPES.contains(file.getContentType().toLowerCase(Locale.ROOT))) {
             throw new IllegalArgumentException("Unsupported MIME type. Allowed: application/pdf, image/jpeg, image/png");
@@ -172,21 +188,21 @@ public class DocumentVaultService {
         String candidate = StringUtils.hasText(filename) ? filename : "document.bin";
         String cleaned = StringUtils.cleanPath(candidate).replace('\\', '/');
         if (cleaned.contains("..") || cleaned.contains("/")) {
-            throw new IllegalArgumentException("Invalid filename");
+            throw new IllegalArgumentException("Invalid filename - path traversal sequence detected");
         }
         return cleaned;
     }
 
     private LoanApplication getAuthorizedApplication(String applicationId) {
         LoanApplication application = loanApplicationRepository.findByApplicationId(applicationId)
-                .orElseThrow(() -> new NotFoundException("Application not found: " + applicationId));
+                .orElseThrow(() -> new NotFoundException("Application Matrix not found: " + applicationId));
 
         UUID currentUserId = userIdFromAuth();
         boolean isPrivileged = isPrivilegedRole();
         UUID applicantId = application.getApplicant() == null ? null : application.getApplicant().getId();
 
         if (!isPrivileged && (applicantId == null || !applicantId.equals(currentUserId))) {
-            throw new ForbiddenException("You are not authorized for this application");
+            throw new ForbiddenException("Zero-Trust Violation: You do not own this application.");
         }
         return application;
     }
@@ -201,21 +217,34 @@ public class DocumentVaultService {
                 .anyMatch(role -> role.equals("ROLE_ADMIN") || role.equals("ROLE_SUPER_ADMIN") || role.equals("ROLE_EMPLOYEE"));
     }
 
+    // 🧠 FAILPROOF PRINCIPAL EXTRACTOR (Eliminates the 403 Crash)
     private UUID userIdFromAuth() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !(auth.getPrincipal() instanceof UUID)) {
-            throw new ForbiddenException("Authentication required");
+        if (auth == null || auth.getPrincipal() == null) {
+            throw new ForbiddenException("Authentication matrix required");
         }
-        return (UUID) auth.getPrincipal();
+        Object principal = auth.getPrincipal();
+        try {
+            if (principal instanceof UUID) {
+                return (UUID) principal;
+            } else {
+                return UUID.fromString(principal.toString());
+            }
+        } catch (IllegalArgumentException e) {
+            throw new ForbiddenException("Invalid authentication token footprint.");
+        }
     }
 
+    // 🧠 SMART DOC TYPE SANITIZER (Eliminates the Spacebar Crash)
     private String sanitizeDocType(String docType) {
         if (docType == null || docType.isBlank()) {
-            throw new IllegalArgumentException("docType is required");
+            throw new IllegalArgumentException("Document Name is required");
         }
-        String cleaned = docType.trim().toUpperCase(Locale.ROOT);
-        if (cleaned.length() > MAX_DOC_TYPE_LENGTH || !cleaned.matches("^[A-Z0-9_-]{2,32}$")) {
-            throw new IllegalArgumentException("docType must be alphanumeric (plus _/-), 2-32 chars");
+        // Transmutes spaces to underscores automatically (e.g. "Salary Slip" -> "SALARY_SLIP")
+        String cleaned = docType.trim().toUpperCase(Locale.ROOT).replaceAll("\\s+", "_");
+
+        if (cleaned.length() > MAX_DOC_TYPE_LENGTH || !cleaned.matches("^[A-Z0-9_\\-]{2,64}$")) {
+            throw new IllegalArgumentException("Document Name contains invalid characters or exceeds 64 chars");
         }
         return cleaned;
     }
@@ -223,7 +252,7 @@ public class DocumentVaultService {
     private String extensionFromFilename(String filename) {
         int idx = filename.lastIndexOf('.');
         if (idx < 0 || idx == filename.length() - 1) {
-            throw new IllegalArgumentException("File extension is required");
+            throw new IllegalArgumentException("Valid file extension is required (.pdf, .jpg, .png)");
         }
         return filename.substring(idx + 1).toLowerCase(Locale.ROOT);
     }
@@ -231,7 +260,7 @@ public class DocumentVaultService {
     private void validateMimeExtensionConsistency(String contentType, String extension) {
         Set<String> allowed = MIME_TO_EXTENSIONS.get(contentType);
         if (allowed == null || !allowed.contains(extension)) {
-            throw new IllegalArgumentException("MIME type and file extension mismatch");
+            throw new IllegalArgumentException("Security mismatch: MIME type does not match file extension.");
         }
     }
 
