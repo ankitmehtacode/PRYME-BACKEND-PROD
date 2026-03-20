@@ -3,11 +3,13 @@ package com.pryme.Backend.crm;
 import com.pryme.Backend.common.ConflictException;
 import com.pryme.Backend.common.NotFoundException;
 import com.pryme.Backend.crm.dto.InitialLeadCaptureRequest;
+import com.pryme.Backend.crm.events.ApplicationSubmittedEvent;
 import com.pryme.Backend.iam.User;
 import com.pryme.Backend.iam.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,9 @@ public class ApplicationService {
 
     private final LoanApplicationRepository applicationRepository;
     private final UserRepository userRepository;
+
+    // 🧠 THE EVENT BUS: Decouples the CRM module from the Eligibility/Underwriting module
+    private final ApplicationEventPublisher eventPublisher;
 
     // ==========================================
     // 🧠 PHASE 2: PROGRESSIVE LEAD CAPTURE ENGINE
@@ -63,7 +68,7 @@ public class ApplicationService {
                     // Cryptographically secure application ID allocation
                     newApp.setApplicationId("PRYME-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
                     newApp.setStatus(ApplicationStatus.DRAFT);
-                    newApp.setRequestedAmount(BigDecimal.ZERO); // Baseline until Stage 3 Profiling
+                    newApp.setRequestedAmount(BigDecimal.ZERO);
                     return newApp;
                 });
 
@@ -91,7 +96,7 @@ public class ApplicationService {
     }
 
     // ==========================================
-    // 🧠 PHASE 3: DEEP PROFILING SYNCHRONIZATION
+    // 🧠 PHASE 3: DEEP PROFILING & INTENT ROUTING
     // ==========================================
     @Transactional
     public ApplicationResponse updateProgress(String applicationId, Map<String, Object> updates) {
@@ -108,7 +113,24 @@ public class ApplicationService {
             }
         }
 
-        // 2. Safe Deep-Merge of JSON Metadata (Prevents Stage 2 from nuking Stage 1 data)
+        // 2. 🧠 INTENT ROUTER: Extract bank selection to a hard column for indexing
+        if (updates.containsKey("selectedBank")) {
+            application.setSelectedBank(String.valueOf(updates.get("selectedBank")));
+            updates.remove("selectedBank"); // Strip it from the JSON to prevent data duplication
+        }
+
+        // 3. 🧠 FINANCIAL PROFILING: Extract requested amount to a hard column
+        if (updates.containsKey("requestedAmount")) {
+            Object amtObj = updates.get("requestedAmount");
+            if (amtObj instanceof Number) {
+                application.setRequestedAmount(BigDecimal.valueOf(((Number) amtObj).doubleValue()));
+            } else if (amtObj instanceof String) {
+                try { application.setRequestedAmount(new BigDecimal((String) amtObj)); } catch (Exception ignored) {}
+            }
+            updates.remove("requestedAmount");
+        }
+
+        // 4. Safe Deep-Merge of remaining JSON Metadata
         if (updates.containsKey("metadata")) {
             Object metaObj = updates.get("metadata");
             if (metaObj instanceof Map) {
@@ -129,7 +151,7 @@ public class ApplicationService {
     }
 
     // ==========================================
-    // 🧠 PHASE 4: STATE TRANSITION ENGINE
+    // 🧠 PHASE 4: STATE TRANSITION ENGINE & EVENT TRIGGER
     // ==========================================
     @Transactional
     public ApplicationResponse updateStatus(String applicationId, UpdateStatusRequest request) {
@@ -145,10 +167,27 @@ public class ApplicationService {
             throw new ConflictException("Invalid status transition requested.");
         }
 
-        application.setStatus(newStatus);
-        log.info("State Engine: Application {} transitioned to {}", applicationId, newStatus);
+        ApplicationStatus oldStatus = application.getStatus();
 
-        return ApplicationResponse.from(applicationRepository.save(application));
+        // 🧠 FIRE THE STRICT STATE MACHINE (Located inside the Entity)
+        application.transitionTo(newStatus);
+
+        LoanApplication savedApp = applicationRepository.save(application);
+        log.info("State Engine: Application {} transitioned from {} to {}", applicationId, oldStatus, newStatus);
+
+        // 🧠 EVENT-CARRIED STATE TRANSFER: Trigger the Underwriting Engine asynchronously
+        if (oldStatus == ApplicationStatus.DRAFT && newStatus == ApplicationStatus.PROCESSING) {
+            log.info("Application {} officially submitted. Publishing Underwriting Event to the Bus.", applicationId);
+            eventPublisher.publishEvent(new ApplicationSubmittedEvent(
+                    savedApp.getApplicationId(),
+                    savedApp.getLoanType(),
+                    savedApp.getSelectedBank(),
+                    savedApp.getRequestedAmount(),
+                    ApplicantSnapshot.from(savedApp) // Injects the rich, immutable snapshot
+            ));
+        }
+
+        return ApplicationResponse.from(savedApp);
     }
 
     @Transactional

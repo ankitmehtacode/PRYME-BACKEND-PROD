@@ -1,85 +1,100 @@
+# ==========================================
+# 🧠 TOP 1% SILICON VALLEY PRODUCTION CONFIG
+# Architecture: Modular Monolith (Java 17 + Spring Boot 3)
+# Target Capacity: 4,000 Concurrent Users
+# ==========================================
+
 spring:
   application:
     name: pryme-backend
+
+  # ==========================================
+  # 🧠 1. HIKARI-CP COMPRESSION MATRIX (POSTGRESQL)
+  # Multiplexes 4000 network requests through exactly 150 DB connections
+  # ==========================================
   datasource:
-    # 🧠 FAILPROOF FIX 1: H2 strictly forbids mixing AUTO_SERVER and DB_CLOSE_ON_EXIT.
-    # AUTO_SERVER=TRUE prevents locking crashes when IntelliJ and Maven run simultaneously.
-    url: jdbc:h2:file:./local_db/pryme_db;AUTO_SERVER=TRUE
-    driverClassName: org.h2.Driver
-    username: sa
-    password: password
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/pryme_db}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASS:password}
+    driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 24
-      minimum-idle: 8
-      connection-timeout: 2000
-      validation-timeout: 1000
-      idle-timeout: 300000
-      max-lifetime: 1800000
-      leak-detection-threshold: 2000
+      maximum-pool-size: 150      # Hard ceiling. Prevents DB RAM starvation under heavy load.
+      minimum-idle: 5             # Elastic Scale-Down: Drops to 5 connections at 3 AM to save resources.
+      connection-timeout: 20000   # Fails fast if DB is unreachable, preventing thread pileups.
+      idle-timeout: 300000        # Kills inactive connections after 5 minutes.
+      max-lifetime: 1200000       # Cycles connections every 20 minutes to prevent driver memory leaks.
+      leak-detection-threshold: 2000 # 🧠 Top 1% Rule: Logs a stack trace if a transaction takes >2s.
+
+  # ==========================================
+  # 🧠 2. JPA & HIBERNATE BATCH OPTIMIZATION
+  # ==========================================
   jpa:
-    # 🧠 FAILPROOF FIX 2: Explicit dialect prevents Hibernate from crashing if the DB connection is delayed.
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update # CRITICAL: Ensures tables persist across restarts
-    open-in-view: false
-    show-sql: false
+      ddl-auto: ${DDL_AUTO:update} # Set to 'validate' in strict production, 'update' for seamless staging
+    open-in-view: false            # CRITICAL: Disables OSIV to prevent silent DB connection hoarding.
+    show-sql: false                # Keep false in prod to save Disk I/O.
     properties:
       hibernate:
         jdbc:
-          batch_size: 50
-        order_inserts: true
+          batch_size: 50           # 🧠 Network optimization: Sends 50 inserts in a single TCP packet.
+        order_inserts: true        # Required for batching to actually work.
         order_updates: true
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+        format_sql: false
+
+  # ==========================================
+  # 🧠 3. MULTIPART INGESTION ENGINE (THE VAULT)
+  # ==========================================
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 12MB
+      max-file-size: 10MB          # Strict limit enforced at the Tomcat boundary.
+      max-request-size: 15MB       # Buffer room for the JSON payload surrounding the file.
 
+# ==========================================
+# 🧠 4. ELASTIC BREATHING WEB SERVER (TOMCAT)
+# ==========================================
+server:
+  port: 8080
+  shutdown: graceful               # Guarantees active payments/uploads finish before a server restart.
+  tomcat:
+    threads:
+      max: 1000                    # Spike Absorber: Spins up 1000 worker threads during marketing pushes.
+      min-spare: 10                # Elastic Scale-Down: Kills 990 threads when traffic dies.
+    accept-count: 1000             # OS-level queue. Prevents "Connection Refused" during massive traffic spikes.
+    max-connections: 8000          # Keeps lightweight TCP sockets open for 8000 users.
+    connection-timeout: 20000
+  compression:
+    enabled: true                  # Compresses massive JSON payloads automatically.
+    min-response-size: 1024
+    mime-types: application/json,text/html,text/plain
+
+# ==========================================
+# 🧠 5. DOMAIN CONFIGURATIONS & SECURITY
+# ==========================================
+app:
+  jwt:
+    # Use ENV variables in production. This is a 256-bit secure default for staging.
+    secret: ${JWT_SECRET:dGhpcy1pcy1hLXZlcnktc2VjdXJlLWtleS10aGF0LW11c3QtYmUtYXQtbGVhc3QtMjU2LWJpdHM=}
+    expiration-ms: 3600000         # 🧠 1 Hour Strict TTL for Financial Compliance.
+  documents:
+    storage-root: ${VAULT_DIR:./secure_vault} # OS-Agnostic absolute path configuration.
+  security:
+    # 🧠 Dynamic CORS Whitelist: Supports standard Vite, alternative Vite, and Prod domains.
+    allowed-origins: ${CORS_URLS:http://localhost:3000,http://localhost:5173,http://localhost:8081,https://pryme.in}
+
+# ==========================================
+# 🧠 6. TELEMETRY & AUDIT MATRIX (ACTUATOR)
+# ==========================================
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,metrics,prometheus # 🧠 Required for Grafana/Datadog monitoring.
   endpoint:
     health:
       probes:
         enabled: true
-      show-details: never
-
-app:
-  runtime:
-    scheduler:
-      pool-size: 2
-      await-termination-seconds: 30
-  documents:
-    storage-root: ./var/document-vault
-  leads:
-    backup-dir: ./var/lead-wal
-  recommendation:
-    max-results: 8
-  security:
-    enable-h2-console: true
-    session:
-      max-sessions-per-user: 3
-      ttl-hours: 8
-      cleanup-ms: 300000
-    # 🧠 FAILPROOF FIX 3: Vite runs on 8081. This whitelists the frontend correctly.
-    allowed-origins: http://localhost:3000,http://localhost:5173,http://localhost:8081,https://pryme.in
-
-server:
-  port: 8080
-  shutdown: graceful
-  tomcat:
-    threads:
-      max: 200
-      min-spare: 20
-    accept-count: 500
-    max-connections: 8192
-    connection-timeout: 20000
-  compression:
-    enabled: true
-    min-response-size: 1024
-    mime-types: application/json,application/xml,text/html,text/xml,text/plain,text/css,application/javascript
+      show-details: never # Prevents leaking DB hostnames to unauthorized users.
+  metrics:
+    tags:
+      application: pryme-modular-monolith

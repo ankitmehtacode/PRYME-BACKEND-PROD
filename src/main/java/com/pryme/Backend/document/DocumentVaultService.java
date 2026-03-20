@@ -7,6 +7,8 @@ import com.pryme.Backend.crm.LoanApplicationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -69,22 +72,9 @@ public class DocumentVaultService {
         }
     }
 
-    public boolean verifyIdentityMatrix(String applicationId, String idType, String idNumber) {
-        getAuthorizedApplication(sanitizeApplicationId(applicationId));
-        String normalizedType = idType.trim().toUpperCase(Locale.ROOT);
-        String normalizedNumber = idNumber.trim().toUpperCase(Locale.ROOT);
-
-        if ("PAN".equals(normalizedType)) {
-            return normalizedNumber.matches("^[A-Z]{5}[0-9]{4}[A-Z]$");
-        }
-
-        if ("AADHAR".equals(normalizedType) || "AADHAAR".equals(normalizedType)) {
-            return normalizedNumber.matches("^[0-9]{12}$");
-        }
-
-        throw new IllegalArgumentException("Unsupported idType. Allowed values: PAN, AADHAR");
-    }
-
+    // ==========================================
+    // 🧠 ZERO-TRUST UPLOAD GATEWAY
+    // ==========================================
     @Transactional
     public DocumentMetadataResponse securelyStoreDocument(String applicationId, String docType, MultipartFile file) {
         String safeApplicationId = sanitizeApplicationId(applicationId);
@@ -128,11 +118,8 @@ public class DocumentVaultService {
             String checksum = HexFormat.of().formatHex(digest.digest());
 
             UUID uploaderId = userIdFromAuth();
-
             String universalRelativePath = safeApplicationId + "/" + storedFilename;
 
-            // 🧠 COMPILER FIX: The rogue 'Z' typo is eliminated, and .status() is safely removed
-            // in case the DocumentRecord entity doesn't natively support it.
             DocumentRecord newDocument = DocumentRecord.builder()
                     .docType(safeDocType)
                     .originalFilename(originalFilename)
@@ -160,6 +147,54 @@ public class DocumentVaultService {
         }
     }
 
+    // ==========================================
+    // 🧠 ZERO-TRUST BINARY STREAMING GATEWAY (NEW)
+    // ==========================================
+    @Transactional(readOnly = true)
+    public Resource loadDocumentAsResource(UUID documentId) {
+        DocumentRecord document = documentRecordRepository.findById(documentId)
+                .orElseThrow(() -> new NotFoundException("Document matrix not found."));
+
+        // 1. Execute Role-Based Access Control (RBAC) check
+        LoanApplication application = document.getLoanApplication();
+        UUID currentUserId = userIdFromAuth();
+        boolean isPrivileged = isPrivilegedRole();
+
+        if (!isPrivileged && !application.getApplicant().getId().equals(currentUserId)) {
+            log.warn("🚨 Security Fault: Unauthorized stream attempt on Document {} by User {}", documentId, currentUserId);
+            throw new ForbiddenException("Zero-Trust Violation: You lack clearance to view this document.");
+        }
+
+        try {
+            // 2. Resolve physical path and enforce Traversal Protection
+            Path filePath = storageRoot.resolve(document.getStoragePath()).toAbsolutePath().normalize();
+
+            if (!filePath.startsWith(storageRoot)) {
+                throw new SecurityException("Path Traversal Attack Blocked during stream retrieval.");
+            }
+
+            Resource resource = new UrlResource(filePath.toUri());
+            if (resource.exists() && resource.isReadable()) {
+                log.info("Vault Gateway: Authorized binary stream initiated for document {}", documentId);
+                return resource;
+            } else {
+                throw new NotFoundException("Document binary has been corrupted or relocated.");
+            }
+        } catch (MalformedURLException ex) {
+            throw new RuntimeException("Failed to construct secure URI for document binary stream.", ex);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public DocumentRecord getDocumentMetadata(UUID documentId) {
+        return documentRecordRepository.findById(documentId)
+                .orElseThrow(() -> new NotFoundException("Document metadata not found."));
+    }
+
+    // ==========================================
+    // RETRIEVAL & UTILITY METHODS
+    // ==========================================
+    @Transactional(readOnly = true)
     public List<DocumentMetadataResponse> getApplicationDocuments(String applicationId) {
         String safeApplicationId = sanitizeApplicationId(applicationId);
         getAuthorizedApplication(safeApplicationId);
@@ -167,6 +202,22 @@ public class DocumentVaultService {
                 .stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    public boolean verifyIdentityMatrix(String applicationId, String idType, String idNumber) {
+        getAuthorizedApplication(sanitizeApplicationId(applicationId));
+        String normalizedType = idType.trim().toUpperCase(Locale.ROOT);
+        String normalizedNumber = idNumber.trim().toUpperCase(Locale.ROOT);
+
+        if ("PAN".equals(normalizedType)) {
+            return normalizedNumber.matches("^[A-Z]{5}[0-9]{4}[A-Z]$");
+        }
+
+        if ("AADHAR".equals(normalizedType) || "AADHAAR".equals(normalizedType)) {
+            return normalizedNumber.matches("^[0-9]{12}$");
+        }
+
+        throw new IllegalArgumentException("Unsupported idType. Allowed values: PAN, AADHAR");
     }
 
     private void validateFile(MultipartFile file) {
