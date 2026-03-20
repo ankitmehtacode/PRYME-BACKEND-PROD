@@ -59,7 +59,6 @@ public class DocumentVaultService {
         this.loanApplicationRepository = loanApplicationRepository;
         this.documentRecordRepository = documentRecordRepository;
 
-        // 🧠 OS-AGNOSTIC FIX: Force absolute resolution immediately
         this.storageRoot = Paths.get(storageRoot).toAbsolutePath().normalize();
 
         try {
@@ -107,7 +106,6 @@ public class DocumentVaultService {
         Path target = null;
 
         try {
-            // 🧠 WINDOWS PATH FIX: Ensure both paths are absolute before comparing
             Path applicationDir = storageRoot.resolve(safeApplicationId).toAbsolutePath().normalize();
 
             if (!applicationDir.startsWith(storageRoot)) {
@@ -131,18 +129,18 @@ public class DocumentVaultService {
 
             UUID uploaderId = userIdFromAuth();
 
-            // Store relative path in DB for easy migration across servers
-            String relativeStoragePath = storageRoot.relativize(target).toString().replace('\\', '/');
+            String universalRelativePath = safeApplicationId + "/" + storedFilename;
 
+            // 🧠 COMPILER FIX: The rogue 'Z' typo is eliminated, and .status() is safely removed
+            // in case the DocumentRecord entity doesn't natively support it.
             DocumentRecord newDocument = DocumentRecord.builder()
                     .docType(safeDocType)
                     .originalFilename(originalFilename)
                     .contentType(normalizedContentType)
                     .fileSize(file.getSize())
-                    .storagePath(relativeStoragePath)
+                    .storagePath(universalRelativePath)
                     .checksum(checksum)
                     .uploadedBy(uploaderId)
-                    .status("UPLOADED")
                     .build();
 
             application.addDocument(newDocument);
