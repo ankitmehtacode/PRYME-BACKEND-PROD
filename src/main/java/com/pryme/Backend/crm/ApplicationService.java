@@ -2,6 +2,7 @@ package com.pryme.Backend.crm;
 
 import com.pryme.Backend.common.ConflictException;
 import com.pryme.Backend.common.NotFoundException;
+import com.pryme.Backend.crm.dto.InitialLeadCaptureRequest;
 import com.pryme.Backend.iam.User;
 import com.pryme.Backend.iam.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -23,29 +26,81 @@ public class ApplicationService {
     private final LoanApplicationRepository applicationRepository;
     private final UserRepository userRepository;
 
-    @Transactional(readOnly = true)
-    public List<ApplicationResponse> listApplications() {
-        return applicationRepository.findAllByOrderByCreatedAtDesc().stream().map(ApplicationResponse::from).toList();
+    // ==========================================
+    // 🧠 PHASE 2: PROGRESSIVE LEAD CAPTURE ENGINE
+    // ==========================================
+    @Transactional
+    public LoanApplication captureInitialLead(UUID userId, InitialLeadCaptureRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User footprint not found in IAM module."));
+
+        // 1. ZERO DATA LOSS PROTOCOL: Sync PII back to core IAM profile if missing
+        boolean userUpdated = false;
+        if (user.getPhoneNumber() == null || user.getPhoneNumber().isBlank()) {
+            user.setPhoneNumber(request.getMobileNumber());
+            userUpdated = true;
+        }
+        if (user.getCity() == null || user.getCity().isBlank()) {
+            user.setCity(request.getCity());
+            userUpdated = true;
+        }
+        if (user.getState() == null || user.getState().isBlank()) {
+            user.setState(request.getState());
+            userUpdated = true;
+        }
+        if (userUpdated) {
+            userRepository.save(user);
+        }
+
+        // 2. IDEMPOTENT UPSERT: Prevent duplicate drafts from network race conditions
+        LoanApplication application = applicationRepository.findByApplicantIdAndStatus(userId, ApplicationStatus.DRAFT)
+                .stream()
+                .filter(app -> request.getLoanType().equals(app.getLoanType()))
+                .findFirst()
+                .orElseGet(() -> {
+                    LoanApplication newApp = new LoanApplication();
+                    newApp.setApplicant(user);
+                    // Cryptographically secure application ID allocation
+                    newApp.setApplicationId("PRYME-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+                    newApp.setStatus(ApplicationStatus.DRAFT);
+                    newApp.setRequestedAmount(BigDecimal.ZERO); // Baseline until Stage 3 Profiling
+                    return newApp;
+                });
+
+        application.setLoanType(request.getLoanType());
+        application.setCompletionPercentage(25); // Intake matrix completed
+
+        // 3. HYBRID JSON MATRIX: Safely pack dynamic UI state without schema bloat
+        Map<String, Object> meta = application.getMetadata();
+        if (meta == null) {
+            meta = new HashMap<>();
+        }
+
+        meta.put("dob", request.getDob());
+        meta.put("pinCode", request.getPinCode());
+        meta.put("employmentType", request.getEmploymentType());
+
+        if (request.getSalariedSubType() != null) meta.put("salariedSubType", request.getSalariedSubType());
+        if (request.getProfessionalSubType() != null) meta.put("professionalSubType", request.getProfessionalSubType());
+        if (request.getBusinessSubType() != null) meta.put("businessSubType", request.getBusinessSubType());
+
+        application.setMetadata(meta);
+
+        log.info("Lead Capture Engine: Stage 1 Secured for Application {}", application.getApplicationId());
+        return applicationRepository.save(application);
     }
 
-    @Transactional(readOnly = true)
-    public List<ApplicationResponse> listMyApplications(UUID applicantId) {
-        return applicationRepository.findAllByApplicant_IdOrderByCreatedAtDesc(applicantId).stream()
-                .map(ApplicationResponse::from)
-                .toList();
-    }
-
-    // 🧠 SILICON-VALLEY FIX: Dynamic Funnel Progression Engine
-    // Gracefully accepts React's optimistic Map payloads and safely merges them into the DB
-    // This guarantees no data is lost when a user clicks "Save & Continue" between stages.
+    // ==========================================
+    // 🧠 PHASE 3: DEEP PROFILING SYNCHRONIZATION
+    // ==========================================
     @Transactional
     public ApplicationResponse updateProgress(String applicationId, Map<String, Object> updates) {
         LoanApplication application = applicationRepository.findByApplicationId(applicationId)
-                .orElseThrow(() -> new NotFoundException("Application not found"));
+                .orElseThrow(() -> new NotFoundException("Application Matrix not found"));
 
-        log.info("Synchronizing progressive matrix for Application: {}", applicationId);
+        log.info("Synchronizing progressive payload for Application: {}", applicationId);
 
-        // 1. Safely extract and update the completion progress bar
+        // 1. Target Completion Vector
         if (updates.containsKey("completionPercentage")) {
             Object cpObj = updates.get("completionPercentage");
             if (cpObj instanceof Number) {
@@ -53,7 +108,7 @@ public class ApplicationService {
             }
         }
 
-        // 2. Safely extract and deep-merge the dynamic metadata (KYC, Financials, etc.)
+        // 2. Safe Deep-Merge of JSON Metadata (Prevents Stage 2 from nuking Stage 1 data)
         if (updates.containsKey("metadata")) {
             Object metaObj = updates.get("metadata");
             if (metaObj instanceof Map) {
@@ -64,7 +119,6 @@ public class ApplicationService {
                 if (existingMetadata == null) {
                     application.setMetadata(newMetadata);
                 } else {
-                    // We merge instead of overwrite, so Stage 2 doesn't delete Stage 1's data!
                     existingMetadata.putAll(newMetadata);
                     application.setMetadata(existingMetadata);
                 }
@@ -74,10 +128,13 @@ public class ApplicationService {
         return ApplicationResponse.from(applicationRepository.save(application));
     }
 
+    // ==========================================
+    // 🧠 PHASE 4: STATE TRANSITION ENGINE
+    // ==========================================
     @Transactional
     public ApplicationResponse updateStatus(String applicationId, UpdateStatusRequest request) {
         LoanApplication application = applicationRepository.findByApplicationId(applicationId)
-                .orElseThrow(() -> new NotFoundException("Application not found"));
+                .orElseThrow(() -> new NotFoundException("Application Matrix not found"));
 
         validateVersion(application.getVersion(), request.version());
 
@@ -85,34 +142,53 @@ public class ApplicationService {
         try {
             newStatus = ApplicationStatus.valueOf(request.status().trim().toUpperCase());
         } catch (IllegalArgumentException ex) {
-            throw new ConflictException("Invalid status value");
+            throw new ConflictException("Invalid status transition requested.");
         }
 
         application.setStatus(newStatus);
+        log.info("State Engine: Application {} transitioned to {}", applicationId, newStatus);
+
         return ApplicationResponse.from(applicationRepository.save(application));
     }
 
     @Transactional
     public ApplicationResponse assign(String applicationId, AssignLeadRequest request) {
         LoanApplication application = applicationRepository.findByApplicationId(applicationId)
-                .orElseThrow(() -> new NotFoundException("Application not found"));
+                .orElseThrow(() -> new NotFoundException("Application Matrix not found"));
 
         validateVersion(application.getVersion(), request.version());
 
-        // 🧠 PRODUCTION FIX: Safely parse the Assignee ID and fetch the actual Relational User Entity
         UUID empId;
         try {
             empId = UUID.fromString(request.assigneeId().trim());
         } catch (IllegalArgumentException ex) {
-            throw new ConflictException("Invalid assigneeId format. Expected a valid User UUID.");
+            throw new ConflictException("Invalid assigneeId architecture. Expected standard UUID.");
         }
 
         User employee = userRepository.findById(empId)
                 .orElseThrow(() -> new NotFoundException("Assignee not found in IAM system records."));
 
         application.setAssignee(employee);
+        log.info("Access Matrix: Application {} assigned to Underwriter {}", applicationId, employee.getEmail());
 
         return ApplicationResponse.from(applicationRepository.save(application));
+    }
+
+    // ==========================================
+    // DATA RETRIEVAL (DASHBOARDS)
+    // ==========================================
+    @Transactional(readOnly = true)
+    public List<ApplicationResponse> listApplications() {
+        return applicationRepository.findAllByOrderByCreatedAtDesc().stream()
+                .map(ApplicationResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApplicationResponse> listMyApplications(UUID applicantId) {
+        return applicationRepository.findAllByApplicant_IdOrderByCreatedAtDesc(applicantId).stream()
+                .map(ApplicationResponse::from)
+                .toList();
     }
 
     private static void validateVersion(Long current, Long requestVersion) {
@@ -120,7 +196,7 @@ public class ApplicationService {
             return;
         }
         if (current == null || !current.equals(requestVersion)) {
-            throw new ConflictException("Version mismatch. Please refresh and retry.");
+            throw new ConflictException("Optimistic Lock Fault: Version mismatch. Please refresh to avoid data collision.");
         }
     }
 }

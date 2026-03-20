@@ -1,89 +1,118 @@
 package com.pryme.Backend.crm;
 
 import com.pryme.Backend.common.ForbiddenException;
+import com.pryme.Backend.crm.dto.InitialLeadCaptureRequest;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/applications")
+@RequiredArgsConstructor
 public class ApplicationController {
 
     private static final Logger log = LoggerFactory.getLogger(ApplicationController.class);
     private final ApplicationService applicationService;
 
-    public ApplicationController(ApplicationService applicationService) {
-        this.applicationService = applicationService;
-    }
-
-    // 🧠 FIX 1 & 2: Failproof Principal Extraction & Safe Array Returns
-    @GetMapping("/me")
-    public ResponseEntity<List<ApplicationResponse>> myApplications(Authentication authentication) {
-        if (authentication == null || authentication.getPrincipal() == null) {
-            throw new ForbiddenException("Authentication required");
+    // ==========================================
+    // 🧠 FAILPROOF PRINCIPAL EXTRACTOR
+    // ==========================================
+    private UUID extractUserId(Authentication auth) {
+        if (auth == null || auth.getPrincipal() == null) {
+            throw new ForbiddenException("Security matrix violation: Authentication required.");
         }
-
-        UUID userId;
-        Object principal = authentication.getPrincipal();
-
-        // 🧠 FAILPROOF CASTING: Safely parse the UUID regardless of whether Spring passes a String or UUID object
         try {
-            if (principal instanceof UUID) {
-                userId = (UUID) principal;
-            } else {
-                userId = UUID.fromString(principal.toString());
-            }
+            return auth.getPrincipal() instanceof UUID ?
+                    (UUID) auth.getPrincipal() :
+                    UUID.fromString(auth.getPrincipal().toString());
         } catch (IllegalArgumentException e) {
-            throw new ForbiddenException("Invalid authentication token format.");
-        }
-
-        try {
-            return ResponseEntity.ok(applicationService.listMyApplications(userId));
-        } catch (Exception e) {
-            log.warn("Empty portfolio or DB sync delay for user {}. Returning safe matrix.", userId);
-            // Returns an empty array so React drops cleanly into the "Empty" state instead of an Infinite Spinner
-            return ResponseEntity.ok(new ArrayList<>());
+            throw new ForbiddenException("Invalid security token footprint.");
         }
     }
 
-    // 🧠 FIX 3: Dynamic Map Binding to catch React's Funnel Data without DTO explosions (Stages 1-3)
+    // ==========================================
+    // 🧠 PHASE 2: PROGRESSIVE LEAD CAPTURE (STAGE 1)
+    // ==========================================
+    @PostMapping("/initial-intake")
+    public ResponseEntity<Map<String, Object>> captureInitialLead(
+            @Valid @RequestBody InitialLeadCaptureRequest request,
+            Authentication authentication) {
+
+        UUID userId = extractUserId(authentication);
+        log.info("Lead Capture Gateway: Ingesting Stage 1 KYC for User: {}", userId);
+
+        LoanApplication app = applicationService.captureInitialLead(userId, request);
+
+        // We return the secure Application ID so React can instantly route the user
+        // to the Bank Selection Interstitial and use this ID for the Vault later.
+        return ResponseEntity.ok(Map.of(
+                "status", "SECURED",
+                "applicationId", app.getApplicationId(),
+                "message", "Lead successfully captured and securely vaulted."
+        ));
+    }
+
+    // ==========================================
+    // 🧠 PHASE 3: DEEP PROFILING & BANK SELECTION
+    // ==========================================
+    // This dynamically catches the Zustand JSON payload and merges it safely into the database.
     @PatchMapping("/{applicationId}")
-    public ResponseEntity<ApplicationResponse> updateApplicationProgress(
+    public ResponseEntity<ApplicationResponse> updateProgress(
             @PathVariable String applicationId,
             @RequestBody Map<String, Object> updates,
             Authentication authentication) {
 
-        if (authentication == null) throw new ForbiddenException("Authentication required");
+        // Security check ensures the user is logged in before altering the matrix
+        extractUserId(authentication);
 
-        log.info("REST Gateway: Synchronizing application matrix for ID: {}", applicationId);
-        // Safely routes the dynamic JSON payload to our upgraded ApplicationService
         return ResponseEntity.ok(applicationService.updateProgress(applicationId, updates));
     }
 
-    // 🧠 FIX 4: Safe Status Elevation for the Underwriter Gateway (Stage 4)
+    // ==========================================
+    // 🧠 PHASE 4: STATE TRANSITION ENGINE
+    // ==========================================
     @PatchMapping("/{applicationId}/status")
-    public ResponseEntity<ApplicationResponse> updateApplicationStatus(
+    public ResponseEntity<ApplicationResponse> updateStatus(
             @PathVariable String applicationId,
-            @RequestBody Map<String, Object> payload,
+            @Valid @RequestBody UpdateStatusRequest request,
             Authentication authentication) {
 
-        if (authentication == null) throw new ForbiddenException("Authentication required");
-
-        log.info("REST Gateway: Elevating application status to PROCESSING for ID: {}", applicationId);
-
-        // Safely extract just the status, ignoring any extra variables React attached to the payload
-        String status = (String) payload.getOrDefault("status", "PENDING");
-        Long version = payload.containsKey("version") ? ((Number) payload.get("version")).longValue() : null;
-
-        UpdateStatusRequest safeRequest = new UpdateStatusRequest(status, version);
-
-        return ResponseEntity.ok(applicationService.updateStatus(applicationId, safeRequest));
+        extractUserId(authentication);
+        return ResponseEntity.ok(applicationService.updateStatus(applicationId, request));
     }
-}
+
+    @PatchMapping("/{applicationId}/assign")
+    public ResponseEntity<ApplicationResponse> assignLead(
+            @PathVariable String applicationId,
+            @Valid @RequestBody AssignLeadRequest request,
+            Authentication authentication) {
+
+        // Note: Global Method Security or URL-based config should restrict this to ADMIN only
+        extractUserId(authentication);
+        return ResponseEntity.ok(applicationService.assign(applicationId, request));
+    }
+
+    // ==========================================
+    // DASHBOARD RETRIEVAL
+    // ==========================================
+    @GetMapping("/me")
+    public ResponseEntity<List<ApplicationResponse>> getMyApplications(Authentication authentication) {
+        UUID userId = extractUserId(authentication);
+        return ResponseEntity.ok(applicationService.listMyApplications(userId));
+    }
+
+    // Admin endpoint to view the entire matrix
+    @GetMapping
+    public ResponseEntity<List<ApplicationResponse>> getAllApplications(Authentication authentication) {
+        extractUserId(authentication);
+        return ResponseEntity.ok(applicationService.listApplications());
+    }
+}}

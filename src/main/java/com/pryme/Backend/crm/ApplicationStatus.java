@@ -1,10 +1,10 @@
 package com.pryme.Backend.crm;
 
 public enum ApplicationStatus {
-    SUBMITTED,  //
-    VERIFIED,   //
-    PROCESSING, //
-    APPROVED,   //
-    REJECTED,   //
-    DISBURSED   //
+    DRAFT,          // 🧠 Added: User has started the flow but hasn't finalized bank selection
+    SUBMITTED,
+    PROCESSING,
+    VERIFIED,
+    APPROVED,
+    REJECTED
 }
