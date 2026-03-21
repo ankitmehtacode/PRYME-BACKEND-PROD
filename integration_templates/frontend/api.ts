@@ -1,4 +1,5 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig } from "axios";
+import { v4 as uuidv4 } from 'uuid';
 
 export type ApiErrorPayload = {
   code?: string;
@@ -33,6 +34,9 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  const correlationId = uuidv4();
+  config.headers["X-Correlation-ID"] = correlationId;
 
   if (config.url?.includes("/api/v1/public/leads") && config.method?.toLowerCase() === "post") {
     config.headers["Idempotency-Key"] = crypto.randomUUID();
@@ -105,7 +109,6 @@ export type DocumentUploadResponse = {
     contentType: string;
     fileSize: number;
     storagePath: string;
-    createdAt: string;
     checksum: string;
   };
 };
