@@ -1,64 +1,74 @@
 # ==========================================
-# 🧠 STAGE 1: THE SELF-HEALING BUILDER MATRIX
-# We use Alpine Linux to keep the build environment tiny and fast.
+# 🧠 STAGE 1: THE SELF-HEALING BUILDER MATRIX (JAVA 17)
+# We use Alpine here because compilation doesn't care about runtime DNS bugs.
+# It keeps the initial download and build environment lightning fast.
 # ==========================================
 FROM eclipse-temurin:17-jdk-alpine AS builder
 
 WORKDIR /build
 
-# 1. THE WINDOWS FAILSAFE: Install dos2unix to fix CRLF line endings on the fly
+# 1. THE WINDOWS FAILSAFE: Fixes CRLF issues if code is pulled from Windows Git
 RUN apk add --no-cache dos2unix
 
-# 2. Copy only the Maven architecture first
+# 2. Copy the Maven architecture first to leverage Docker layer caching
 COPY mvnw .
 COPY .mvn .mvn
 COPY pom.xml .
 
-# 3. Sanitize the wrapper and make it executable (Prevents Windows ^M crashes)
+# 3. Sanitize wrapper and resolve dependencies offline
 RUN dos2unix mvnw && chmod +x mvnw
+# If this fails due to a missing optional plugin, we don't want it to crash the build
+RUN ./mvnw dependency:go-offline -B || true
 
-# 4. CACHE BARRIER: Download dependencies offline.
-# This caches the massive .m2 folder so subsequent builds take seconds, not minutes.
-RUN ./mvnw dependency:go-offline -B
-
-# 5. Copy source code and execute the build (skipping tests for image compilation speed)
+# 4. Copy source code and compile the Fat JAR
 COPY src src
+# Use -DskipTests for rapid CI/CD deployment to KVM2
 RUN ./mvnw clean package -DskipTests
 
 # ==========================================
-# 🧠 STAGE 2: THE SECURE RUNTIME MATRIX (KVM2 OPTIMIZED)
-# We drop the heavy JDK and use the JRE. The final image drops from ~500MB to ~150MB.
+# 🧠 STAGE 2: THE SECURE RUNTIME MATRIX (JAVA 17 + GLIBC)
+# We use '17-jre-jammy' (Ubuntu-based). This completely eradicates
+# the Alpine/musl DNS packet-drop bug for external API calls.
 # ==========================================
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre-jammy
 
-# 1. ZERO-TRUST SECURITY: Never run a container as root.
-# We create a dedicated, restricted user. If a hacker escapes Tomcat, they have no OS privileges.
-RUN addgroup -S prymegroup && adduser -S prymeuser -G prymegroup
+# 1. TIMEZONE LOCK: Financial systems must strictly operate in UTC at the OS level
+ENV TZ=UTC
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 WORKDIR /app
 
-# 2. Extract only the compiled Titanium JAR from Stage 1
-COPY --from=builder /build/target/pryme-backend-*.jar pryme-backend.jar
+# 2. ZERO-TRUST SECURITY: Create restricted user & group (Defeats Container Escapes)
+RUN groupadd -r prymegroup && useradd -r -g prymegroup prymeuser
 
-# 3. VAULT PROVISIONING: Create the physical directory for Phase 3 Document Uploads
-# We must explicitly grant our restricted user ownership of this folder.
-RUN mkdir -p /app/var/document-vault && chown -R prymeuser:prymegroup /app
+# 3. 🧠 CRITICAL INFRASTRUCTURE DIRECTORIES
+# - /app/var/document-vault: For persistent PDF storage (Must be volume-mapped in docker-compose)
+# - /app/tmp: The Tomcat Spool directory (PREVENTS LARGE UPLOAD CRASHES)
+RUN mkdir -p /app/var/document-vault \
+    && mkdir -p /app/tmp \
+    && chown -R prymeuser:prymegroup /app
 
-# 4. Drop privileges
+# 4. Extract compiled JAR from the builder stage
+COPY --from=builder /build/target/*.jar pryme-backend.jar
+RUN chown prymeuser:prymegroup pryme-backend.jar
+
+# 5. Drop OS privileges permanently
 USER prymeuser
 
-# Expose Tomcat's port
+# 6. Expose Spring Boot port
 EXPOSE 8080
 
 # ==========================================
-# 🧠 THE TITANIUM KVM2 ENTRYPOINT
-# 1. UseContainerSupport: Forces Java to respect the KVM/Docker CPU & RAM limits.
-# 2. MaxRAMPercentage=75.0: Prevents the JVM from eating 100% of memory and getting OOM-Killed by Linux.
-# 3. urandom: Solves the infamous KVM entropy hanging bug so JWTs generate in nanoseconds.
+# 🧠 THE TITANIUM KVM2 ENTRYPOINT (JAVA 17)
+# 1. UseContainerSupport: Native Docker RAM awareness.
+# 2. MaxRAMPercentage=75.0: Leaves 25% (2GB) of KVM2 RAM for the Linux OS & Postgres.
+# 3. java.io.tmpdir: Routes Tomcat's file uploads to our permission-safe folder.
+# 4. MaxMetaspaceSize: Caps classloader memory to prevent silent JVM Native Memory leaks.
 # ==========================================
 ENTRYPOINT ["java", \
             "-XX:+UseContainerSupport", \
             "-XX:MaxRAMPercentage=75.0", \
-            "-XX:+OptimizeStringConcat", \
+            "-XX:MaxMetaspaceSize=256m", \
             "-Djava.security.egd=file:/dev/./urandom", \
+            "-Djava.io.tmpdir=/app/tmp", \
             "-jar", "pryme-backend.jar"]

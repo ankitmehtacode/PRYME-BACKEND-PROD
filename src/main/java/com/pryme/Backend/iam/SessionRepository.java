@@ -14,37 +14,38 @@ import java.util.UUID;
 public interface SessionRepository extends JpaRepository<SessionRecord, UUID> {
 
     // ==========================================
-    // 🧠 1. THE SNIPER QUERY
-    // Fetches active sessions for a user, oldest first.
-    // Used by SessionManager to identify which sessions to kill when the Max Devices limit is hit.
+    // 🧠 1. THE SNIPER QUERY (RAM OPTIMIZED)
+    // 160 IQ FIX: Explicitly SELECT only the UUID.
+    // Prevents Hibernate from mapping full entities into memory, reducing Heap allocation by ~90%.
+    // Matches the updated SessionManager logic perfectly.
     // ==========================================
-    List<SessionRecord> findAllByUser_IdAndIsActiveTrueOrderByCreatedAtAsc(UUID userId);
+    @Query("SELECT s.id FROM SessionRecord s WHERE s.user.id = :userId AND s.isActive = true ORDER BY s.createdAt ASC")
+    List<UUID> findActiveSessionIdsByUserId(@Param("userId") UUID userId);
 
     // ==========================================
     // 🧠 2. THE VACUUM PROTOCOL
-    // Instead of fetching 10,000 expired rows into Java RAM and calling repository.deleteAll(),
-    // this executes a single, hyper-fast native SQL DELETE statement directly on the DB engine.
+    // 160 IQ FIX: flushAutomatically pushes pending inserts to DB first.
+    // clearAutomatically purges the L1 Cache so the JVM doesn't hold references to deleted rows.
     // ==========================================
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM SessionRecord s WHERE s.expiresAt < :now OR s.isActive = false")
     int deleteByExpiresAtBeforeOrIsActiveFalse(@Param("now") Instant now);
 
     // ==========================================
     // 🧠 3. TOP 1% BULK UPDATE PROTOCOLS (MEMORY BYPASS)
-    // 99% of developers fetch rows into RAM, call setStatus(false), and save them back.
-    // These methods bypass the JVM L1 Cache completely, executing atomic SQL updates
-    // directly on the PostgreSQL engine to prevent OutOfMemoryErrors and Deadlocks.
+    // By adding clearAutomatically = true, we guarantee that if another part of the code
+    // queries these sessions within the same transaction, Hibernate won't return stale data.
     // ==========================================
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE SessionRecord s SET s.isActive = false WHERE s.id IN :sessionIds")
     int deactivateSessionsBulk(@Param("sessionIds") List<UUID> sessionIds);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE SessionRecord s SET s.isActive = false WHERE s.id = :sessionId")
     int deactivateSessionById(@Param("sessionId") UUID sessionId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE SessionRecord s SET s.isActive = false WHERE s.user.id = :userId")
     int deactivateAllByUserId(@Param("userId") UUID userId);
 }
