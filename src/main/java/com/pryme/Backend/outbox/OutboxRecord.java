@@ -6,22 +6,20 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity
 @Table(
         name = "outbox_records",
         indexes = {
-                // 🧠 THE DISPATCHER INDEX: Hyper-optimizes the SKIP LOCKED polling query
                 @Index(name = "idx_outbox_status_created", columnList = "status, created_at"),
-
-                // 🧠 THE SWEEPER INDEX: Hyper-optimizes the Zombie Recovery query
-                // Without this, the Sweeper Protocol requires a full table scan every 2 minutes!
                 @Index(name = "idx_outbox_status_updated", columnList = "status, updated_at")
         }
 )
+// 🧠 160 IQ FIX 1: Removed class-level @Setter.
+// Core event data (Payload, AggregateID) is now mathematically IMMUTABLE after creation.
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -31,26 +29,24 @@ public class OutboxRecord {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    // 🧠 ATOMIC CONCURRENCY SHIELD (Optimistic Locking)
-    // Prevents lagging/zombie threads from overwriting a recovered event's status.
     @Version
     private Long version;
 
-    @Column(name = "aggregate_type", nullable = false, length = 50)
-    private String aggregateType; // e.g., "LOAN_APPLICATION"
+    @Column(name = "aggregate_type", nullable = false, length = 50, updatable = false)
+    private String aggregateType;
 
-    @Column(name = "aggregate_id", nullable = false, length = 100)
+    @Column(name = "aggregate_id", nullable = false, length = 100, updatable = false)
     private String aggregateId;
 
-    @Column(name = "event_type", nullable = false, length = 100)
-    private String eventType; // e.g., "APPLICATION_APPROVED_EMAIL"
+    @Column(name = "event_type", nullable = false, length = 100, updatable = false)
+    private String eventType;
 
-    // 🧠 JSONB PAYLOAD: Stores the email variables (Name, Amount, Bank) securely.
-    // Extremely efficient in Postgres.
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "payload", columnDefinition = "jsonb", nullable = false)
+    @Column(name = "payload", columnDefinition = "jsonb", nullable = false, updatable = false)
     private String payload;
 
+    // 🧠 Selective Setters: Only lifecycle fields are allowed to mutate
+    @Setter
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
@@ -59,21 +55,27 @@ public class OutboxRecord {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    // 🧠 REQUIRED FOR THE SWEEPER PROTOCOL
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Setter
     @Column(name = "processed_at")
     private Instant processedAt;
 
     @Column(name = "error_message", length = 1000)
     private String errorMessage;
 
+    // 🧠 160 IQ FIX 2: Poison Pill Defense (Tracks execution attempts)
+    @Column(name = "retry_count", nullable = false)
+    @Builder.Default
+    private Integer retryCount = 0;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = Instant.now();
         this.updatedAt = this.createdAt;
         if (this.status == null) this.status = OutboxStatus.PENDING;
+        if (this.retryCount == null) this.retryCount = 0;
     }
 
     @PreUpdate
@@ -81,10 +83,46 @@ public class OutboxRecord {
         this.updatedAt = Instant.now();
     }
 
-    // 🧠 REQUIRED FIX: Added PROCESSING state to support the Claim-Check pattern
+    // ==========================================
+    // 🧠 DOMAIN-DRIVEN DESIGN ENFORCEMENTS
+    // ==========================================
+
+    /**
+     * 160 IQ FIX 3: Self-Healing Setter
+     * Enforces the 1000-char DB limit INSIDE the entity.
+     * No developer can ever crash the SQL driver by passing a massive stack trace.
+     */
+    public void setErrorMessage(String errorMessage) {
+        if (errorMessage != null && errorMessage.length() > 950) {
+            this.errorMessage = errorMessage.substring(0, 950) + "...[TRUNCATED]";
+        } else {
+            this.errorMessage = errorMessage;
+        }
+    }
+
+    public void incrementRetryCount() {
+        this.retryCount++;
+    }
+
+    // ==========================================
+    // 🧠 HIBERNATE PROXY SAFETY
+    // Prevents Set/List corruption when managing Entities in RAM
+    // ==========================================
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof OutboxRecord that)) return false;
+        return id != null && Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
+
     public enum OutboxStatus {
         PENDING,
-        PROCESSING, // Claimed by a Pod, currently executing network calls
+        PROCESSING,
         PROCESSED,
         FAILED
     }
