@@ -12,14 +12,15 @@ import java.util.UUID;
 @Table(
         name = "users",
         indexes = {
-                // 🧠 Indexing the Natural ID ensures hyper-fast login queries
                 @Index(name = "idx_user_email", columnList = "email", unique = true)
         }
 )
+// 🧠 160 IQ FIX 1: Removed class-level @Setter to strictly protect system columns.
+// JPA requires a no-args constructor, but we make it PROTECTED so developers
+// are forced to use the @Builder instead of instantiating empty shells.
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class User {
 
@@ -27,13 +28,13 @@ public class User {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    // 🧠 NATURAL ID: The top 1% practice for JPA equals/hashCode.
-    // Emails never change in our system logic without a strict migration, making them a perfect natural identifier.
+    // 🧠 160 IQ FIX 2: Enforced Immutability at the SQL Level
+    // Added updatable = false. Hibernate will now physically refuse to generate
+    // an UPDATE statement for the email column, mathematically guaranteeing your logic.
     @NaturalId
-    @Column(nullable = false, unique = true, length = 150)
+    @Column(nullable = false, unique = true, length = 150, updatable = false)
     private String email;
 
-    // Secured password payload
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
@@ -42,38 +43,30 @@ public class User {
     @Builder.Default
     private Role role = Role.USER;
 
+    // 🧠 Selective Setters: Only explicitly mutable profile fields get setters.
+    @Setter
     @Column(name = "full_name", nullable = false, length = 100)
     private String fullName;
 
-    // ==========================================
-    // 🧠 EXTENDED PROFILE MATRIX
-    // ==========================================
-
-    // Upgraded from 'phone' to 'phone_number' to match our strict DTO standards
+    @Setter
     @Column(name = "phone_number", length = 20)
     private String phoneNumber;
 
+    @Setter
     @Column(name = "profile_picture_url", length = 500)
     private String profilePictureUrl;
 
+    @Setter
     @Column(name = "city", length = 100)
     private String city;
 
+    @Setter
     @Column(name = "state", length = 100)
     private String state;
 
-    // ==========================================
-    // 🧠 CONCURRENCY & TELEMETRY ENGINE
-    // ==========================================
-
-    // OPTIMISTIC LOCKING: Prevents "Lost Updates".
-    // If an Admin edits the profile at the exact same millisecond the User edits it,
-    // Hibernate will safely reject one instead of corrupting the database.
     @Version
     private Long version;
 
-    // Using Instant instead of LocalDateTime guarantees global UTC standardization
-    // regardless of what timezone the AWS/Linux server is running in.
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -96,22 +89,36 @@ public class User {
     }
 
     // ==========================================
-    // 🧠 FAILPROOF JPA EQUALS/HASHCODE
+    // 🧠 DOMAIN-DRIVEN BEHAVIORS
     // ==========================================
-    // We explicitly avoid Lombok's @EqualsAndHashCode.
-    // By using the @NaturalId (email) for equality, we guarantee that Hibernate sets
-    // and caching mechanisms never lose track of the entity across persistent states.
+
+    public void updatePassword(String newPasswordHash) {
+        this.passwordHash = newPasswordHash;
+    }
+
+    public void elevateRole(Role newRole) {
+        this.role = newRole;
+    }
+
+    // ==========================================
+    // 🧠 HIBERNATE PROXY-SAFE EQUALS/HASHCODE
+    // ==========================================
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        User user = (User) o;
-        return Objects.equals(email, user.email);
+
+        // 🧠 160 IQ FIX 3: The 'instanceof' bypasses the CGLIB subclass mismatch.
+        if (!(o instanceof User user)) return false;
+
+        // 🧠 CRITICAL: We MUST use the getter method (user.getEmail()), NOT the field (user.email).
+        // Accessing fields directly on a lazy Hibernate Proxy yields null!
+        return getEmail() != null && Objects.equals(getEmail(), user.getEmail());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(email);
+        // Safe to hash the getter because the Natural ID is mathematically immutable.
+        return Objects.hash(getEmail());
     }
 }
