@@ -33,9 +33,9 @@ public class ApplicationService {
     private final UserRepository userRepository;
 
     // 🧠 THE INTEGRATION ENGINES
-    private final ApplicationEventPublisher eventPublisher;      // For internal micro-domain routing
-    private final OutboxRepository outboxRepository;             // For guaranteed external notifications
-    private final ApplicationStatusHistoryRepository historyRepository; // For strict RBI/Financial Compliance
+    private final ApplicationEventPublisher eventPublisher;
+    private final OutboxRepository outboxRepository;
+    private final ApplicationStatusHistoryRepository historyRepository;
 
     // ==========================================
     // 🧠 PHASE 2: PROGRESSIVE LEAD CAPTURE ENGINE
@@ -45,22 +45,10 @@ public class ApplicationService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User footprint not found in IAM module."));
 
-        boolean userUpdated = false;
-        if (user.getPhoneNumber() == null || user.getPhoneNumber().isBlank()) {
-            user.setPhoneNumber(request.getMobileNumber());
-            userUpdated = true;
-        }
-        if (user.getCity() == null || user.getCity().isBlank()) {
-            user.setCity(request.getCity());
-            userUpdated = true;
-        }
-        if (user.getState() == null || user.getState().isBlank()) {
-            user.setState(request.getState());
-            userUpdated = true;
-        }
-        if (userUpdated) {
-            userRepository.save(user);
-        }
+        // 🧠 160 IQ FIX 1: Hibernate Dirty Checking (Removed userRepository.save)
+        if (user.getPhoneNumber() == null || user.getPhoneNumber().isBlank()) user.setPhoneNumber(request.getMobileNumber());
+        if (user.getCity() == null || user.getCity().isBlank()) user.setCity(request.getCity());
+        if (user.getState() == null || user.getState().isBlank()) user.setState(request.getState());
 
         LoanApplication application = applicationRepository.findByApplicantIdAndStatus(userId, ApplicationStatus.DRAFT)
                 .stream()
@@ -78,7 +66,8 @@ public class ApplicationService {
         application.setLoanType(request.getLoanType());
         application.setCompletionPercentage(25);
 
-        Map<String, Object> meta = application.getMetadata() != null ? application.getMetadata() : new HashMap<>();
+        // 🧠 160 IQ FIX 2: Immutable JSONB Matrix Bypass
+        Map<String, Object> meta = application.getMetadata() != null ? new HashMap<>(application.getMetadata()) : new HashMap<>();
         meta.put("dob", request.getDob());
         meta.put("pinCode", request.getPinCode());
         meta.put("employmentType", request.getEmploymentType());
@@ -105,9 +94,9 @@ public class ApplicationService {
             application.setCompletionPercentage(((Number) updates.get("completionPercentage")).intValue());
         }
 
+        // 🧠 160 IQ FIX 3: Removed updates.remove() to prevent Jackson Immutable Map crashes
         if (updates.containsKey("selectedBank")) {
             application.setSelectedBank(String.valueOf(updates.get("selectedBank")));
-            updates.remove("selectedBank");
         }
 
         if (updates.containsKey("requestedAmount")) {
@@ -117,14 +106,15 @@ public class ApplicationService {
             } else if (amtObj instanceof String) {
                 try { application.setRequestedAmount(new BigDecimal((String) amtObj)); } catch (Exception ignored) {}
             }
-            updates.remove("requestedAmount");
         }
 
         if (updates.containsKey("metadata")) {
             @SuppressWarnings("unchecked")
             Map<String, Object> newMetadata = (Map<String, Object>) updates.get("metadata");
-            Map<String, Object> existingMetadata = application.getMetadata() != null ? application.getMetadata() : new HashMap<>();
-            existingMetadata.putAll(newMetadata);
+
+            // 🧠 Safe Merging Matrix
+            Map<String, Object> existingMetadata = application.getMetadata() != null ? new HashMap<>(application.getMetadata()) : new HashMap<>();
+            if (newMetadata != null) existingMetadata.putAll(newMetadata);
             application.setMetadata(existingMetadata);
         }
 
@@ -150,11 +140,10 @@ public class ApplicationService {
 
         ApplicationStatus oldStatus = application.getStatus();
 
-        // 1. Strict Domain Entity State Transition
         application.transitionTo(newStatus);
         LoanApplication savedApp = applicationRepository.save(application);
 
-        // 2. 🧠 APPEND-ONLY AUDIT LEDGER (Compliance)
+        // 🧠 APPEND-ONLY AUDIT LEDGER
         historyRepository.save(ApplicationStatusHistory.builder()
                 .applicationId(savedApp.getApplicationId())
                 .oldStatus(oldStatus.name())
@@ -163,8 +152,7 @@ public class ApplicationService {
                 .changedAt(Instant.now())
                 .build());
 
-        // 3. 🧠 TRANSACTIONAL OUTBOX (Guaranteed External Delivery)
-        // Uses Java 17 Text Blocks for clean JSON construction
+        // 🧠 TRANSACTIONAL OUTBOX
         if (newStatus == ApplicationStatus.PROCESSING || newStatus == ApplicationStatus.APPROVED) {
             String payload = """
                     {
@@ -182,7 +170,7 @@ public class ApplicationService {
                     .build());
         }
 
-        // 4. 🧠 EVENT-CARRIED STATE TRANSFER (Internal Async Triggers)
+        // 🧠 EVENT-CARRIED STATE TRANSFER
         if (oldStatus == ApplicationStatus.DRAFT && newStatus == ApplicationStatus.PROCESSING) {
             log.info("Application {} submitted. Publishing Underwriting Event to the Bus.", applicationId);
             eventPublisher.publishEvent(new ApplicationSubmittedEvent(
@@ -216,7 +204,6 @@ public class ApplicationService {
 
         application.setAssignee(employee);
 
-        // 🧠 AUDIT LEDGER: Log assignment
         historyRepository.save(ApplicationStatusHistory.builder()
                 .applicationId(application.getApplicationId())
                 .oldStatus(application.getStatus().name())
@@ -233,15 +220,12 @@ public class ApplicationService {
     // ==========================================
     @Transactional(readOnly = true)
     public Page<ApplicationResponse> listApplications(Pageable pageable) {
-        // Prevents OutOfMemoryErrors by only loading requested slice of data
-        return applicationRepository.findAll(pageable)
-                .map(ApplicationResponse::from);
+        return applicationRepository.findAll(pageable).map(ApplicationResponse::from);
     }
 
     @Transactional(readOnly = true)
     public Page<ApplicationResponse> listMyApplications(UUID applicantId, Pageable pageable) {
-        return applicationRepository.findAllByApplicant_Id(applicantId, pageable)
-                .map(ApplicationResponse::from);
+        return applicationRepository.findAllByApplicant_Id(applicantId, pageable).map(ApplicationResponse::from);
     }
 
     private static void validateVersion(Long current, Long requestVersion) {
