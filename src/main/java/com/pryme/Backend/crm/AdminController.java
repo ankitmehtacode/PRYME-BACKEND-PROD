@@ -5,12 +5,15 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -42,14 +45,21 @@ public class AdminController {
     }
 
     // ==========================================
-    // 1. MASTER DASHBOARD TELEMETRY
+    // 1. MASTER DASHBOARD TELEMETRY (PAGINATED)
     // ==========================================
     @GetMapping
-    public ResponseEntity<List<ApplicationResponse>> getAllApplications(Authentication authentication) {
+    public ResponseEntity<Page<ApplicationResponse>> getAllApplications(
+            // 🧠 ELASTIC MEMORY PROTECTION: Defaults to 20 items per page to prevent RAM spikes.
+            // React frontend can override via ?page=0&size=50
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            Authentication authentication
+    ) {
         UUID adminId = extractAdminId(authentication);
-        log.info("Audit Trail: Admin/Underwriter {} requested the Master Application Matrix.", adminId);
+        log.info("Audit Trail: Admin/Underwriter {} requested the Master Application Matrix. Page: {}, Size: {}",
+                adminId, pageable.getPageNumber(), pageable.getPageSize());
 
-        return ResponseEntity.ok(applicationService.listApplications());
+        // 🧠 Passes the Pageable object deep into Hibernate
+        return ResponseEntity.ok(applicationService.listApplications(pageable));
     }
 
     // ==========================================
@@ -65,7 +75,8 @@ public class AdminController {
         log.warn("Audit Trail: Admin {} initiating status transition to [{}] for Application {}",
                 adminId, payload.status(), applicationId);
 
-        ApplicationResponse updated = applicationService.updateStatus(applicationId, payload);
+        // 🧠 AUDIT LEDGER PROPAGATION: Passes the adminId to the service boundary
+        ApplicationResponse updated = applicationService.updateStatus(applicationId, payload, adminId);
 
         return ResponseEntity.ok(Map.of(
                 "status", "TRANSITION_SUCCESS",
@@ -87,7 +98,8 @@ public class AdminController {
         log.info("Audit Trail: Admin {} re-routing Application {} to Assignee {}",
                 adminId, applicationId, payload.assigneeId());
 
-        ApplicationResponse updated = applicationService.assign(applicationId, payload);
+        // 🧠 AUDIT LEDGER PROPAGATION: Passes the adminId to the service boundary
+        ApplicationResponse updated = applicationService.assign(applicationId, payload, adminId);
 
         return ResponseEntity.ok(Map.of(
                 "status", "ASSIGNMENT_SUCCESS",

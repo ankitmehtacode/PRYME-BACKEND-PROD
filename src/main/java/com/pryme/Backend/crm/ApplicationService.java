@@ -6,16 +6,20 @@ import com.pryme.Backend.crm.dto.InitialLeadCaptureRequest;
 import com.pryme.Backend.crm.events.ApplicationSubmittedEvent;
 import com.pryme.Backend.iam.User;
 import com.pryme.Backend.iam.UserRepository;
+import com.pryme.Backend.outbox.OutboxRecord;
+import com.pryme.Backend.outbox.OutboxRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -28,8 +32,10 @@ public class ApplicationService {
     private final LoanApplicationRepository applicationRepository;
     private final UserRepository userRepository;
 
-    // 🧠 THE EVENT BUS: Decouples the CRM module from the Eligibility/Underwriting module
-    private final ApplicationEventPublisher eventPublisher;
+    // 🧠 THE INTEGRATION ENGINES
+    private final ApplicationEventPublisher eventPublisher;      // For internal micro-domain routing
+    private final OutboxRepository outboxRepository;             // For guaranteed external notifications
+    private final ApplicationStatusHistoryRepository historyRepository; // For strict RBI/Financial Compliance
 
     // ==========================================
     // 🧠 PHASE 2: PROGRESSIVE LEAD CAPTURE ENGINE
@@ -39,7 +45,6 @@ public class ApplicationService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User footprint not found in IAM module."));
 
-        // 1. ZERO DATA LOSS PROTOCOL: Sync PII back to core IAM profile if missing
         boolean userUpdated = false;
         if (user.getPhoneNumber() == null || user.getPhoneNumber().isBlank()) {
             user.setPhoneNumber(request.getMobileNumber());
@@ -57,7 +62,6 @@ public class ApplicationService {
             userRepository.save(user);
         }
 
-        // 2. IDEMPOTENT UPSERT: Prevent duplicate drafts from network race conditions
         LoanApplication application = applicationRepository.findByApplicantIdAndStatus(userId, ApplicationStatus.DRAFT)
                 .stream()
                 .filter(app -> request.getLoanType().equals(app.getLoanType()))
@@ -65,7 +69,6 @@ public class ApplicationService {
                 .orElseGet(() -> {
                     LoanApplication newApp = new LoanApplication();
                     newApp.setApplicant(user);
-                    // Cryptographically secure application ID allocation
                     newApp.setApplicationId("PRYME-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
                     newApp.setStatus(ApplicationStatus.DRAFT);
                     newApp.setRequestedAmount(BigDecimal.ZERO);
@@ -73,14 +76,9 @@ public class ApplicationService {
                 });
 
         application.setLoanType(request.getLoanType());
-        application.setCompletionPercentage(25); // Intake matrix completed
+        application.setCompletionPercentage(25);
 
-        // 3. HYBRID JSON MATRIX: Safely pack dynamic UI state without schema bloat
-        Map<String, Object> meta = application.getMetadata();
-        if (meta == null) {
-            meta = new HashMap<>();
-        }
-
+        Map<String, Object> meta = application.getMetadata() != null ? application.getMetadata() : new HashMap<>();
         meta.put("dob", request.getDob());
         meta.put("pinCode", request.getPinCode());
         meta.put("employmentType", request.getEmploymentType());
@@ -103,23 +101,15 @@ public class ApplicationService {
         LoanApplication application = applicationRepository.findByApplicationId(applicationId)
                 .orElseThrow(() -> new NotFoundException("Application Matrix not found"));
 
-        log.info("Synchronizing progressive payload for Application: {}", applicationId);
-
-        // 1. Target Completion Vector
         if (updates.containsKey("completionPercentage")) {
-            Object cpObj = updates.get("completionPercentage");
-            if (cpObj instanceof Number) {
-                application.setCompletionPercentage(((Number) cpObj).intValue());
-            }
+            application.setCompletionPercentage(((Number) updates.get("completionPercentage")).intValue());
         }
 
-        // 2. 🧠 INTENT ROUTER: Extract bank selection to a hard column for indexing
         if (updates.containsKey("selectedBank")) {
             application.setSelectedBank(String.valueOf(updates.get("selectedBank")));
-            updates.remove("selectedBank"); // Strip it from the JSON to prevent data duplication
+            updates.remove("selectedBank");
         }
 
-        // 3. 🧠 FINANCIAL PROFILING: Extract requested amount to a hard column
         if (updates.containsKey("requestedAmount")) {
             Object amtObj = updates.get("requestedAmount");
             if (amtObj instanceof Number) {
@@ -130,31 +120,22 @@ public class ApplicationService {
             updates.remove("requestedAmount");
         }
 
-        // 4. Safe Deep-Merge of remaining JSON Metadata
         if (updates.containsKey("metadata")) {
-            Object metaObj = updates.get("metadata");
-            if (metaObj instanceof Map) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> newMetadata = (Map<String, Object>) metaObj;
-                Map<String, Object> existingMetadata = application.getMetadata();
-
-                if (existingMetadata == null) {
-                    application.setMetadata(newMetadata);
-                } else {
-                    existingMetadata.putAll(newMetadata);
-                    application.setMetadata(existingMetadata);
-                }
-            }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> newMetadata = (Map<String, Object>) updates.get("metadata");
+            Map<String, Object> existingMetadata = application.getMetadata() != null ? application.getMetadata() : new HashMap<>();
+            existingMetadata.putAll(newMetadata);
+            application.setMetadata(existingMetadata);
         }
 
         return ApplicationResponse.from(applicationRepository.save(application));
     }
 
     // ==========================================
-    // 🧠 PHASE 4: STATE TRANSITION ENGINE & EVENT TRIGGER
+    // 🧠 PHASE 4 & 6: STATE TRANSITION, OUTBOX, AND AUDIT LEDGER
     // ==========================================
     @Transactional
-    public ApplicationResponse updateStatus(String applicationId, UpdateStatusRequest request) {
+    public ApplicationResponse updateStatus(String applicationId, UpdateStatusRequest request, UUID actorId) {
         LoanApplication application = applicationRepository.findByApplicationId(applicationId)
                 .orElseThrow(() -> new NotFoundException("Application Matrix not found"));
 
@@ -169,21 +150,47 @@ public class ApplicationService {
 
         ApplicationStatus oldStatus = application.getStatus();
 
-        // 🧠 FIRE THE STRICT STATE MACHINE (Located inside the Entity)
+        // 1. Strict Domain Entity State Transition
         application.transitionTo(newStatus);
-
         LoanApplication savedApp = applicationRepository.save(application);
-        log.info("State Engine: Application {} transitioned from {} to {}", applicationId, oldStatus, newStatus);
 
-        // 🧠 EVENT-CARRIED STATE TRANSFER: Trigger the Underwriting Engine asynchronously
+        // 2. 🧠 APPEND-ONLY AUDIT LEDGER (Compliance)
+        historyRepository.save(ApplicationStatusHistory.builder()
+                .applicationId(savedApp.getApplicationId())
+                .oldStatus(oldStatus.name())
+                .newStatus(newStatus.name())
+                .changedBy(actorId)
+                .changedAt(Instant.now())
+                .build());
+
+        // 3. 🧠 TRANSACTIONAL OUTBOX (Guaranteed External Delivery)
+        // Uses Java 17 Text Blocks for clean JSON construction
+        if (newStatus == ApplicationStatus.PROCESSING || newStatus == ApplicationStatus.APPROVED) {
+            String payload = """
+                    {
+                        "applicationId": "%s",
+                        "applicantName": "%s",
+                        "status": "%s"
+                    }
+                    """.formatted(savedApp.getApplicationId(), savedApp.getApplicant().getFullName(), newStatus.name());
+
+            outboxRepository.save(OutboxRecord.builder()
+                    .aggregateType("LOAN_APPLICATION")
+                    .aggregateId(savedApp.getApplicationId())
+                    .eventType("APPLICATION_STATUS_UPDATE_EMAIL")
+                    .payload(payload)
+                    .build());
+        }
+
+        // 4. 🧠 EVENT-CARRIED STATE TRANSFER (Internal Async Triggers)
         if (oldStatus == ApplicationStatus.DRAFT && newStatus == ApplicationStatus.PROCESSING) {
-            log.info("Application {} officially submitted. Publishing Underwriting Event to the Bus.", applicationId);
+            log.info("Application {} submitted. Publishing Underwriting Event to the Bus.", applicationId);
             eventPublisher.publishEvent(new ApplicationSubmittedEvent(
                     savedApp.getApplicationId(),
                     savedApp.getLoanType(),
                     savedApp.getSelectedBank(),
                     savedApp.getRequestedAmount(),
-                    ApplicantSnapshot.from(savedApp) // Injects the rich, immutable snapshot
+                    ApplicantSnapshot.from(savedApp)
             ));
         }
 
@@ -191,7 +198,7 @@ public class ApplicationService {
     }
 
     @Transactional
-    public ApplicationResponse assign(String applicationId, AssignLeadRequest request) {
+    public ApplicationResponse assign(String applicationId, AssignLeadRequest request, UUID adminId) {
         LoanApplication application = applicationRepository.findByApplicationId(applicationId)
                 .orElseThrow(() -> new NotFoundException("Application Matrix not found"));
 
@@ -201,39 +208,44 @@ public class ApplicationService {
         try {
             empId = UUID.fromString(request.assigneeId().trim());
         } catch (IllegalArgumentException ex) {
-            throw new ConflictException("Invalid assigneeId architecture. Expected standard UUID.");
+            throw new ConflictException("Invalid assigneeId architecture.");
         }
 
         User employee = userRepository.findById(empId)
                 .orElseThrow(() -> new NotFoundException("Assignee not found in IAM system records."));
 
         application.setAssignee(employee);
-        log.info("Access Matrix: Application {} assigned to Underwriter {}", applicationId, employee.getEmail());
+
+        // 🧠 AUDIT LEDGER: Log assignment
+        historyRepository.save(ApplicationStatusHistory.builder()
+                .applicationId(application.getApplicationId())
+                .oldStatus(application.getStatus().name())
+                .newStatus(application.getStatus().name())
+                .changedBy(adminId)
+                .changedAt(Instant.now())
+                .build());
 
         return ApplicationResponse.from(applicationRepository.save(application));
     }
 
     // ==========================================
-    // DATA RETRIEVAL (DASHBOARDS)
+    // 🧠 DATA RETRIEVAL (OOM PREVENTION VIA PAGINATION)
     // ==========================================
     @Transactional(readOnly = true)
-    public List<ApplicationResponse> listApplications() {
-        return applicationRepository.findAllByOrderByCreatedAtDesc().stream()
-                .map(ApplicationResponse::from)
-                .toList();
+    public Page<ApplicationResponse> listApplications(Pageable pageable) {
+        // Prevents OutOfMemoryErrors by only loading requested slice of data
+        return applicationRepository.findAll(pageable)
+                .map(ApplicationResponse::from);
     }
 
     @Transactional(readOnly = true)
-    public List<ApplicationResponse> listMyApplications(UUID applicantId) {
-        return applicationRepository.findAllByApplicant_IdOrderByCreatedAtDesc(applicantId).stream()
-                .map(ApplicationResponse::from)
-                .toList();
+    public Page<ApplicationResponse> listMyApplications(UUID applicantId, Pageable pageable) {
+        return applicationRepository.findAllByApplicant_Id(applicantId, pageable)
+                .map(ApplicationResponse::from);
     }
 
     private static void validateVersion(Long current, Long requestVersion) {
-        if (requestVersion == null) {
-            return;
-        }
+        if (requestVersion == null) return;
         if (current == null || !current.equals(requestVersion)) {
             throw new ConflictException("Optimistic Lock Fault: Version mismatch. Please refresh to avoid data collision.");
         }
