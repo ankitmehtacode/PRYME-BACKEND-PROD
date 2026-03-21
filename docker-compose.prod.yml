@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  pryme-db:
+    image: postgres:15-alpine
+    container_name: pryme-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_USER: pryme_admin
+      # 🧠 ZERO-TRUST: Pulls password directly from the Linux Server OS
+      POSTGRES_PASSWORD: ${PROD_DB_PASSWORD}
+      POSTGRES_DB: pryme_db
+    # 🧠 SECURITY: Port 5432 is explicitly NOT exposed. Hackers cannot reach it.
+    volumes:
+      - pryme_prod_pgdata:/var/lib/postgresql/data
+    networks:
+      - pryme_network
+
+  pryme-backend:
+    build: .
+    container_name: pryme-backend-prod
+    restart: always
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - DB_URL=jdbc:postgresql://pryme-db:5432/pryme_db
+      - DB_USER=pryme_admin
+      - DB_PASS=${PROD_DB_PASSWORD}
+      - PROD_JWT_SECRET=${PROD_JWT_SECRET}
+    depends_on:
+      - pryme-db
+    networks:
+      - pryme_network
+
+  pryme-nginx:
+    image: nginx:alpine
+    container_name: pryme-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/prod.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - pryme-backend
+    networks:
+      - pryme_network
+
+volumes:
+  pryme_prod_pgdata:
+
+networks:
+  pryme_network:
+    driver: bridge
+    driver: bridge

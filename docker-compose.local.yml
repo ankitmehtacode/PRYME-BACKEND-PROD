@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  pryme-db:
+    image: postgres:15-alpine
+    container_name: pryme-postgres-local
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: pryme_db
+    ports:
+      - "5432:5432" # Exposed for local DB GUI inspection
+    volumes:
+      - pryme_local_pgdata:/var/lib/postgresql/data
+
+  pryme-backend:
+    build: .
+    container_name: pryme-backend-local
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - DB_URL=jdbc:postgresql://pryme-db:5432/pryme_db
+      - DB_USER=postgres
+      - DB_PASS=password
+    depends_on:
+      - pryme-db
+
+volumes:
+  pryme_local_pgdata:

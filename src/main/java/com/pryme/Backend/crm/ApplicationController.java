@@ -115,4 +115,4 @@ public class ApplicationController {
         extractUserId(authentication);
         return ResponseEntity.ok(applicationService.listApplications());
     }
-}}
+}
