@@ -72,11 +72,11 @@ public class SessionManager {
      * If not, hits PostgreSQL and memoizes it.
      */
     @Transactional(readOnly = true)
-    public void validateSessionIntegrity(UUID jwtId) {
+    public SessionRecord validate(String jwtId) {
         // 1. L1 RAM Cache Check (Bypass DB entirely)
         L1CacheEntry cached = l1Cache.get(jwtId);
         if (cached != null && cached.localExpiry().isAfter(Instant.now())) {
-            return; // Validated via RAM.
+            return sessionRepository.findById(cached.userId()).orElseThrow(() -> new UnauthorizedException("Session matrix not found or corrupted."));
         }
 
         // 2. DB Fallback (Cache Miss or TTL Expired)
@@ -90,6 +90,7 @@ public class SessionManager {
 
         // 3. Hydrate L1 Cache (Valid for next 30 seconds of burst API calls)
         l1Cache.put(jwtId, new L1CacheEntry(session.getUser().getId(), Instant.now().plusSeconds(30)));
+        return session;
     }
 
     /**

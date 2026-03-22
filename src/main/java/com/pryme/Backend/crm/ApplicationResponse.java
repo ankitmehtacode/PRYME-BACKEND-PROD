@@ -39,7 +39,7 @@ public record ApplicationResponse(
         return new ApplicationResponse(
                 app.getId() != null ? app.getId().toString() : null,
                 app.getApplicationId(),
-                new ApplicantSnapshot(applicantName),
+                new ApplicantSnapshot(app.getApplicant().getId(), applicantName, app.getApplicant().getEmail(), app.getApplicant().getPhone(), app.getApplicant().getState(), app.getApplicant().getCity(), app.getApplicant().getMetadata()),
                 app.getLoanType(),
                 app.getRequestedAmount(),
                 app.getDeclaredCibilScore(),

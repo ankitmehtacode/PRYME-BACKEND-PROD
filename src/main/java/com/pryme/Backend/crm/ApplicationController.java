@@ -85,8 +85,8 @@ public class ApplicationController {
             @Valid @RequestBody UpdateStatusRequest request,
             Authentication authentication) {
 
-        extractUserId(authentication);
-        return ResponseEntity.ok(applicationService.updateStatus(applicationId, request));
+        UUID userId = extractUserId(authentication);
+        return ResponseEntity.ok(applicationService.updateStatus(applicationId, request, userId));
     }
 
     @PatchMapping("/{applicationId}/assign")
@@ -96,8 +96,8 @@ public class ApplicationController {
             Authentication authentication) {
 
         // Note: Global Method Security or URL-based config should restrict this to ADMIN only
-        extractUserId(authentication);
-        return ResponseEntity.ok(applicationService.assign(applicationId, request));
+        UUID userId = extractUserId(authentication);
+        return ResponseEntity.ok(applicationService.assign(applicationId, request, userId));
     }
 
     // ==========================================
@@ -106,13 +106,13 @@ public class ApplicationController {
     @GetMapping("/me")
     public ResponseEntity<List<ApplicationResponse>> getMyApplications(Authentication authentication) {
         UUID userId = extractUserId(authentication);
-        return ResponseEntity.ok(applicationService.listMyApplications(userId));
+        return ResponseEntity.ok(applicationService.listMyApplications(userId, Pageable.unpaged()));
     }
 
     // Admin endpoint to view the entire matrix
     @GetMapping
     public ResponseEntity<List<ApplicationResponse>> getAllApplications(Authentication authentication) {
         extractUserId(authentication);
-        return ResponseEntity.ok(applicationService.listApplications());
+        return ResponseEntity.ok(applicationService.listApplications(Pageable.unpaged()).getContent());
     }
 }
