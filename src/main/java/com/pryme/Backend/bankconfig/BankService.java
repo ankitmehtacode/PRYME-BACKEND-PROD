@@ -1,4 +1,4 @@
-package com.pryme.Backend.bankconfig;
+
 
 import com.pryme.Backend.common.ConflictException;
 import com.pryme.Backend.common.NotFoundException;
