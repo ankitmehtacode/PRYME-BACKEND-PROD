@@ -32,12 +32,18 @@ class ApplicationServiceTest {
     @Mock
     private ApplicationStatusHistoryRepository historyRepository;
 
+    @Mock
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
+
+    @Mock
+    private com.pryme.Backend.outbox.OutboxRepository outboxRepository;
+
     @InjectMocks
     private ApplicationService service;
 
     @BeforeEach
     void setup() {
-        service = new ApplicationService(applicationRepository, userRepository, historyRepository);
+        service = new ApplicationService(applicationRepository, userRepository, eventPublisher, outboxRepository, historyRepository);
     }
 
     @Test
