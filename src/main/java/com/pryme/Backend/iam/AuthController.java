@@ -72,14 +72,14 @@ public class AuthController {
             throw new UnauthorizedException("Invalid email or password");
         }
 
-        SessionRecord session = sessionManager.issueSession(user.getId(), request.deviceId());
+        SessionRecord session = sessionManager.registerSession(UUID.randomUUID(), user, Instant.now().plusSeconds(3600), request.deviceId(), "Unknown");
 
         return ResponseEntity.ok(new LoginResponse(
                 user.getId(), // 🧠 CRITICAL: Passes the User ID to React for the Lead Elevation Engine
-                session.token(),
+                session.getToken(),
                 user.getRole().name(),
                 user.getFullName(),
-                session.expiresAt(),
+                session.getExpiresAt(),
                 "Login successful"
         ));
     }
@@ -102,7 +102,7 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<Map<String, String>> logout(@RequestHeader("Authorization") String authHeader) {
         String token = extractBearerToken(authHeader);
-        sessionManager.invalidate(token);
+        sessionManager.revokeSession(UUID.fromString(token));
         return ResponseEntity.ok(Map.of("message", "Logged out"));
     }
 

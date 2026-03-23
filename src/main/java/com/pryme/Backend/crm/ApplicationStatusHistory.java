@@ -41,4 +41,6 @@ public class ApplicationStatusHistory {
     private Instant createdAt;
 
     private UUID changedBy; // New field added
+
+    private Instant changedAt; // Final missing field added
 }

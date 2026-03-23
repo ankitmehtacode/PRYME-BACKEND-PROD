@@ -74,22 +74,22 @@ public class SessionManager {
     @Transactional(readOnly = true)
     public SessionRecord validate(String jwtId) {
         // 1. L1 RAM Cache Check (Bypass DB entirely)
-        L1CacheEntry cached = l1Cache.get(jwtId);
+        L1CacheEntry cached = l1Cache.get(UUID.fromString(jwtId));
         if (cached != null && cached.localExpiry().isAfter(Instant.now())) {
             return sessionRepository.findById(cached.userId()).orElseThrow(() -> new UnauthorizedException("Session matrix not found or corrupted."));
         }
 
         // 2. DB Fallback (Cache Miss or TTL Expired)
-        SessionRecord session = sessionRepository.findById(jwtId)
+        SessionRecord session = sessionRepository.findById(UUID.fromString(jwtId))
                 .orElseThrow(() -> new UnauthorizedException("Session matrix not found or corrupted."));
 
         if (!session.getIsActive() || session.getExpiresAt().isBefore(Instant.now())) {
-            l1Cache.remove(jwtId);
+            l1Cache.remove(UUID.fromString(jwtId));
             throw new UnauthorizedException("Session lifecycle terminated. Please re-authenticate.");
         }
 
         // 3. Hydrate L1 Cache (Valid for next 30 seconds of burst API calls)
-        l1Cache.put(jwtId, new L1CacheEntry(session.getUser().getId(), Instant.now().plusSeconds(30)));
+        l1Cache.put(UUID.fromString(jwtId), new L1CacheEntry(session.getUser().getId(), Instant.now().plusSeconds(30)));
         return session;
     }
 
@@ -97,11 +97,11 @@ public class SessionManager {
      * 🧠 DIRECT MANUAL OVERRIDE (Logout)
      */
     @Transactional
-    public void revokeSession(UUID jwtId) {
+    public void revokeSession(String jwtId) {
         // 🧠 L1 Cache Purge MUST happen first to prevent Zombie sessions
-        l1Cache.remove(jwtId);
+        l1Cache.remove(UUID.fromString(jwtId));
 
-        int updated = sessionRepository.deactivateSessionById(jwtId);
+        int updated = sessionRepository.deactivateSessionById(UUID.fromString(jwtId));
         if (updated > 0) {
             log.info("Security Matrix: Session {} explicitly terminated.", jwtId);
         }
@@ -141,5 +141,9 @@ public class SessionManager {
             // Catch lock exceptions gracefully in multi-pod environments
             log.warn("Vacuum Protocol encountered cross-pod contention, will retry next cycle. Cause: {}", e.getMessage());
         }
+    }
+
+    public List<SessionRecord> activeSessions(UUID userId) {
+        return sessionRepository.findByUserId(userId);
     }
 }
