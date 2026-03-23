@@ -48,4 +48,7 @@ public interface SessionRepository extends JpaRepository<SessionRecord, UUID> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE SessionRecord s SET s.isActive = false WHERE s.user.id = :userId")
     int deactivateAllByUserId(@Param("userId") UUID userId);
+
+    // New method signature
+    List<SessionRecord> findByUserId(UUID userId);
 }

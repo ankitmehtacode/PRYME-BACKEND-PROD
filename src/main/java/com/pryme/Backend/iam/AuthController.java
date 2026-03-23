@@ -11,6 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant; // Added import
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -76,10 +77,10 @@ public class AuthController {
 
         return ResponseEntity.ok(new LoginResponse(
                 user.getId(), // 🧠 CRITICAL: Passes the User ID to React for the Lead Elevation Engine
-                session.getToken(),
+                session.getId().toString(), // Changed .getToken() to .getId().toString()
                 user.getRole().name(),
                 user.getFullName(),
-                session.getExpiresAt(),
+                session.getExpiresAt(), // Changed .expiresAt() to .getExpiresAt()
                 "Login successful"
         ));
     }
@@ -102,7 +103,7 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<Map<String, String>> logout(@RequestHeader("Authorization") String authHeader) {
         String token = extractBearerToken(authHeader);
-        sessionManager.revokeSession(UUID.fromString(token));
+        sessionManager.invalidate(UUID.fromString(token)); // Changed to UUID.fromString(token)
         return ResponseEntity.ok(Map.of("message", "Logged out"));
     }
 
