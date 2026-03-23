@@ -81,14 +81,14 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     }
 
     private Bucket createAuthBucket() {
-        return Bucket.builder().addLimit(Bandwidth.classic(5, Refill.intervally(5, Duration.ofMinutes(1)))).build();
+        return Bucket.builder().addLimit(Bandwidth.builder().capacity(5).refillIntervally(5, Duration.ofMinutes(1)).build()).build();
     }
 
     private Bucket createLeadBucket() {
-        return Bucket.builder().addLimit(Bandwidth.classic(15, Refill.intervally(15, Duration.ofMinutes(1)))).build();
+        return Bucket.builder().addLimit(Bandwidth.builder().capacity(15).refillIntervally(15, Duration.ofMinutes(1)).build()).build();
     }
 
     private Bucket createGlobalBucket() {
-        return Bucket.builder().addLimit(Bandwidth.classic(100, Refill.intervally(100, Duration.ofMinutes(1)))).build();
+        return Bucket.builder().addLimit(Bandwidth.builder().capacity(100).refillIntervally(100, Duration.ofMinutes(1)).build()).build();
     }
 }
