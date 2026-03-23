@@ -1,6 +1,6 @@
 package com.pryme.Backend.crm;
 
-import com.pryme.Backend.common.UnauthorizedException;
+import com.pryme.Backend.common.ForbiddenException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,11 +52,11 @@ class ApplicationControllerTest {
     void myApplicationsRequiresAuthenticationPrincipal() {
         var auth = new UsernamePasswordAuthenticationToken("anonymous_string_user", "token");
 
-        assertThrows(UnauthorizedException.class, () -> controller.getMyApplications(auth));
+        assertThrows(ForbiddenException.class, () -> controller.getMyApplications(auth));
     }
 
     @Test
     void myApplicationsRequiresNonNullAuthentication() {
-        assertThrows(UnauthorizedException.class, () -> controller.getMyApplications(null));
+        assertThrows(ForbiddenException.class, () -> controller.getMyApplications(null));
     }
 }

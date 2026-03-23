@@ -4,6 +4,7 @@ import com.pryme.Backend.common.ConflictException;
 import com.pryme.Backend.common.NotFoundException;
 import com.pryme.Backend.iam.User;
 import com.pryme.Backend.iam.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -28,8 +29,16 @@ class ApplicationServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private ApplicationStatusHistoryRepository historyRepository;
+
     @InjectMocks
     private ApplicationService service;
+
+    @BeforeEach
+    void setup() {
+        service = new ApplicationService(applicationRepository, userRepository, historyRepository);
+    }
 
     @Test
     void assign_throwsNotFound_whenMissingApplication() {

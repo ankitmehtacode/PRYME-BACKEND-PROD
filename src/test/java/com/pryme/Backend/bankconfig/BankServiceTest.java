@@ -29,6 +29,6 @@ class BankServiceTest {
 
         assertThatThrownBy(() -> bankService.update(id, new BankRequest("Bank", "/logo.png", true)))
                 .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("Bank not found");
+                .hasMessageContaining("Bank footprint not found");
     }
 }
