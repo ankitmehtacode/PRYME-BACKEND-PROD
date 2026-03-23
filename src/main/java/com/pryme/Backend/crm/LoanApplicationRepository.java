@@ -43,4 +43,7 @@ public interface LoanApplicationRepository extends JpaRepository<LoanApplication
     @Override
     @EntityGraph(attributePaths = {"applicant", "assignee"})
     Page<LoanApplication> findAll(Pageable pageable);
+
+    // New method added
+    Optional<LoanApplication> findByApplicantIdAndStatus(UUID applicantId, ApplicationStatus status);
 }

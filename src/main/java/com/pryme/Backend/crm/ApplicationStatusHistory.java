@@ -32,6 +32,8 @@ public class ApplicationStatusHistory {
     @Enumerated(EnumType.STRING)
     private ApplicationStatus status;
 
+    private String oldStatus; // New field added
+
     private String notes;
 
     private Instant createdAt;
