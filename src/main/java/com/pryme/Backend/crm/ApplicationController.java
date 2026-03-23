@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -112,8 +113,8 @@ public class ApplicationController {
 
     // Admin endpoint to view the entire matrix
     @GetMapping
-    public ResponseEntity<List<ApplicationResponse>> getAllApplications(Authentication authentication) {
+    public ResponseEntity<Page<ApplicationResponse>> getAllApplications(Authentication authentication) {
         extractUserId(authentication);
-        return ResponseEntity.ok(applicationService.listApplications(Pageable.unpaged()).getContent());
+        return ResponseEntity.ok(applicationService.listApplications(Pageable.unpaged()));
     }
 }

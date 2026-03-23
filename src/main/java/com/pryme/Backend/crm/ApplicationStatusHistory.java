@@ -34,6 +34,8 @@ public class ApplicationStatusHistory {
 
     private String oldStatus; // New field added
 
+    private String newStatus; // New field added
+
     private String notes;
 
     private Instant createdAt;
