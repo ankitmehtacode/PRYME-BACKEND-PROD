@@ -36,7 +36,7 @@ class ApplicationServiceTest {
         when(applicationRepository.findByApplicationId("PRY-1")).thenReturn(Optional.empty());
 
         // 🧠 Valid UUID format used instead of "EMP001" to pass the updated strict validation
-        assertThatThrownBy(() -> service.assign("PRY-1", new AssignLeadRequest(UUID.randomUUID().toString(), null)))
+        assertThatThrownBy(() -> service.assign("PRY-1", new AssignLeadRequest(UUID.randomUUID().toString(), null), UUID.randomUUID()))
                 .isInstanceOf(NotFoundException.class);
     }
 
@@ -52,7 +52,7 @@ class ApplicationServiceTest {
 
         when(applicationRepository.findByApplicationId("PRY-2")).thenReturn(Optional.of(app));
 
-        assertThatThrownBy(() -> service.updateStatus("PRY-2", new UpdateStatusRequest("WRONG", 1L)))
+        assertThatThrownBy(() -> service.updateStatus("PRY-2", new UpdateStatusRequest("WRONG", 1L), UUID.randomUUID()))
                 .isInstanceOf(ConflictException.class);
     }
 
@@ -74,7 +74,7 @@ class ApplicationServiceTest {
         when(userRepository.findById(employeeId)).thenReturn(Optional.of(mockEmployee));
         when(applicationRepository.save(app)).thenReturn(app);
 
-        ApplicationResponse response = service.assign("PRY-3", new AssignLeadRequest(employeeId.toString(), 2L));
+        ApplicationResponse response = service.assign("PRY-3", new AssignLeadRequest(employeeId.toString(), 2L), UUID.randomUUID());
 
         // Ensures the DTO safely unpacked the User entity's string name
         assertThat(response.assignee()).isEqualTo("John Doe");

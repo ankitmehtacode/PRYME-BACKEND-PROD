@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
@@ -37,17 +38,17 @@ class ApplicationControllerTest {
         UUID userId = UUID.randomUUID();
         var auth = new UsernamePasswordAuthenticationToken(userId, "token");
 
-        when(applicationService.listMyApplications(userId)).thenReturn(List.of());
+        when(applicationService.listMyApplications(userId, Pageable.unpaged())).thenReturn(List.of());
 
         // ⚡ EXECUTE
-        ResponseEntity<List<ApplicationResponse>> response = controller.myApplications(auth);
+        ResponseEntity<List<ApplicationResponse>> response = controller.getMyApplications(auth);
 
         // 🛡️ ASSERT
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
         assertEquals(0, response.getBody().size());
 
-        verify(applicationService).listMyApplications(userId);
+        verify(applicationService).listMyApplications(userId, Pageable.unpaged());
     }
 
     @Test
@@ -56,12 +57,12 @@ class ApplicationControllerTest {
         var auth = new UsernamePasswordAuthenticationToken("anonymous_string_user", "token");
 
         // 🛡️ ASSERT: The Code X Architecture dictates this must throw an UnauthorizedException
-        assertThrows(UnauthorizedException.class, () -> controller.myApplications(auth));
+        assertThrows(UnauthorizedException.class, () -> controller.getMyApplications(auth));
     }
 
     @Test
     void myApplicationsRequiresNonNullAuthentication() {
         // 🛡️ ASSERT: Completely null authentication should also instantly bounce
-        assertThrows(UnauthorizedException.class, () -> controller.myApplications(null));
+        assertThrows(UnauthorizedException.class, () -> controller.getMyApplications(null));
     }
 }
