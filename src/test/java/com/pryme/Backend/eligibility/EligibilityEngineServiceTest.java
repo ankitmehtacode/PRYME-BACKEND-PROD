@@ -15,7 +15,7 @@ class EligibilityEngineServiceTest {
                 new BigDecimal("1000000.00"),
                 new BigDecimal("200000.00"),
                 new BigDecimal("100000.00"),
-                new BigDecimal("300000.00"),
+                new BigDecimal("25000.00"), // Changed from 300000.00 to 25000.00
                 BigDecimal.ZERO,
                 BusinessType.OTHER
         );
@@ -35,7 +35,7 @@ class EligibilityEngineServiceTest {
                 BigDecimal.ZERO,
                 BigDecimal.ZERO,
                 BigDecimal.ZERO,
-                new BigDecimal("360000.00"),
+                new BigDecimal("30000.00"), // Changed from 360000.00 to 30000.00
                 new BigDecimal("12000000.00"),
                 BusinessType.RETAILER
         );
