@@ -12,7 +12,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.Map;
@@ -50,7 +49,7 @@ class AuthControllerTest {
         when(passwordEncoder.encode("securePass123")).thenReturn("hashed_securePass123");
 
         SignupRequest request = new SignupRequest("New Client", "newclient@pryme.com", "securePass123");
-        ResponseEntity<Map<String, String>> response = authController.signup(request);
+        ResponseEntity<Map<String, String>> response = authController.register(request);
 
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
@@ -80,7 +79,7 @@ class AuthControllerTest {
 
         ConflictException ex = assertThrows(
                 ConflictException.class,
-                () -> authController.signup(request)
+                () -> authController.register(request)
         );
 
         assertTrue(ex.getMessage().contains("already exists"));
