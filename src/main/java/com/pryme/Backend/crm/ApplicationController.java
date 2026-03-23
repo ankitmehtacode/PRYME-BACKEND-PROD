@@ -106,7 +106,7 @@ public class ApplicationController {
     // DASHBOARD RETRIEVAL
     // ==========================================
     @GetMapping("/me")
-    public ResponseEntity<List<ApplicationResponse>> getMyApplications(Authentication authentication) {
+    public ResponseEntity<Page<ApplicationResponse>> getMyApplications(Authentication authentication) {
         UUID userId = extractUserId(authentication);
         return ResponseEntity.ok(applicationService.listMyApplications(userId, Pageable.unpaged()));
     }

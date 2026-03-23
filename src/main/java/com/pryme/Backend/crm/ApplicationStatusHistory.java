@@ -39,4 +39,6 @@ public class ApplicationStatusHistory {
     private String notes;
 
     private Instant createdAt;
+
+    private UUID changedBy; // New field added
 }
