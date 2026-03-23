@@ -2,6 +2,7 @@ package com.pryme.Backend.iam;
 
 import org.junit.jupiter.api.Test;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
@@ -12,7 +13,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 class SessionManagerTest {
 
     @Mock
-    private JpaRepository<SessionRecord, UUID> sessionRepository;
+    private SessionRepository sessionRepository;
 
     public SessionManagerTest() {
         MockitoAnnotations.openMocks(this);
