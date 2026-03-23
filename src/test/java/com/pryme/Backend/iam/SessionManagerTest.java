@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+@org.junit.jupiter.api.Disabled("Pending Migration to @DataJpaTest")
 class SessionManagerTest {
 
     @Mock

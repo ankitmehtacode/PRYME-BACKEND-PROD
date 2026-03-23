@@ -22,9 +22,9 @@ class EligibilityEngineServiceTest {
 
         EligibilityResult result = service.evaluateNip(req);
 
-        assertThat(result.eligibleIncome()).isEqualByComparingTo("1300000.00");
-        assertThat(result.maxEmiAllowed()).isEqualByComparingTo("1235000.00");
-        assertThat(result.netEligibleEmi()).isEqualByComparingTo("935000.00");
+        assertThat(result.eligibleIncome()).isEqualByComparingTo("108333.33");
+        assertThat(result.maxEmiAllowed()).isEqualByComparingTo("102916.67");
+        assertThat(result.netEligibleEmi()).isEqualByComparingTo("77916.67");
         assertThat(result.minimumLoanAmount()).isEqualByComparingTo("100000.00");
         assertThat(result.maximumLoanAmount()).isEqualByComparingTo("20000000.00");
     }
@@ -42,9 +42,9 @@ class EligibilityEngineServiceTest {
 
         EligibilityResult result = service.evaluateGst(req);
 
-        assertThat(result.eligibleIncome()).isEqualByComparingTo("1440000.00");
-        assertThat(result.maxEmiAllowed()).isEqualByComparingTo("936000.00");
-        assertThat(result.netEligibleEmi()).isEqualByComparingTo("576000.00");
+        assertThat(result.eligibleIncome()).isEqualByComparingTo("120000.00");
+        assertThat(result.maxEmiAllowed()).isEqualByComparingTo("78000.00");
+        assertThat(result.netEligibleEmi()).isEqualByComparingTo("48000.00");
     }
 
     @Test

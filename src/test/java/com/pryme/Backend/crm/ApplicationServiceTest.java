@@ -79,6 +79,7 @@ class ApplicationServiceTest {
                 .applicationId("PRY-3")
                 .status(ApplicationStatus.SUBMITTED)
                 .version(2L)
+                .applicant(mock(User.class)) // 🧠 PRODUCTION FIX: Added applicant(mock(User.class))
                 .build();
 
         // 🧠 PRODUCTION FIX: Mocking the actual User entity to satisfy the Foreign Key constraint

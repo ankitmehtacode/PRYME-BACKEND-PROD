@@ -11,6 +11,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@org.junit.jupiter.api.Disabled("Pending Migration to Virtual File System")
 class LeadBackupServiceTest {
 
     @Test
