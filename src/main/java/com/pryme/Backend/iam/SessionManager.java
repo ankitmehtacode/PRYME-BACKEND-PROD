@@ -34,7 +34,7 @@ public class SessionManager {
      * 🧠 ELASTIC SESSION REGISTRY & THE SNIPER PROTOCOL
      */
     @Transactional
-    public void registerSession(UUID jwtId, User user, Instant expiresAt, String ipAddress, String userAgent) {
+    public SessionRecord registerSession(UUID jwtId, User user, Instant expiresAt, String ipAddress, String userAgent) {
         // 1. Provision New Session
         SessionRecord newSession = SessionRecord.builder()
                 .id(jwtId)
@@ -64,6 +64,8 @@ public class SessionManager {
         } else {
             log.debug("Session lifecycle initialized for User {} on IP {}", user.getId(), ipAddress);
         }
+
+        return newSession;
     }
 
     /**
@@ -145,5 +147,21 @@ public class SessionManager {
 
     public List<SessionRecord> activeSessions(UUID userId) {
         return sessionRepository.findByUserId(userId);
+    }
+
+    /**
+     * Invalidate a session by ID.
+     */
+    @Transactional
+    public void invalidate(UUID sessionId) {
+        // Deactivate the session in the repository
+        int updated = sessionRepository.deactivateSessionById(sessionId);
+
+        if (updated > 0) {
+            log.info("Security Matrix: Session {} explicitly terminated.", sessionId);
+        }
+
+        // Remove the session from the L1 cache
+        l1Cache.remove(sessionId);
     }
 }
