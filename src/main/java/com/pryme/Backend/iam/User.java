@@ -5,6 +5,7 @@ import lombok.*;
 import org.hibernate.annotations.NaturalId;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -63,6 +64,18 @@ public class User {
     @Setter
     @Column(name = "state", length = 100)
     private String state;
+
+    // New fields added
+    @Setter
+    @Column(name = "phone", length = 20)
+    private String phone;
+
+    @Setter
+    @ElementCollection(fetch = FetchType.EAGER)
+    @MapKeyColumn(name = "key")
+    @Column(name = "value")
+    @CollectionTable(name = "user_metadata", joinColumns = @JoinColumn(name = "user_id"))
+    private Map<String, Object> metadata;
 
     @Version
     private Long version;
