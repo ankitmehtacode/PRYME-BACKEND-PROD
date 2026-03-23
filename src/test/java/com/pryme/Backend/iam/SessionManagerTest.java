@@ -1,18 +1,26 @@
 package com.pryme.Backend.iam;
 
 import org.junit.jupiter.api.Test;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
-
 import static org.junit.jupiter.api.Assertions.*;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 class SessionManagerTest {
 
+    @Mock
+    private JpaRepository<SessionRecord, UUID> sessionRepository;
+
+    public SessionManagerTest() {
+        MockitoAnnotations.openMocks(this);
+    }
+
     @Test
     void issueSessionEnforcesMaxSessionsPerUser() {
-        SessionManager manager = new SessionManager();
+        SessionManager manager = new SessionManager(sessionRepository);
         UUID userId = UUID.randomUUID();
 
         User user1 = new User();
@@ -32,7 +40,7 @@ class SessionManagerTest {
 
     @Test
     void issueSessionSanitizesAndTruncatesDeviceId() {
-        SessionManager manager = new SessionManager();
+        SessionManager manager = new SessionManager(sessionRepository);
         UUID userId = UUID.randomUUID();
 
         User user2 = new User();
@@ -46,7 +54,7 @@ class SessionManagerTest {
 
     @Test
     void cleanupRemovesExpiredSessions() throws InterruptedException {
-        SessionManager manager = new SessionManager();
+        SessionManager manager = new SessionManager(sessionRepository);
         UUID userId = UUID.randomUUID();
 
         User user3 = new User();
@@ -63,7 +71,7 @@ class SessionManagerTest {
 
     @Test
     void validateRejectsBlankToken() {
-        SessionManager manager = new SessionManager();
+        SessionManager manager = new SessionManager(sessionRepository);
         assertNull(manager.validate(null));
         assertNull(manager.validate(" "));
     }
