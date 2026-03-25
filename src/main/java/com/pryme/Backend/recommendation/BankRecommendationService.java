@@ -64,10 +64,20 @@ public class BankRecommendationService {
         // Note on In-Memory Sorting: Because the active FinTech product catalog is bounded
         // (usually < 1000 items), computing this algorithm in RAM is O(1) instantaneous
         // and keeps the SQL database completely unburdened from heavy CPU math.
-        return loanProductRepository.findAll(spec).stream()
-                .sorted(ranking)
-                .limit(Math.max(1, maxResults))
-                .toList();
+        try (var scope = new java.util.concurrent.StructuredTaskScope.ShutdownOnFailure()) {
+            var loanProductsFuture = scope.fork(() -> loanProductRepository.findAll(spec));
+
+            scope.join();
+            scope.throwIfFailed();
+
+            return loanProductsFuture.get()
+                    .stream()
+                    .sorted(ranking)
+                    .limit(Math.max(1, maxResults))
+                    .toList();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to fetch loan products", e);
+        }
     }
 
     public BigDecimal fitScore(LoanProduct product, BigDecimal salary, Integer cibil) {
