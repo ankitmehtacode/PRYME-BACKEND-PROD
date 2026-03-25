@@ -1,9 +1,9 @@
 # ==========================================
-# 🧠 STAGE 1: THE SELF-HEALING BUILDER MATRIX (JAVA 17)
+# 🧠 STAGE 1: THE SELF-HEALING BUILDER MATRIX (JAVA 21)
 # We use Alpine here because compilation doesn't care about runtime DNS bugs.
 # It keeps the initial download and build environment lightning fast.
 # ==========================================
-FROM eclipse-temurin:17-jdk-alpine AS builder
+FROM eclipse-temurin:21-jdk-alpine AS builder
 
 WORKDIR /build
 
@@ -26,11 +26,11 @@ COPY src src
 RUN ./mvnw clean package -DskipTests
 
 # ==========================================
-# 🧠 STAGE 2: THE SECURE RUNTIME MATRIX (JAVA 17 + GLIBC)
-# We use '17-jre-jammy' (Ubuntu-based). This completely eradicates
+# 🧠 STAGE 2: THE SECURE RUNTIME MATRIX (JAVA 21 + GLIBC)
+# We use '21-jre-jammy' (Ubuntu-based). This completely eradicates
 # the Alpine/musl DNS packet-drop bug for external API calls.
 # ==========================================
-FROM eclipse-temurin:17-jre-jammy
+FROM eclipse-temurin:21-jre-jammy
 
 # 1. TIMEZONE LOCK: Financial systems must strictly operate in UTC at the OS level
 ENV TZ=UTC
