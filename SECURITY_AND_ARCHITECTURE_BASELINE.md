@@ -62,3 +62,15 @@ Additional frontend wiring endpoints:
 - Eligibility factors include conditions, EMI-obligation months, min/max loan caps, and special notes in program response metadata.
 
 - Prepayment ROI engine: `POST /api/v1/calculators/prepayment/roi` (strategy-wise interest saved + time trimmed with BigDecimal amortization).
+
+## Rate Limiting — Known Single-Instance Limitation
+Bucket4j is configured with an in-process (JVM-local) token bucket.
+This is INTENTIONAL for the current single-instance KVM2 deployment.
+CONSTRAINT: If more than one backend container runs simultaneously
+(blue-green, canary, or horizontal scale), rate-limit buckets are
+independent per instance. A client can make N × rate_limit requests
+by distributing across instances.
+MITIGATION PLAN: When horizontal scaling is introduced, replace the
+in-process Bucket4j backend with Bucket4j + Redis ProxyManager.
+No application code changes are required — only the bucket configuration
+bean changes. Tracked in: [link to issue tracker].

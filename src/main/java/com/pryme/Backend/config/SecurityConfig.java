@@ -72,7 +72,8 @@ public class SecurityConfig {
                             .requestMatchers("/actuator/health").permitAll();
 
                     // Baseline Admin Protection
-                    auth.requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN", "EMPLOYEE");
+                    auth.requestMatchers("/actuator/**").denyAll()
+                            .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN", "EMPLOYEE");
 
                     // Lockdown everything else
                     auth.anyRequest().authenticated();

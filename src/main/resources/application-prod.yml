@@ -7,3 +7,19 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+
+management:
+  # Actuator is moved to a separate internal port and locked down.
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
+    info:
+      enabled: true
+  server:
+    port: 8081
