@@ -13,9 +13,9 @@ spring:
   # Multiplexes 4000 network requests through exactly 150 DB connections
   # ==========================================
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/pryme_db}
+    url: ${DB_URL:jdbc:postgresql://localhost:8080/pryme_db}
     username: ${DB_USER:postgres}
-    password: ${DB_PASS:password}
+    password: ${DB_PASS:pryme}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 150      # Hard ceiling. Prevents DB RAM starvation under heavy load.
@@ -54,7 +54,7 @@ spring:
 # 🧠 4. ELASTIC BREATHING WEB SERVER (TOMCAT)
 # ==========================================
 server:
-  port: 8080
+  port: 8082
   shutdown: graceful               # Guarantees active payments/uploads finish before a server restart.
   tomcat:
     threads:

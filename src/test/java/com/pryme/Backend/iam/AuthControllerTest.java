@@ -1,6 +1,7 @@
 package com.pryme.Backend.iam;
 
 import com.pryme.Backend.common.ForbiddenException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import com.pryme.Backend.common.UnauthorizedException;
 import com.pryme.Backend.common.ConflictException;
 import org.junit.jupiter.api.BeforeEach;
