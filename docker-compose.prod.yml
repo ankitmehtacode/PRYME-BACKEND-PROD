@@ -13,10 +13,19 @@ services:
     # 🧠 SECURITY: Port 5432 is explicitly NOT exposed. Hackers cannot reach it.
     volumes:
       - pryme_prod_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pryme_admin -d pryme_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
     networks:
       - pryme_network
 
   pryme-backend:
+    depends_on:
+      pryme-db:
+        condition: service_healthy
     build: .
     container_name: pryme-backend-prod
     restart: always
@@ -50,5 +59,4 @@ volumes:
 
 networks:
   pryme_network:
-    driver: bridge
     driver: bridge
