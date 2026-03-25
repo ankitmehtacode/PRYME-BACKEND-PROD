@@ -3,6 +3,8 @@ package com.pryme.Backend.iam;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.NaturalId;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.Map;
@@ -70,11 +72,9 @@ public class User {
     @Column(name = "phone", length = 20)
     private String phone;
 
-    @Setter
-    @ElementCollection(fetch = FetchType.EAGER)
-    @MapKeyColumn(name = "key")
-    @Column(name = "value")
-    @CollectionTable(name = "user_metadata", joinColumns = @JoinColumn(name = "user_id"))
+    // Replacing @ElementCollection, @CollectionTable with @JdbcTypeCode and @Column
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
     private Map<String, Object> metadata;
 
     @Version
