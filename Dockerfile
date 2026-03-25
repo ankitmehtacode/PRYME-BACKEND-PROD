@@ -18,7 +18,7 @@ COPY pom.xml .
 # 3. Sanitize wrapper and resolve dependencies offline
 RUN dos2unix mvnw && chmod +x mvnw
 # If this fails due to a missing optional plugin, we don't want it to crash the build
-RUN ./mvnw dependency:go-offline -B || true
+RUN ./mvnw dependency:go-offline -B
 
 # 4. Copy source code and compile the Fat JAR
 COPY src src
