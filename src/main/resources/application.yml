@@ -8,6 +8,10 @@ spring:
   application:
     name: pryme-backend
 
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
   # ==========================================
   # 🧠 1. HIKARI-CP COMPRESSION MATRIX (POSTGRESQL)
   # Multiplexes 4000 network requests through exactly 150 DB connections
