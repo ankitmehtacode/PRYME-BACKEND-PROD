@@ -67,8 +67,12 @@ EXPOSE 8080
 # ==========================================
 ENTRYPOINT ["java", \
             "-XX:+UseContainerSupport", \
-            "-XX:MaxRAMPercentage=75.0", \
-            "-XX:MaxMetaspaceSize=256m", \
+            "-XX:MaxRAMPercentage=70.0", \
+            "-XX:MaxMetaspaceSize=512m", \
+            "-XX:+UseG1GC", \
+            "-XX:G1HeapRegionSize=16m", \
+            "-XX:+ParallelRefProcEnabled", \
+            "-XX:MaxGCPauseMillis=200", \
             "-Djava.security.egd=file:/dev/./urandom", \
             "-Djava.io.tmpdir=/app/tmp", \
             "-jar", "pryme-backend.jar"]
