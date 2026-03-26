@@ -7,6 +7,14 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+      properties:
+        hibernate:
+          jdbc:
+            batch_size: 25
+            fetch_size: 50
+            order_inserts: true
+            order_updates: true
+            generate_statistics: false
 
 management:
   # Actuator is moved to a separate internal port and locked down.
