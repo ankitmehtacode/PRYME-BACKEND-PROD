@@ -72,7 +72,7 @@ public class BankRecommendationService {
             scope.join();
             scope.throwIfFailed();
 
-            return loanProductsFuture.get().stream()
+            return fetchTask.get().stream()
                     .sorted(ranking)
                     .limit(Math.max(1, maxResults))
                     .toList();
