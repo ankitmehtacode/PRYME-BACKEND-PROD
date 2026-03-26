@@ -72,13 +72,17 @@ public class BankRecommendationService {
             scope.join();
             scope.throwIfFailed();
 
-            return loanProductsFuture.resultNow()
-                    .stream()
+            return loanProductsFuture.get().stream()
                     .sorted(ranking)
                     .limit(Math.max(1, maxResults))
                     .toList();
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to fetch loan products", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Scatter-gather engine interrupted.", e);
+            throw new RuntimeException("Engine interrupted", e);
+        } catch (java.util.concurrent.ExecutionException e) {
+            log.error("Scatter-gather engine failed.", e.getCause());
+            throw new RuntimeException("Engine failure", e.getCause());
         }
     }
 
