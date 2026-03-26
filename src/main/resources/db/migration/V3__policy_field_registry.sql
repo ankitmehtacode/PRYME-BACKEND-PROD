@@ -39,8 +39,8 @@ CREATE INDEX idx_pca_applied_at ON policy_change_audits(applied_at DESC);
 
 -- Seed policy_field_definitions table
 INSERT INTO policy_field_definitions (field_key, display_name, field_type, entity_type, absolute_lower_bound, absolute_upper_bound, allowed_values, unit, requires_reason, is_active, description) VALUES
-('min_cibil', 'Minimum CIBIL Score', 'NUMERIC_RANGE', 'LOAN_PRODUCT', 300, 900, NULL, 'SCORE', FALSE, TRUE, 'Minimum required CIBIL score for the loan product.'),
-('max_cibil', 'Maximum CIBIL Score', 'NUMERIC_RANGE', 'LOAN_PRODUCT', 300, 900, NULL, 'SCORE', FALSE, TRUE, 'Maximum allowed CIBIL score for the loan product.'),
+('min_cibil', 'Minimum CIBIL Score', 'NUMERIC_RANGE', 'LOAN_PRODUCT', 300, 900, NULL, 'INR', FALSE, TRUE, 'Minimum required CIBIL score for the loan product.'),
+('max_cibil', 'Maximum CIBIL Score', 'NUMERIC_RANGE', 'LOAN_PRODUCT', 300, 900, NULL, 'INR', FALSE, TRUE, 'Maximum allowed CIBIL score for the loan product.'),
 ('roi', 'Rate of Interest', 'PERCENTAGE', 'LOAN_PRODUCT', 0.05, 0.36, NULL, 'PERCENT', FALSE, TRUE, 'Rate of interest offered by the loan product.'),
 ('min_tenure_months', 'Minimum Tenure (Months)', 'INTEGER', 'LOAN_PRODUCT', 12, 60, NULL, 'MONTHS', FALSE, TRUE, 'Minimum tenure in months for the loan product.'),
 ('max_tenure_months', 'Maximum Tenure (Months)', 'INTEGER', 'LOAN_PRODUCT', 60, 360, NULL, 'MONTHS', FALSE, TRUE, 'Maximum tenure in months for the loan product.'),
@@ -55,22 +55,23 @@ INSERT INTO policy_field_definitions (field_key, display_name, field_type, entit
 ('salary_slip_months', 'Salary Slip Requirement (Months)', 'INTEGER', 'LOAN_PRODUCT', 1, 12, NULL, 'MONTHS', FALSE, TRUE, 'Number of months of salary slips required for the loan product.'),
 ('gst_required_months', 'GST Required (Months)', 'INTEGER', 'LOAN_PRODUCT', 1, 24, NULL, 'MONTHS', FALSE, TRUE, 'Number of months of GST statements required for the loan product.'),
 ('bank_statement_months', 'Bank Statement Requirement (Months)', 'INTEGER', 'LOAN_PRODUCT', 3, 24, NULL, 'MONTHS', FALSE, TRUE, 'Number of months of bank statements required for the loan product.'),
+('dpd_allowed', 'DPD Allowed', 'BOOLEAN', 'LOAN_PRODUCT', NULL, NULL, NULL, 'BOOLEAN', TRUE, TRUE, 'Whether DPD (Days Past Due) is allowed for the loan product.'),
+('write_off_allowed', 'Write-off Allowed', 'BOOLEAN', 'LOAN_PRODUCT', NULL, NULL, NULL, 'BOOLEAN', TRUE, TRUE, 'Whether write-off is allowed for the loan product.'),
+('settlement_allowed', 'Settlement Allowed', 'BOOLEAN', 'LOAN_PRODUCT', NULL, NULL, NULL, 'BOOLEAN', TRUE, TRUE, 'Whether settlement is allowed for the loan product.'),
 ('min_age', 'Minimum Age', 'INTEGER', 'ELIGIBILITY_CONDITION', 18, 25, NULL, 'YEARS', FALSE, TRUE, 'Minimum age requirement for eligibility.'),
 ('max_age', 'Maximum Age', 'INTEGER', 'ELIGIBILITY_CONDITION', 55, 75, NULL, 'YEARS', FALSE, TRUE, 'Maximum age requirement for eligibility.'),
 ('min_income', 'Minimum Income', 'NUMERIC_RANGE', 'ELIGIBILITY_CONDITION', 10000, 200000, NULL, 'INR', FALSE, TRUE, 'Minimum income required for eligibility.'),
 ('work_exp_years', 'Work Experience (Years)', 'INTEGER', 'ELIGIBILITY_CONDITION', 0, 5, NULL, 'YEARS', FALSE, TRUE, 'Required work experience in years for eligibility.'),
 ('business_age_years', 'Business Age (Years)', 'INTEGER', 'ELIGIBILITY_CONDITION', 1, 5, NULL, 'YEARS', FALSE, TRUE, 'Required business age in years for eligibility.'),
-('cibil_min', 'Minimum CIBIL Score', 'NUMERIC_RANGE', 'ELIGIBILITY_CONDITION', 300, 900, NULL, 'SCORE', FALSE, TRUE, 'Minimum required CIBIL score for eligibility.'),
+('cibil_min', 'Minimum CIBIL Score', 'NUMERIC_RANGE', 'ELIGIBILITY_CONDITION', 300, 900, NULL, 'INR', FALSE, TRUE, 'Minimum required CIBIL score for eligibility.'),
 ('foir_max', 'FOIR Maximum', 'PERCENTAGE', 'ELIGIBILITY_CONDITION', 0.30, 1.00, NULL, 'PERCENT', FALSE, TRUE, 'Maximum Frontier Offer to Income ratio allowed for eligibility.'),
+('cibil_floor', 'CIBIL Floor', 'NUMERIC_RANGE', 'GENERAL_BANK_POLICY', 300, 750, NULL, 'INR', FALSE, TRUE, 'Minimum CIBIL score required by the bank policy.'),
 ('ltv_max', 'LTV Maximum', 'PERCENTAGE', 'GENERAL_BANK_POLICY', 0.40, 0.90, NULL, 'PERCENT', FALSE, TRUE, 'Maximum Loan-to-Value ratio allowed by the bank policy.'),
-('roi_min', 'Minimum ROI', 'PERCENTAGE', 'GENERAL_BANK_POLICY', 0.05, 0.36, NULL, 'PERCENT', FALSE, TRUE, 'Minimum Rate of Interest offered by the bank policy.'),
-('roi_max', 'Maximum ROI', 'PERCENTAGE', 'GENERAL_BANK_POLICY', 0.05, 0.36, NULL, 'PERCENT', FALSE, TRUE, 'Maximum Rate of Interest offered by the bank policy.'),
 ('tenure_min_years', 'Minimum Tenure (Years)', 'INTEGER', 'GENERAL_BANK_POLICY', 1, 5, NULL, 'YEARS', FALSE, TRUE, 'Minimum tenure in years allowed by the bank policy.'),
 ('tenure_max_years', 'Maximum Tenure (Years)', 'INTEGER', 'GENERAL_BANK_POLICY', 5, 30, NULL, 'YEARS', FALSE, TRUE, 'Maximum tenure in years allowed by the bank policy.'),
 ('emi_not_obligated_months', 'EMI Not Obligated Months', 'INTEGER', 'GENERAL_BANK_POLICY', 0, 24, NULL, 'MONTHS', FALSE, TRUE, 'Number of months EMI is not obligated by the bank policy.'),
 ('foir_allowed', 'FOIR Allowed', 'PERCENTAGE', 'SURROGATE_POLICY', 0.30, 1.90, NULL, 'PERCENT', FALSE, TRUE, 'Allowed Frontier Offer to Income ratio for the surrogate policy.'),
-('business_vintage_min_years', 'Business Vintage Minimum (Years)', 'INTEGER', 'SURROGATE_POLICY', 1, 10, NULL, 'YEARS', FALSE, TRUE, 'Minimum business vintage in years required by the surrogate policy.'),
-('itr_required_years', 'ITR Required (Years)', 'INTEGER', 'SURROGATE_POLICY', 0, 5, NULL, 'YEARS', FALSE, TRUE, 'Number of years of ITR required for the surrogate policy.');
+('business_vintage_min_years', 'Business Vintage Minimum (Years)', 'INTEGER', 'SURROGATE_POLICY', 1, 10, NULL, 'YEARS', FALSE, TRUE, 'Minimum business vintage in years required by the surrogate policy.');
 
 -- Seed boolean fields with requires_reason=TRUE
 INSERT INTO policy_field_definitions (field_key, display_name, field_type, entity_type, absolute_lower_bound, absolute_upper_bound, allowed_values, unit, requires_reason, is_active, description) VALUES

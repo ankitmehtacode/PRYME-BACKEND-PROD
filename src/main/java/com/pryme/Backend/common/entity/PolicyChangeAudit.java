@@ -39,7 +39,7 @@ public class PolicyChangeAudit {
 
     private String reason;
 
-    @CreatedDate
+    @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime appliedAt;
 
