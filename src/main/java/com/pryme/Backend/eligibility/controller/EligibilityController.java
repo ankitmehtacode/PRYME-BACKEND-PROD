@@ -26,7 +26,7 @@ public class EligibilityController {
     public ResponseEntity<List<EligibilityResult>> evaluate(@RequestBody @Valid EligibilityRequest request) {
         List<EligibilityResult> results = eligibilityEngineService.evaluate(request);
         if (results.isEmpty()) {
-            return ResponseEntity.noContent().build();
+            return ResponseEntity.status(501).body(null); // Return 501 if no results
         }
         boolean allIneligible = results.stream().allMatch(result -> !result.isEligible());
         if (allIneligible) {
@@ -36,9 +36,24 @@ public class EligibilityController {
     }
 
     @GetMapping("/fields")
-    public List<PolicyFieldDefinition> getFields() {
-        // Assuming there's a method to fetch PolicyFieldDefinitions for ELIGIBILITY_CONDITION
-        // This is a placeholder and should be replaced with actual implementation
-        return eligibilityEngineService.getEligibilityConditionFields();
+    public ResponseEntity<List<PolicyFieldDefinition>> getFields() {
+        List<PolicyFieldDefinition> fields = eligibilityEngineService.getEligibilityConditionFields();
+        if (fields.isEmpty()) {
+            return ResponseEntity.status(501).body(null); // Return 501 if no fields
+        }
+        return ResponseEntity.ok(fields);
+    }
+
+    @PostMapping("/lnt-lap/best-match")
+    public ResponseEntity<List<EligibilityResult>> bestMatch(@RequestBody @Valid EligibilityRequest request) {
+        List<EligibilityResult> results = eligibilityEngineService.evaluate(request);
+        if (results.isEmpty()) {
+            return ResponseEntity.status(501).body(null); // Return 501 if no results
+        }
+        boolean allIneligible = results.stream().allMatch(result -> !result.isEligible());
+        if (allIneligible) {
+            return ResponseEntity.ok(results);
+        }
+        return ResponseEntity.ok(results);
     }
 }

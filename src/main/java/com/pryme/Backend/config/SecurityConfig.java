@@ -90,6 +90,8 @@ public class SecurityConfig {
                 // 1. Rate Limiting runs AFTER CorsFilter. If a bot gets rate-limited, the browser still gets
                 //    the CORS headers, allowing Axios to cleanly read the 429 status instead of throwing a CORS error!
                 .addFilterAfter(rateLimitingFilter, CorsFilter.class)
+                // 2. Rate Limiting for Eligibility Endpoints
+                .addFilterBefore(new RateLimitingFilter("/api/v1/public/eligibility/**", 100, 60), rateLimitingFilter.getClass());
                 // 2. Auth filter runs directly before the standard Spring UsernamePassword filter.
                 .addFilterBefore(sessionAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
