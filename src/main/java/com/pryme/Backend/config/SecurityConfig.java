@@ -92,7 +92,7 @@ public class SecurityConfig {
                 .addFilterAfter(rateLimitingFilter, CorsFilter.class)
                 // 2. Rate Limiting for Eligibility Endpoints
                 .addFilterBefore(new RateLimitingFilter("/api/v1/public/eligibility/**", 100, 60), rateLimitingFilter.getClass());
-                // 2. Auth filter runs directly before the standard Spring UsernamePassword filter.
+                // 3. Auth filter runs directly before the standard Spring UsernamePassword filter.
                 .addFilterBefore(sessionAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
