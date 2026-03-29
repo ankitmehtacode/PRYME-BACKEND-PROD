@@ -1,15 +1,15 @@
 package com.pryme.Backend.eligibility;
 
-import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
-import java.math.MathContext;
-import java.math.RoundingMode;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import com.pryme.Backend.eligibility.dto.EligibilityRequest;
+import com.pryme.Backend.eligibility.dto.EligibilityResult;
+import com.pryme.Backend.eligibility.dto.PreflightRequest;
+import com.pryme.Backend.eligibility.dto.PreflightResult;
+import com.pryme.Backend.eligibility.exception.SurrogatePolicyNotFoundException;
+import com.pryme.Backend.eligibility.repository.EligibilityConditionRepository;
+import com.pryme.Backend.eligibility.service.GeneralPolicyPreflightService;
+import com.pryme.Backend.eligibility.resolver.SurrogateIncomeResolver;
+import com.pryme.Backend.loanproduct.LoanProduct;
+import com.pryme.Backend.loanproduct.LoanProductRepository; // Correct Modular Boundary
 
 @Service
 public class EligibilityEngineService {
