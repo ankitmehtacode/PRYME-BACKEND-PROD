@@ -14,6 +14,7 @@ import com.pryme.Backend.loanproduct.repository.LoanProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
@@ -33,7 +34,17 @@ public class EligibilityEngineService {
 
     public List<EligibilityResult> evaluate(EligibilityRequest request) {
         // STEP 1 — Pre-flight
-        var preflightRequest = new PreflightRequest(request);
+        var preflightRequest = new PreflightRequest(
+                request.lenderId(),
+                request.loanType(),
+                request.cibilScore(),
+                request.propertyType(),
+                request.loanAmount(),
+                request.propertyValue(),
+                request.requestedTenureMonths(),
+                request.monthlyIncome(),
+                request.existingEmiTotal()
+        );
         var preflightResult = generalPolicyPreflightService.evaluate(preflightRequest);
 
         if (!preflightResult.passed()) {
@@ -50,17 +61,17 @@ public class EligibilityEngineService {
                     request.requestedTenureMonths(),
                     BigDecimal.ZERO,
                     false,
-                    preflightResult.getViolations(),
+                    preflightResult.violations(),
                     "Preflight failed"
             ));
         }
 
         // STEP 2 — Candidate product loading
         var candidates = loanProductRepository.findByMinCibilLessThanEqualAndMaxCibilGreaterThanEqual(
-                request.cibilScore(), request.cibilScore()
-        ).stream()
-                .filter(p -> p.getBank().getId().equals(request.lenderId()) &&
-                        p.getType().name().equalsIgnoreCase(request.loanType()) &&
+                        request.cibilScore(), request.cibilScore()
+                ).stream()
+                .filter(p -> p.getLenderId().equals(request.lenderId()) &&
+                        p.getLoanType().equalsIgnoreCase(request.loanType()) &&
                         p.isActive())
                 .toList();
 
@@ -88,17 +99,35 @@ public class EligibilityEngineService {
         for (var product : candidates) {
             try {
                 // a. Load EligibilityCondition
-                var conditions = eligibilityConditionRepository.findByLoanProductId(product.getId());
+                var conditions = eligibilityConditionRepository.findByProductId(product.getId());
+
+                // Derive effective FOIR exactly once per product evaluation
+                BigDecimal effectiveFoir = conditions.stream()
+                        .filter(c -> c.getFoirMax() != null)
+                        .map(EligibilityCondition::getFoirMax)
+                        .findFirst()
+                        .orElse(product.getMaxEmiNmiRatio() != null
+                                ? product.getMaxEmiNmiRatio()
+                                : new BigDecimal("0.65"));
 
                 // b. Check: minAge, maxAge, businessAgeYears, workExpYears, propertyType, cityTier
-                if (!conditions.stream().allMatch(c -> c.satisfies(request))) {
+                boolean conditionsFailed = conditions.stream().anyMatch(c ->
+                        (c.getMinAge() != null && request.applicantAge() < c.getMinAge()) ||
+                                (c.getMaxAge() != null && request.applicantAge() > c.getMaxAge()) ||
+                                (c.getBusinessAgeYears() != null && request.businessAgeYears() < c.getBusinessAgeYears()) ||
+                                (c.getWorkExpYears() != null && request.workExpYears() < c.getWorkExpYears()) ||
+                                (c.getPropertyType() != null && !c.getPropertyType().contains(request.propertyType())) ||
+                                (c.getCityTier() != null && !c.getCityTier().equalsIgnoreCase(request.cityTier()))
+                );
+
+                if (conditionsFailed) {
                     results.add(new EligibilityResult(
                             false,
-                            product.getCode(),
-                            product.getName(),
+                            product.getProductCode(),
+                            product.getProductName(),
                             null,
                             BigDecimal.ZERO,
-                            BigDecimal.ZERO,
+                            effectiveFoir,
                             BigDecimal.ZERO,
                             BigDecimal.ZERO,
                             BigDecimal.ZERO,
@@ -118,14 +147,14 @@ public class EligibilityEngineService {
                 var proposedEmi = calculateProposedEmi(product, request);
 
                 // e. FOIR check: (existingEmiTotal + proposedEmi) / computedIncome > effectiveFoir → rejection
-                if (!checkFoir(request.existingEmiTotal(), proposedEmi, computedIncome, product.getEffectiveFoir())) {
+                if (!checkFoir(request.existingEmiTotal(), proposedEmi, computedIncome, effectiveFoir)) {
                     results.add(new EligibilityResult(
                             false,
-                            product.getCode(),
-                            product.getName(),
+                            product.getProductCode(),
+                            product.getProductName(),
                             null,
                             computedIncome,
-                            product.getEffectiveFoir(),
+                            effectiveFoir,
                             proposedEmi,
                             BigDecimal.ZERO,
                             BigDecimal.ZERO,
@@ -139,30 +168,27 @@ public class EligibilityEngineService {
                 }
 
                 // f. Max eligible amount: (computedIncome × effectiveFoir − existingEmiTotal) back-calculated
-                var maxEligibleAmount = calculateMaxEligibleAmount(computedIncome, request.existingEmiTotal(), product.getEffectiveFoir());
+                var maxEligibleAmount = calculateMaxEligibleAmount(computedIncome, request.existingEmiTotal(), effectiveFoir);
 
                 // g. LTV product-level check: min(requestedAmount, propertyValue×ltv, maxEligible)
                 var ltv = product.getLtv();
-                var ltvDeviated = false;
-                if (request.loanAmount().compareTo(request.propertyValue().multiply(ltv)) > 0) {
-                    ltvDeviated = true;
-                }
-                var finalLoanAmount = BigDecimal.valueOf(Math.min(
-                        request.loanAmount().doubleValue(),
-                        Math.min(request.propertyValue().multiply(ltv).doubleValue(), maxEligibleAmount.doubleValue())
-                ));
+                var ltvDeviated = request.loanAmount().compareTo(request.propertyValue().multiply(ltv)) > 0;
+
+                var finalLoanAmount = request.loanAmount()
+                        .min(request.propertyValue().multiply(ltv, MathContext.DECIMAL128))
+                        .min(maxEligibleAmount);
 
                 // h. Build EligibilityResult
                 results.add(new EligibilityResult(
                         true,
-                        product.getCode(),
-                        product.getName(),
+                        product.getProductCode(),
+                        product.getProductName(),
                         null,
                         computedIncome,
-                        product.getEffectiveFoir(),
+                        effectiveFoir,
                         proposedEmi,
                         finalLoanAmount,
-                        calculateRoi(product, request),
+                        product.getRoi(),
                         request.requestedTenureMonths(),
                         ltv,
                         ltvDeviated,
@@ -203,21 +229,40 @@ public class EligibilityEngineService {
     }
 
     private BigDecimal calculateProposedEmi(LoanProduct product, EligibilityRequest request) {
-        // Placeholder for actual calculation logic
-        return BigDecimal.ZERO;
+        BigDecimal principal = request.loanAmount();
+        BigDecimal annualRate = product.getRoi();
+        int tenureMonths = request.requestedTenureMonths() > 0 ? request.requestedTenureMonths() : 12;
+
+        if (principal == null || principal.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+        if (annualRate == null || annualRate.compareTo(BigDecimal.ZERO) == 0) {
+            return principal.divide(BigDecimal.valueOf(tenureMonths), 2, RoundingMode.HALF_UP);
+        }
+
+        MathContext mc = MathContext.DECIMAL128;
+        BigDecimal monthlyRate = annualRate.divide(BigDecimal.valueOf(12), mc);
+        BigDecimal onePlusRToN = BigDecimal.ONE.add(monthlyRate, mc).pow(tenureMonths, mc);
+        BigDecimal numerator = monthlyRate.multiply(onePlusRToN, mc);
+        BigDecimal denominator = onePlusRToN.subtract(BigDecimal.ONE, mc);
+
+        return principal.multiply(numerator.divide(denominator, mc), mc)
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
     private boolean checkFoir(BigDecimal existingEmiTotal, BigDecimal proposedEmi, BigDecimal computedIncome, BigDecimal effectiveFoir) {
+        if (computedIncome == null || computedIncome.compareTo(BigDecimal.ZERO) == 0) {
+            return false;
+        }
         var totalEmi = existingEmiTotal.add(proposedEmi);
-        return totalEmi.divide(computedIncome, 4, java.math.RoundingMode.HALF_UP).compareTo(effectiveFoir) <= 0;
+        return totalEmi.divide(computedIncome, 4, RoundingMode.HALF_UP).compareTo(effectiveFoir) <= 0;
     }
 
     private BigDecimal calculateMaxEligibleAmount(BigDecimal computedIncome, BigDecimal existingEmiTotal, BigDecimal effectiveFoir) {
-        return computedIncome.multiply(effectiveFoir, java.math.MathContext.DECIMAL128).subtract(existingEmiTotal);
+        return computedIncome.multiply(effectiveFoir, MathContext.DECIMAL128).subtract(existingEmiTotal);
     }
 
     private BigDecimal calculateRoi(LoanProduct product, EligibilityRequest request) {
-        // Placeholder for actual ROI calculation logic
-        return BigDecimal.ZERO;
+        return product.getRoi() != null ? product.getRoi() : BigDecimal.ZERO;
     }
 }
