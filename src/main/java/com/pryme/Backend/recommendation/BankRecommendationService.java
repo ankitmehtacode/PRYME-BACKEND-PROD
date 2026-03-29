@@ -32,7 +32,7 @@ public class BankRecommendationService {
             key = "#salary != null ? #salary.stripTrailingZeros().toPlainString() + ':' + #cibil : 'null'")
     public List<LoanProduct> recommend(BigDecimal salary, Integer cibil) {
 
-        if (salary == null || cibil == null) {
+        if (salary == null || cibil == null){
             log.warn("Recommendation matrix aborted: Incomplete financial footprint.");
             return List.of();
         }
@@ -67,7 +67,7 @@ public class BankRecommendationService {
         return loanProductRepository.findAll(spec).stream()
                 .sorted(ranking)
                 .limit(Math.max(1, maxResults))
-                .toList();
+                .toList();}
     public BigDecimal fitScore(LoanProduct product, BigDecimal salary, Integer cibil) {
         // 🧠 160 IQ FIX 3: NULL-SAFE MATHEMATICS
         // Protects the JVM thread from crashing if a database row is missing attributes.

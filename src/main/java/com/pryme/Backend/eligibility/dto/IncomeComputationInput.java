@@ -9,22 +9,22 @@ import java.math.BigDecimal;
  * (e.g., Banking Surrogate, GST Surrogate, ITR Multiplier).
  */
 public record IncomeComputationInput(
-        
-        @DecimalMin("0.00") 
+
+        @DecimalMin("0.00")
         BigDecimal averageMonthlyBankBalance,
-        
-        @DecimalMin("0.00") 
+
+        @DecimalMin("0.00")
         BigDecimal latestYearGrossReceipts,
-        
-        @DecimalMin("0.00") 
+
+        @DecimalMin("0.00")
         BigDecimal latestYearNetProfit,
-        
-        @DecimalMin("0.00") 
+
+        @DecimalMin("0.00")
         BigDecimal depreciationAddedBack,
-        
-        @DecimalMin("0.00") 
+
+        @DecimalMin("0.00")
         BigDecimal partnerRemunerationAddedBack,
-        
+
         boolean isAudited
 ) {
     // Compact constructor for defensive null-handling
