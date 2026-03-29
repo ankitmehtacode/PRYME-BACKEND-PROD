@@ -3,8 +3,9 @@ package com.pryme.Backend.common.entity;
 import lombok.*;
 import org.hibernate.annotations.Immutable;
 import org.springframework.data.annotation.CreatedDate;
+import org.hibernate.annotations.CreationTimestamp;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity

@@ -2,7 +2,6 @@ package com.pryme.Backend.cms;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -36,11 +35,11 @@ public class Testimonial {
 
     @Column(nullable = false)
     @Builder.Default
-    private boolean active = true;
+    private Boolean active = true;
 
     @Column(nullable = false)
     @Builder.Default
-    private boolean featured = false;
+    private Boolean featured = false;
 
     @Column(nullable = false)
     @Builder.Default
@@ -56,6 +55,8 @@ public class Testimonial {
         updatedAt = now;
         if (rating == null) rating = 5;
         if (displayOrder == null) displayOrder = 100;
+        if (active == null) active = true;
+        if (featured == null) featured = false;
     }
 
     @PreUpdate

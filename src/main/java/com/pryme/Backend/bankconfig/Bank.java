@@ -6,8 +6,9 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "banks")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Bank {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -16,5 +17,6 @@ public class Bank {
     private String bankName;
 
     private String logoUrl;
-    private boolean isActive;
+
+    private boolean active;
 }

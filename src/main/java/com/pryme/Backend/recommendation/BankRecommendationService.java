@@ -13,8 +13,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.StructuredTaskScope;
 import java.util.Comparator;
 import java.util.List;
 
@@ -66,26 +64,10 @@ public class BankRecommendationService {
         // Note on In-Memory Sorting: Because the active FinTech product catalog is bounded
         // (usually < 1000 items), computing this algorithm in RAM is O(1) instantaneous
         // and keeps the SQL database completely unburdened from heavy CPU math.
-        try (var scope = new java.util.concurrent.StructuredTaskScope.ShutdownOnFailure()) {
-            var loanProductsFuture = scope.fork(() -> loanProductRepository.findAll(spec));
-
-            scope.join();
-            scope.throwIfFailed();
-
-            return loanProductsFuture.get().stream()
-                    .sorted(ranking)
-                    .limit(Math.max(1, maxResults))
-                    .toList();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("Scatter-gather engine interrupted.", e);
-            throw new RuntimeException("Engine interrupted", e);
-        } catch (java.util.concurrent.ExecutionException e) {
-            log.error("Scatter-gather engine failed.", e.getCause());
-            throw new RuntimeException("Engine failure", e.getCause());
-        }
-    }
-
+        return loanProductRepository.findAll(spec).stream()
+                .sorted(ranking)
+                .limit(Math.max(1, maxResults))
+                .toList();
     public BigDecimal fitScore(LoanProduct product, BigDecimal salary, Integer cibil) {
         // 🧠 160 IQ FIX 3: NULL-SAFE MATHEMATICS
         // Protects the JVM thread from crashing if a database row is missing attributes.
