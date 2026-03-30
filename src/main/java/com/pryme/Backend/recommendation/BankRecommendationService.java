@@ -1,7 +1,7 @@
 package com.pryme.Backend.recommendation;
 
-import com.pryme.Backend.loanproduct.LoanProduct;
-import com.pryme.Backend.loanproduct.LoanProductRepository;
+import com.pryme.Backend.loanproduct.entity.LoanProduct;
+import com.pryme.Backend.loanproduct.repository.LoanProductRepository;
 import jakarta.persistence.criteria.JoinType;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;

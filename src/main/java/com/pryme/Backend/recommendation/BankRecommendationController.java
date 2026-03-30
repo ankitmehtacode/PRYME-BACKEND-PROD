@@ -1,6 +1,6 @@
 package com.pryme.Backend.recommendation;
 
-import com.pryme.Backend.loanproduct.LoanProduct;
+import com.pryme.Backend.loanproduct.entity.LoanProduct;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;

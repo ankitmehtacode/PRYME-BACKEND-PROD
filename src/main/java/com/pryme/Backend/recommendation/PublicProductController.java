@@ -1,6 +1,6 @@
 package com.pryme.Backend.recommendation;
 
-import com.pryme.Backend.loanproduct.LoanProductRepository;
+import com.pryme.Backend.loanproduct.repository.LoanProductRepository;
 import com.pryme.Backend.loanproduct.LoanProductType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;

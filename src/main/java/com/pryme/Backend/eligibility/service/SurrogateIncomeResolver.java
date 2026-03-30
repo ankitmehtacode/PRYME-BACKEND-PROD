@@ -115,14 +115,9 @@ public class SurrogateIncomeResolver {
                 .divide(TWELVE, MC);
     }
 
-    private BigDecimal safe(BigDecimal v) {
+    private BigDecimal safe(BigDecimal v)
+    {
+
         return v != null ? v : BigDecimal.ZERO;
     }
-}
-package com.pryme.Backend.eligibility.service;
-import com.pryme.Backend.eligibility.dto.PreflightRequest;
-import com.pryme.Backend.eligibility.dto.PreflightResult;
-
-public interface GeneralPolicyPreflightService {
-    PreflightResult evaluate(PreflightRequest request);
 }

@@ -1,8 +1,8 @@
 package com.pryme.Backend.recommendation;
 
 import com.pryme.Backend.bankconfig.Bank;
-import com.pryme.Backend.loanproduct.LoanProduct;
-import com.pryme.Backend.loanproduct.LoanProductRepository;
+import com.pryme.Backend.loanproduct.entity.LoanProduct;
+import com.pryme.Backend.loanproduct.repository.LoanProductRepository;
 import com.pryme.Backend.loanproduct.LoanProductType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

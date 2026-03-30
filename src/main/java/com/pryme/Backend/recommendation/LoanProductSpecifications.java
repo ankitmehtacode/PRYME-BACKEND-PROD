@@ -1,6 +1,6 @@
 package com.pryme.Backend.recommendation;
 
-import com.pryme.Backend.loanproduct.LoanProduct;
+import com.pryme.Backend.loanproduct.entity.LoanProduct;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
