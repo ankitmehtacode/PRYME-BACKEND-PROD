@@ -27,6 +27,7 @@ RUN ./mvnw clean package -DskipTests
 # STAGE 2: Secure Runtime (JAVA 21 + GLIBC)
 # Ubuntu-based jammy eradicates Alpine/musl DNS packet-drop bug.
 # ==========================================
+FROM eclipse-temurin:21-jdk-alpine AS builder
 FROM eclipse-temurin:21-jre-jammy
 
 # Financial systems must operate in UTC at OS level

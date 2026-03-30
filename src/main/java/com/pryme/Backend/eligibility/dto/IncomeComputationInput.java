@@ -1,42 +1,40 @@
+// File: src/main/java/com/pryme/Backend/eligibility/dto/IncomeComputationInput.java
+
 package com.pryme.Backend.eligibility.dto;
 
-import jakarta.validation.constraints.DecimalMin;
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
- * 🧠 CORE DOMAIN OBJECT: Feeds the SurrogateIncomeResolver.
- * Encapsulates all raw financial inputs required to calculate surrogate eligibility
- * (e.g., Banking Surrogate, GST Surrogate, ITR Multiplier).
+ * Input for surrogate income calculation.
+ * Only the fields relevant to the requested program need to be non-null.
+ *
+ * Program → required fields:
+ *   NIP      : pat, depreciation, interestExpense
+ *   Banking  : bankBalanceSamples (preferred) or averageBankBalance
+ *   GST      : gstrTurnover12Months, businessType
+ *   CashFlow : bankBalanceSamples or averageBankBalance
+ *   SENP     : grossReceipts, profession (CS gets multiplier 1.5, others 2.5)
  */
 public record IncomeComputationInput(
 
-        @DecimalMin("0.00")
-        BigDecimal averageMonthlyBankBalance,
+        // Which surrogate program to evaluate: NIP, Banking, GST, CashFlow, SENP
+        String programName,
 
-        @DecimalMin("0.00")
-        BigDecimal latestYearGrossReceipts,
+        // NIP fields
+        BigDecimal pat,                     // Profit After Tax (annual)
+        BigDecimal depreciation,            // (annual)
+        BigDecimal interestExpense,         // (annual)
 
-        @DecimalMin("0.00")
-        BigDecimal latestYearNetProfit,
+        // Banking / CashFlow fields
+        BigDecimal averageBankBalance,      // pre-computed ABB if samples not provided
+        List<BigDecimal> bankBalanceSamples,// raw balances on 5/10/20/25 of each month
 
-        @DecimalMin("0.00")
-        BigDecimal depreciationAddedBack,
+        // GST fields
+        BigDecimal gstrTurnover12Months,    // last 12-month GSTR-3B turnover
+        String businessType,                // Service | Retail | Wholesale | Manufacturing
 
-        @DecimalMin("0.00")
-        BigDecimal partnerRemunerationAddedBack,
-
-        boolean isAudited
-) {
-    // Compact constructor for defensive null-handling
-    public IncomeComputationInput {
-        averageMonthlyBankBalance = safe(averageMonthlyBankBalance);
-        latestYearGrossReceipts = safe(latestYearGrossReceipts);
-        latestYearNetProfit = safe(latestYearNetProfit);
-        depreciationAddedBack = safe(depreciationAddedBack);
-        partnerRemunerationAddedBack = safe(partnerRemunerationAddedBack);
-    }
-
-    private static BigDecimal safe(BigDecimal value) {
-        return value != null ? value : BigDecimal.ZERO;
-    }
-}
+        // SENP fields
+        BigDecimal grossReceipts,           // annual gross receipts
+        String profession                   // CA | CS | Doctor
+) {}
