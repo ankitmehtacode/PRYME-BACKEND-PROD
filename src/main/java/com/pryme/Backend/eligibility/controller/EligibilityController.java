@@ -1,8 +1,9 @@
 package com.pryme.Backend.eligibility.controller;
 
 import com.pryme.Backend.common.entity.PolicyFieldDefinition;
+import com.pryme.Backend.eligibility.dto.EligibilityResult;
 import com.pryme.Backend.eligibility.service.EligibilityEngineService;
-import com.pryme.Backend.eligibility.dto.EligibilityRequest;import com.pryme.Backend.eligibility.EligibilityResult;
+import com.pryme.Backend.eligibility.dto.EligibilityRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;

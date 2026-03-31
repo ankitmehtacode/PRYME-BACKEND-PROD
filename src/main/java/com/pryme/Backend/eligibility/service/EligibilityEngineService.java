@@ -36,17 +36,8 @@ public class EligibilityEngineService {
     public List<EligibilityResult> evaluate(EligibilityRequest request) {
 
         // ── STEP 1: General pre-flight gate (cheapest check, runs first) ──────
-        var preflightRequest = new PreflightRequest(request);(
-                request.lenderId(),
-                request.loanType(),
-                request.cibilScore(),
-                request.propertyType(),
-                request.loanAmount(),
-                request.propertyValue(),
-                request.requestedTenureMonths(),
-                request.monthlyIncome(),
-                request.existingEmiTotal()
-        );
+        var preflightRequest = new PreflightRequest(request);
+
         var preflightResult = generalPolicyPreflightService.evaluate(preflightRequest);
 
         if (!preflightResult.passed()) {
