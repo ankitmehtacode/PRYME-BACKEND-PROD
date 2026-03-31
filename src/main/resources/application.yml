@@ -1,6 +1,6 @@
 # ==========================================
 # 🧠 TOP 1% SILICON VALLEY PRODUCTION CONFIG
-# Architecture: Modular Monolith (Java 17 + Spring Boot 3)
+# Architecture: Modular Monolith (Java 21 + Spring Boot 3)
 # Target Capacity: 4,000 Concurrent Users
 # ==========================================
 
@@ -8,10 +8,9 @@ spring:
   application:
     name: pryme-backend
 
-  jpa:
-    hibernate:
-      ddl-auto: validate
-
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 0
   # ==========================================
   # 🧠 1. HIKARI-CP COMPRESSION MATRIX (POSTGRESQL)
   # Multiplexes 4000 network requests through exactly 150 DB connections
