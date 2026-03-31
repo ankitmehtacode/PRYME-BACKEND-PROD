@@ -1,7 +1,6 @@
 package com.pryme.Backend.recommendation;
 
 import com.pryme.Backend.loanproduct.repository.LoanProductRepository;
-import com.pryme.Backend.loanproduct.LoanProductType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
@@ -25,28 +24,28 @@ public class PublicProductController {
     @Cacheable(cacheNames = "banks:recommendation", key = "'product-grid'")
     public ResponseEntity<Map<String, Object>> productGrid() {
         List<ProductCardResponse> cards = List.of(
-                buildCard(LoanProductType.PERSONAL, "PERSONAL LOAN", "CASHBACK", "/apply?type=personal", "148, 62%, 42%"),
-                buildCard(LoanProductType.BUSINESS, "BUSINESS LOAN", "LOWEST RATES", "/apply?type=business", "217, 91%, 60%"),
-                buildCard(LoanProductType.HOME, "HOME LOAN", "PRE-APPROVED", "/apply?type=home", "48, 100%, 50%"),
-                buildCard(LoanProductType.EDUCATION, "EDUCATION LOAN", "100% FUNDING", "/apply?type=education", "270, 70%, 60%")
+                buildCard("PERSONAL", "PERSONAL LOAN", "CASHBACK", "/apply?type=personal", "148, 62%, 42%"),
+                buildCard("BUSINESS", "BUSINESS LOAN", "LOWEST RATES", "/apply?type=business", "217, 91%, 60%"),
+                buildCard("HOME", "HOME LOAN", "PRE-APPROVED", "/apply?type=home", "48, 100%, 50%"),
+                buildCard("EDUCATION", "EDUCATION LOAN", "100% FUNDING", "/apply?type=education", "270, 70%, 60%")
         );
 
         return ResponseEntity.ok(Map.of("products", cards));
     }
 
-    private ProductCardResponse buildCard(LoanProductType type, String label, String tag, String href, String accent) {
-        return loanProductRepository.findAllByTypeAndBankIsActiveTrue(type)
+    private ProductCardResponse buildCard(String loanType, String label, String tag, String href, String accent) {
+        return loanProductRepository.findByLoanTypeAndActive(loanType, true)
                 .stream()
-                .min(Comparator.comparing(p -> p.getInterestRate() == null ? new BigDecimal("99.99") : p.getInterestRate()))
+                .min(Comparator.comparing(p -> p.getRoi() == null ? new BigDecimal("99.99") : p.getRoi()))
                 .map(p -> new ProductCardResponse(
-                        type.name().toLowerCase(),
+                        loanType.toLowerCase(),
                         label,
                         tag,
                         href,
                         accent,
-                        p.getInterestRate(),
+                        p.getRoi(),
                         p.getProcessingFee()
                 ))
-                .orElseGet(() -> new ProductCardResponse(type.name().toLowerCase(), label, tag, href, accent, null, null));
+                .orElseGet(() -> new ProductCardResponse(loanType.toLowerCase(), label, tag, href, accent, null, null));
     }
 }

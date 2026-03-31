@@ -2,7 +2,6 @@ package com.pryme.Backend.recommendation;
 
 import com.pryme.Backend.loanproduct.entity.LoanProduct;
 import com.pryme.Backend.loanproduct.repository.LoanProductRepository;
-import jakarta.persistence.criteria.JoinType;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,29 +36,17 @@ public class BankRecommendationService {
             return List.of();
         }
 
-        // 🧠 160 IQ FIX 2: THE ANTI-N+1 FETCH SHIELD
-        // Forces Hibernate to pull the attached Bank in the exact same single query.
-        // Prevents the Comparator from triggering hundreds of secondary SELECT statements.
-        Specification<LoanProduct> fetchRelations = (root, query, cb) -> {
-            if (Long.class != query.getResultType()) { // Prevents crash if Spring attempts a count() query
-                root.fetch("bank", JoinType.INNER);
-            }
-            return cb.conjunction();
-        };
-
         Specification<LoanProduct> spec = Specification
-                .where(fetchRelations)
-                .and(LoanProductSpecifications.salaryEligible(salary))
-                .and(LoanProductSpecifications.cibilEligible(cibil))
-                .and(LoanProductSpecifications.activeBankOnly());
+                .where(LoanProductSpecifications.cibilEligible(cibil))
+                .and(LoanProductSpecifications.activeOnly());
 
         // 🧠 DEFENSIVE SORTING MATRIX
         Comparator<LoanProduct> ranking = Comparator
                 .comparing((LoanProduct p) -> fitScore(p, salary, cibil), Comparator.reverseOrder())
-                .thenComparing(p -> safe(p.getInterestRate()))
+                .thenComparing(p -> safe(p.getRoi()))
                 .thenComparing(p -> safe(p.getProcessingFee()))
-                .thenComparing(p -> p.getBank() != null && p.getBank().getBankName() != null
-                        ? p.getBank().getBankName() : "UNKNOWN");
+                .thenComparing(p -> p.getLenderName() != null
+                        ? p.getLenderName() : "UNKNOWN");
 
         // Note on In-Memory Sorting: Because the active FinTech product catalog is bounded
         // (usually < 1000 items), computing this algorithm in RAM is O(1) instantaneous
@@ -71,14 +58,14 @@ public class BankRecommendationService {
     public BigDecimal fitScore(LoanProduct product, BigDecimal salary, Integer cibil) {
         // 🧠 160 IQ FIX 3: NULL-SAFE MATHEMATICS
         // Protects the JVM thread from crashing if a database row is missing attributes.
-        BigDecimal minSalary = safe(product.getMinSalary());
+        BigDecimal minLoanAmount = safe(product.getMinLoanAmount());
         int minCibil = product.getMinCibil() != null ? product.getMinCibil() : 300;
-        BigDecimal interestRate = safe(product.getInterestRate());
+        BigDecimal roi = safe(product.getRoi());
         BigDecimal fee = safe(product.getProcessingFee());
 
-        BigDecimal salaryHeadroom = salary.subtract(minSalary).max(BigDecimal.ZERO);
+        BigDecimal salaryHeadroom = salary.subtract(minLoanAmount).max(BigDecimal.ZERO);
         BigDecimal salaryRatio = salaryHeadroom
-                .divide(minSalary.max(BigDecimal.ONE), 6, RoundingMode.HALF_UP)
+                .divide(minLoanAmount.max(BigDecimal.ONE), 6, RoundingMode.HALF_UP)
                 .min(BigDecimal.ONE);
 
         int cibilHeadroomRaw = Math.max(0, cibil - minCibil);
@@ -87,7 +74,7 @@ public class BankRecommendationService {
                 .min(BigDecimal.ONE);
 
         BigDecimal normalizedRate = BigDecimal.ONE
-                .subtract(interestRate.divide(BigDecimal.valueOf(30), 6, RoundingMode.HALF_UP))
+                .subtract(roi.divide(BigDecimal.valueOf(30), 6, RoundingMode.HALF_UP))
                 .max(BigDecimal.ZERO);
 
         BigDecimal normalizedFee = BigDecimal.ONE

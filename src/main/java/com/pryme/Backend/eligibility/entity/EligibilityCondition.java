@@ -68,7 +68,8 @@ public class EligibilityCondition {
 
     @Column(name = "notes")
     private String notes;
-
+    
+    @Builder.Default
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
 

@@ -41,12 +41,11 @@ public class BankRecommendationController {
     ) {
         return new BankRecommendationResponse(
                 product.getId(),
-                product.getBank().getId(),
-                product.getBank().getBankName(),
-                product.getBank().getLogoUrl(),
-                product.getInterestRate(),
+                product.getLenderId(),
+                product.getLenderName(),
+                product.getRoi(),
                 product.getProcessingFee(),
-                product.getType().name(),
+                product.getLoanType(),
                 service.fitScore(product, salary, cibil)
         );
     }

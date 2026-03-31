@@ -4,11 +4,12 @@ package com.pryme.Backend.loanproduct.repository;
 
 import com.pryme.Backend.loanproduct.entity.LoanProduct;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface LoanProductRepository extends JpaRepository<LoanProduct, Long> {
+public interface LoanProductRepository extends JpaRepository<LoanProduct, Long>, JpaSpecificationExecutor<LoanProduct> {
 
     Optional<LoanProduct> findByProductCode(String productCode);
 
@@ -22,4 +23,6 @@ public interface LoanProductRepository extends JpaRepository<LoanProduct, Long> 
             Long lenderId, String loanType, boolean active);
 
     List<LoanProduct> findByLoanTypeAndActive(String loanType, boolean active);
+
+    List<LoanProduct> findTop3ByActiveTrueOrderByRoiAsc();
 }

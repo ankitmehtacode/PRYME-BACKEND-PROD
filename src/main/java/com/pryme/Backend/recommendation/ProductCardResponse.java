@@ -8,7 +8,7 @@ public record ProductCardResponse(
         String tag,
         String href,
         String accent,
-        BigDecimal bestInterestRate,
+        BigDecimal bestRoi,
         BigDecimal bestProcessingFee
 ) {
 }

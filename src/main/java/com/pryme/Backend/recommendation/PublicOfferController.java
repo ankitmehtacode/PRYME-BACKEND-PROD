@@ -22,7 +22,7 @@ public class PublicOfferController {
     @GetMapping("/hero")
     @Cacheable(cacheNames = "banks:recommendation", key = "'hero-offers'")
     public ResponseEntity<Map<String, Object>> heroOffers() {
-        List<HeroOfferResponse> offers = loanProductRepository.findTop3ByBankIsActiveTrueOrderByInterestRateAsc()
+        List<HeroOfferResponse> offers = loanProductRepository.findTop3ByActiveTrueOrderByRoiAsc()
                 .stream()
                 .map(this::toHeroOffer)
                 .toList();
@@ -31,18 +31,17 @@ public class PublicOfferController {
     }
 
     private HeroOfferResponse toHeroOffer(LoanProduct product) {
-        String bankName = product.getBank().getBankName();
-        String displayType = product.getType().name();
+        String lenderName = product.getLenderName();
+        String displayType = product.getLoanType();
         return new HeroOfferResponse(
-                bankName.toLowerCase().replace(" ", "-") + "-" + product.getId().toString().substring(0, 8),
+                lenderName.toLowerCase().replace(" ", "-") + "-" + product.getId().toString().substring(0, 8),
                 product.getId(),
-                product.getBank().getId(),
-                bankName,
-                product.getBank().getLogoUrl(),
+                product.getLenderId(),
+                lenderName,
                 "Instant " + displayType + " limit up to INR 50,00,000",
-                "• Rates from " + product.getInterestRate() + "%\n• Processing fee from " + product.getProcessingFee() + "%",
+                "• Rates from " + product.getRoi() + "%\n• Processing fee from " + product.getProcessingFee() + "%",
                 "LIVE BANK OFFER",
-                product.getInterestRate(),
+                product.getRoi(),
                 product.getProcessingFee(),
                 displayType
         );

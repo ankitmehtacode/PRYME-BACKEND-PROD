@@ -2,6 +2,8 @@
 
 package com.pryme.Backend.eligibility.service;
 
+import com.pryme.Backend.common.entity.PolicyFieldDefinition;
+import com.pryme.Backend.common.repository.PolicyFieldDefinitionRepository;
 import com.pryme.Backend.eligibility.dto.EligibilityRequest;
 import com.pryme.Backend.eligibility.dto.EligibilityResult;
 import com.pryme.Backend.eligibility.dto.PreflightRequest;
@@ -30,6 +32,7 @@ public class EligibilityEngineService {
     private final LoanProductRepository loanProductRepository;
     private final EligibilityConditionRepository eligibilityConditionRepository;
     private final SurrogateIncomeResolver surrogateIncomeResolver;
+    private final PolicyFieldDefinitionRepository policyFieldDefinitionRepository;
 
     private static final BigDecimal DEFAULT_FOIR = new BigDecimal("0.65");
 
@@ -43,9 +46,7 @@ public class EligibilityEngineService {
         if (!preflightResult.passed()) {
             // FIX BUG-A: record accessor is violations(), not getViolations()
             return List.of(EligibilityResult.rejected(
-                    preflightResult.violations().stream()
-                            .map(v -> v.reason())
-                            .toList(),
+                    preflightResult.violations(),
                     "Pre-flight gate failed"
             ));
         }
@@ -95,6 +96,11 @@ public class EligibilityEngineService {
                 results.isEmpty() ? "None" : results.get(0).productCode());
 
         return results;
+    }
+
+    public List<PolicyFieldDefinition> getEligibilityConditionFields() {
+        return policyFieldDefinitionRepository.findByEntityTypeAndIsActive(
+                PolicyFieldDefinition.PolicyEntityType.ELIGIBILITY_CONDITION, true);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
