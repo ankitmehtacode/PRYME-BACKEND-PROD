@@ -18,7 +18,7 @@ public record TestimonialResponse(
     public static TestimonialResponse from(Testimonial t) {
         return new TestimonialResponse(
                 t.getId(), t.getName(), t.getRole(), t.getText(), t.getRating(),
-                t.isActive(), t.isFeatured(), t.getDisplayOrder(), t.getCreatedAt(), t.getUpdatedAt()
+                t.getActive(), t.getFeatured(), t.getDisplayOrder(), t.getCreatedAt(), t.getUpdatedAt()
         );
     }
 }

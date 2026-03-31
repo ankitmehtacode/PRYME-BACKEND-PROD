@@ -21,6 +21,7 @@ import java.util.UUID;
 // 🧠 160 IQ FIX 1: Removed class-level @Setter to strictly protect system columns.
 // JPA requires a no-args constructor, but we make it PROTECTED so developers
 // are forced to use the @Builder instead of instantiating empty shells.
+@Setter
 @Getter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
