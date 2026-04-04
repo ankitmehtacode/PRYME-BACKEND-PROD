@@ -20,9 +20,6 @@ services:
       - pryme_local_pgdata:/var/lib/postgresql/data
 
   pryme-backend:
-    depends_on:
-      pryme-db:
-        condition: service_healthy
     build: .
     container_name: pryme-backend-local
     ports:
@@ -32,8 +29,10 @@ services:
       - DB_URL=jdbc:postgresql://pryme-db:5432/pryme_db
       - DB_USER=postgres
       - DB_PASS=password
+    # 🧠 1% FIX: Unified depends_on block enforcing the healthcheck
     depends_on:
-      - pryme-db
+      pryme-db:
+        condition: service_healthy
 
 volumes:
   pryme_local_pgdata:
