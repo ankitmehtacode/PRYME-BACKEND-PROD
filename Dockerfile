@@ -4,6 +4,7 @@
 # ==========================================
 FROM eclipse-temurin:21-jdk-alpine AS builder
 WORKDIR /build
+RUN java -version && echo "Using Java 21"
 
 # THE WINDOWS FAILSAFE: Fixes CRLF issues if code is pulled from Windows Git
 RUN apk add --no-cache dos2unix
@@ -27,7 +28,6 @@ RUN ./mvnw clean package -DskipTests
 # STAGE 2: Secure Runtime (JAVA 21 + GLIBC)
 # Ubuntu-based jammy eradicates Alpine/musl DNS packet-drop bug.
 # ==========================================
-FROM eclipse-temurin:21-jdk-alpine AS builder
 FROM eclipse-temurin:21-jre-jammy
 
 # Financial systems must operate in UTC at OS level
@@ -66,4 +66,5 @@ ENTRYPOINT ["java", \
   "-XX:MaxMetaspaceSize=512m", \
   "-Djava.security.egd=file:/dev/./urandom", \
   "-Djava.io.tmpdir=/app/tmp", \
+  "-Dspring.threads.virtual.enabled=true", \
   "-jar", "pryme-backend.jar"]
