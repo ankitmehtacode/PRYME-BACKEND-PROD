@@ -24,6 +24,12 @@ RUN ./mvnw dependency:go-offline -B
 COPY src src
 RUN ./mvnw clean package -DskipTests
 
+# 🧠 1% FIX: Defuse the Wildcard Collision Bomb
+# Spring Boot generates both a -plain.jar and a fat jar. 
+# We explicitly find the fat jar (which does not contain '-plain') and rename it 
+# so Stage 2 has a deterministic, single file to grab.
+RUN find target/ -name "*.jar" ! -name "*-plain.jar" -exec mv {} target/application.jar \;
+
 # ==========================================
 # STAGE 2: Secure Runtime (JAVA 21 + GLIBC)
 # Ubuntu-based jammy eradicates Alpine/musl DNS packet-drop bug.
@@ -46,9 +52,9 @@ RUN mkdir -p /app/var/document-vault \
     && mkdir -p /app/tmp \
     && chown -R prymeuser:prymegroup /app
 
-# Extract compiled JAR from builder stage
-COPY --from=builder /build/target/*.jar pryme-backend.jar
-RUN chown prymeuser:prymegroup pryme-backend.jar
+# 🧠 1% FIX: Eradicate Docker Layer Bloat
+# Copy and chown in a single atomic layer to prevent doubling the image size.
+COPY --chown=prymeuser:prymegroup --from=builder /build/target/application.jar pryme-backend.jar
 
 # Drop OS privileges permanently
 USER prymeuser
@@ -62,6 +68,7 @@ EXPOSE 8080
 # ==========================================
 ENTRYPOINT ["java", \
   "-XX:+UseContainerSupport", \
+  "-XX:+UseG1GC", \
   "-XX:MaxRAMPercentage=70.0", \
   "-XX:MaxMetaspaceSize=512m", \
   "-Djava.security.egd=file:/dev/./urandom", \
