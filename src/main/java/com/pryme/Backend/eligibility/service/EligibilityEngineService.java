@@ -14,6 +14,8 @@ import com.pryme.Backend.loanproduct.entity.LoanProduct;
 import com.pryme.Backend.loanproduct.repository.LoanProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.expression.EvaluationException;
+import org.springframework.expression.spel.support.SimpleEvaluationContext;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -21,7 +23,9 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Slf4j
@@ -33,6 +37,8 @@ public class EligibilityEngineService {
     private final EligibilityConditionRepository eligibilityConditionRepository;
     private final SurrogateIncomeResolver surrogateIncomeResolver;
     private final PolicyFieldDefinitionRepository policyFieldDefinitionRepository;
+    private final SpelExpressionCacheService spelExpressionCacheService;
+    private final SimpleEvaluationContext simpleSandboxEvaluationContext;
 
     private static final BigDecimal DEFAULT_FOIR = new BigDecimal("0.65");
 
@@ -110,6 +116,18 @@ public class EligibilityEngineService {
 
         // a. Load eligibility conditions for this product
         var conditions = eligibilityConditionRepository.findByProductId(product.getId());
+        Map<String, Object> applicantPayload = new HashMap<>();
+        applicantPayload.put("cibilScore", request.cibilScore());
+        applicantPayload.put("loanAmount", request.loanAmount());
+        applicantPayload.put("propertyValue", request.propertyValue());
+        applicantPayload.put("existingEmiTotal", request.existingEmiTotal());
+        applicantPayload.put("requestedTenureMonths", request.requestedTenureMonths());
+        applicantPayload.put("applicantAge", request.applicantAge());
+        applicantPayload.put("cityTier", request.cityTier());
+        applicantPayload.put("propertyType", request.propertyType());
+        applicantPayload.put("businessAgeYears", request.businessAgeYears());
+        applicantPayload.put("workExpYears", request.workExpYears());
+        applicantPayload.put("employmentType", request.employmentType());
 
         // b. Condition checks: age, business vintage, work experience, property type, city tier
         boolean conditionsFailed = conditions.stream().anyMatch(c ->
@@ -118,7 +136,9 @@ public class EligibilityEngineService {
                         (c.getBusinessAgeYears() != null && request.businessAgeYears() < c.getBusinessAgeYears()) ||
                         (c.getWorkExpYears() != null && request.workExpYears() < c.getWorkExpYears()) ||
                         (c.getPropertyType() != null && !c.getPropertyType().contains(request.propertyType())) ||
-                        (c.getCityTier() != null && !c.getCityTier().equalsIgnoreCase(request.cityTier()))
+                        (c.getCityTier() != null && !c.getCityTier().equalsIgnoreCase(request.cityTier())) ||
+                        (c.getProfileRestrictions() != null && !c.getProfileRestrictions().isBlank() &&
+                                !Boolean.TRUE.equals(evaluateProfileRule(c.getId(), c.getProfileRestrictions(), applicantPayload)))
         );
         if (conditionsFailed) {
             return EligibilityResult.ineligible(
@@ -246,5 +266,17 @@ public class EligibilityEngineService {
 
     private static BigDecimal safe(BigDecimal v) {
         return v != null ? v : BigDecimal.ZERO;
+    }
+
+    private Boolean evaluateProfileRule(Long ruleId, String expressionString, Map<String, Object> applicantPayload) {
+        try {
+            var expression = spelExpressionCacheService.getOrCompile(expressionString);
+            return expression.getValue(simpleSandboxEvaluationContext, applicantPayload, Boolean.class);
+        } catch (EvaluationException e) {
+            log.error("SpEL evaluation failed for ruleId={} expression='{}'", ruleId, expressionString, e);
+            throw new GeneralPolicyPreflightService.PolicyRuleValidationException(
+                    "Rule evaluation error for expression: " + expressionString + " -> " + e.getMessage()
+            );
+        }
     }
 }

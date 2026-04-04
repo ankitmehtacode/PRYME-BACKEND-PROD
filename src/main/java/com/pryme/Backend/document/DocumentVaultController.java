@@ -11,7 +11,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -24,6 +23,7 @@ public class DocumentVaultController {
 
     private static final Logger log = LoggerFactory.getLogger(DocumentVaultController.class);
     private final DocumentVaultService vaultService;
+    private final S3PresignedUrlService s3PresignedUrlService;
 
     // ==========================================
     // 🧠 FAILPROOF PRINCIPAL EXTRACTOR
@@ -63,39 +63,10 @@ public class DocumentVaultController {
         ));
     }
 
-    // ==========================================
-    // 🧠 2. MULTIPART INGESTION ENGINE (POLYMORPHIC)
-    // ==========================================
-    @PostMapping(value = {
-            "/applications/{applicationId}/documents",
-            "/documents/upload"
-    }, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> uploadDocument(
-            @PathVariable(required = false) String applicationId,
-            @RequestParam(value = "applicationId", required = false) String queryAppId,
-            @RequestParam(value = "docType", required = false) String docType,
-            @RequestParam(value = "documentName", required = false) String documentName,
-            @RequestParam("file") MultipartFile file
-    ) {
-        String targetAppId = (applicationId != null) ? applicationId : queryAppId;
-        String targetDocType = (docType != null) ? docType : documentName;
-
-        if (targetAppId == null || targetDocType == null) {
-            log.error("Vault Gateway: Missing routing parameters. AppId: {}, DocType: {}", targetAppId, targetDocType);
-            return ResponseEntity.badRequest().body(Map.of(
-                    "error", "Critical payload missing: applicationId and docType/documentName are strictly required."
-            ));
-        }
-
-        log.info("Vault Gateway: Ingesting '{}' for Application {}", targetDocType, targetAppId);
-
-        DocumentMetadataResponse result = vaultService.securelyStoreDocument(targetAppId, targetDocType, file);
-
-        return ResponseEntity.ok(Map.of(
-                "status", "STORED",
-                "document", result,
-                "message", "Document stored securely in the Vault."
-        ));
+    @PostMapping("/documents/initiate-upload")
+    public ResponseEntity<S3PresignedUrlService.PresignedUrlResponse> initiateUpload(@Valid @RequestBody DocumentUploadRequest request) {
+        vaultService.markAwaitingUpload(request.documentId());
+        return ResponseEntity.ok(s3PresignedUrlService.generateUploadUrl(request.documentId(), request.contentType()));
     }
 
     // ==========================================

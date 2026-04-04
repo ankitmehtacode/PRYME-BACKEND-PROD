@@ -5,6 +5,9 @@
 # ==========================================
 
 spring:
+  threads:
+    virtual:
+      enabled: true
   application:
     name: pryme-backend
 
@@ -44,6 +47,8 @@ spring:
         order_inserts: true        # Required for batching to actually work.
         order_updates: true
         format_sql: false
+        connection:
+          provider_disables_autocommit: true
 
   # ==========================================
   # 🧠 3. MULTIPART INGESTION ENGINE (THE VAULT)

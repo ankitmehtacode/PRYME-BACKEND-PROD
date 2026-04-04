@@ -1,4 +1,12 @@
 spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 3000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      pool-name: PrymeHikariPool
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -21,7 +29,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
       base-path: /actuator
   endpoint:
     health:
@@ -29,5 +37,11 @@ management:
       show-components: never
     info:
       enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
   server:
     port: 8081
