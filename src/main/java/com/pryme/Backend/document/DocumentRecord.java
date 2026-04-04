@@ -4,6 +4,7 @@ import com.pryme.Backend.crm.LoanApplication;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -50,6 +51,24 @@ public class DocumentRecord {
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private DocumentStatus status = DocumentStatus.AWAITING_UPLOAD;
+
+    @Column
+    private Instant uploadedAt;
+
+    @Column
+    private String s3ObjectKey;
+
+
+    public enum DocumentStatus {
+        AWAITING_UPLOAD,
+        UPLOADED,
+        FAILED
+    }
 
     @PrePersist
     void onCreate() {

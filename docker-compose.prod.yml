@@ -14,11 +14,10 @@ services:
     volumes:
       - pryme_prod_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pryme_admin -d pryme_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
-      timeout: 3s
-      retries: 10
-      start_period: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - pryme_network
 
@@ -35,8 +34,6 @@ services:
       - DB_USER=pryme_admin
       - DB_PASS=${PROD_DB_PASSWORD}
       - PROD_JWT_SECRET=${PROD_JWT_SECRET}
-    depends_on:
-      - pryme-db
     networks:
       - pryme_network
 
