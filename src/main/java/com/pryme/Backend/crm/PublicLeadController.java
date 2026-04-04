@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/public")
+@RequestMapping("/api/v1/public") // Supports optional Idempotency-Key header for POST /leads
 @RequiredArgsConstructor
 public class PublicLeadController {
 

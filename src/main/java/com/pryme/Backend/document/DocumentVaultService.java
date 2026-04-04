@@ -24,9 +24,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.net.URLDecoder;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
@@ -183,6 +185,28 @@ public class DocumentVaultService {
         } catch (MalformedURLException ex) {
             throw new RuntimeException("Failed to construct secure URI for document binary stream.", ex);
         }
+    }
+
+
+    @Transactional
+    public void markAwaitingUpload(String documentId) {
+        DocumentRecord documentRecord = documentRecordRepository.findById(UUID.fromString(documentId))
+                .orElseThrow(() -> new NotFoundException("Document matrix not found."));
+        documentRecord.setStatus(DocumentRecord.DocumentStatus.AWAITING_UPLOAD);
+        documentRecord.setS3ObjectKey(documentId);
+        documentRecord.setUploadedAt(null);
+        documentRecordRepository.save(documentRecord);
+    }
+
+    @Transactional
+    public void markAsUploaded(String objectKey) {
+        String decodedObjectKey = URLDecoder.decode(objectKey, java.nio.charset.StandardCharsets.UTF_8);
+        DocumentRecord documentRecord = documentRecordRepository.findByS3ObjectKey(decodedObjectKey)
+                .or(() -> documentRecordRepository.findByS3ObjectKey(objectKey))
+                .orElseThrow(() -> new NotFoundException("Document matrix not found."));
+        documentRecord.setStatus(DocumentRecord.DocumentStatus.UPLOADED);
+        documentRecord.setUploadedAt(Instant.now());
+        documentRecordRepository.save(documentRecord);
     }
 
     @Transactional(readOnly = true)
