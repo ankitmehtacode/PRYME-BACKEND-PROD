@@ -23,9 +23,6 @@ services:
       - pryme_network
 
   pryme-backend:
-    depends_on:
-      pryme-db:
-        condition: service_healthy
     build: .
     container_name: pryme-backend-prod
     restart: always
@@ -35,8 +32,10 @@ services:
       - DB_USER=pryme_admin
       - DB_PASS=${PROD_DB_PASSWORD}
       - PROD_JWT_SECRET=${PROD_JWT_SECRET}
+    # 🧠 1% FIX: Unified depends_on block enforcing the healthcheck
     depends_on:
-      - pryme-db
+      pryme-db:
+        condition: service_healthy
     networks:
       - pryme_network
 
