@@ -69,6 +69,7 @@ public class SecurityConfig {
                             .requestMatchers("/api/v1/public/**").permitAll()
                             .requestMatchers("/api/v1/eligibility/**").permitAll()
                             .requestMatchers("/api/v1/calculators/**").permitAll()
+                            .requestMatchers("/internal/webhooks/**").permitAll()
                             .requestMatchers("/actuator/health").permitAll();
 
                     // Baseline Admin Protection
