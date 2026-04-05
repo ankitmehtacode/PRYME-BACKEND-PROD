@@ -1,5 +1,7 @@
 package com.pryme.Backend.recommendation;
 
+import io.swagger.v3.oas.annotations.Operation;
+
 import com.pryme.Backend.loanproduct.repository.LoanProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
@@ -20,6 +22,7 @@ public class PublicProductController {
 
     private final LoanProductRepository loanProductRepository;
 
+    @Operation(summary = "One-line description of this endpoint")
     @GetMapping
     @Cacheable(cacheNames = "banks:recommendation", key = "'product-grid'")
     public ResponseEntity<Map<String, Object>> productGrid() {

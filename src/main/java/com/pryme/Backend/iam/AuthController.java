@@ -1,5 +1,7 @@
 package com.pryme.Backend.iam;
 
+import io.swagger.v3.oas.annotations.Operation;
+
 import com.pryme.Backend.common.ForbiddenException;
 import com.pryme.Backend.common.UnauthorizedException;
 import com.pryme.Backend.common.ConflictException;
@@ -35,6 +37,7 @@ public class AuthController {
     // 🧠 SECURE DATABASE SIGNUP ENGINE
     // ==========================================
     // 🧠 SILICON-VALLEY FIX: Bind to BOTH endpoints to guarantee React never hits a 404
+    @Operation(summary = "One-line description of this endpoint")
     @PostMapping({"/register", "/signup"})
     public ResponseEntity<Map<String, String>> register(@Valid @RequestBody SignupRequest request) {
         String normalizedEmail = request.email().trim().toLowerCase();
@@ -64,6 +67,7 @@ public class AuthController {
     // ==========================================
     // EXISTING IDENTITY ENGINES
     // ==========================================
+    @Operation(summary = "One-line description of this endpoint")
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         User user = userRepository.findByEmail(request.email().trim().toLowerCase())
@@ -85,6 +89,7 @@ public class AuthController {
         ));
     }
 
+    @Operation(summary = "One-line description of this endpoint")
     @GetMapping("/me")
     public ResponseEntity<MeResponse> me(Authentication authentication) {
         UUID userId = userIdFromAuth(authentication);
@@ -100,6 +105,7 @@ public class AuthController {
         ));
     }
 
+    @Operation(summary = "One-line description of this endpoint")
     @PostMapping("/logout")
     public ResponseEntity<Map<String, String>> logout(@RequestHeader("Authorization") String authHeader) {
         String token = extractBearerToken(authHeader);
@@ -107,6 +113,7 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "Logged out"));
     }
 
+    @Operation(summary = "One-line description of this endpoint")
     @GetMapping("/sessions/{userId}")
     public ResponseEntity<List<SessionRecord>> sessions(@PathVariable UUID userId, Authentication authentication) {
         UUID currentUserId = userIdFromAuth(authentication);

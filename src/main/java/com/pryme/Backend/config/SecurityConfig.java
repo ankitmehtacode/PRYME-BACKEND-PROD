@@ -63,7 +63,11 @@ public class SecurityConfig {
                     auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
 
                     // Whitelisted Public Vectors
-                    auth.requestMatchers("/error").permitAll()
+                    auth.requestMatchers("/swagger-ui/**").permitAll()
+                            .requestMatchers("/swagger-ui.html").permitAll()
+                            .requestMatchers("/api-docs/**").permitAll()
+                            .requestMatchers("/api-docs").permitAll()
+                            .requestMatchers("/error").permitAll()
                             .requestMatchers("/api/v1/auth/**").permitAll()
                             .requestMatchers(HttpMethod.POST, "/api/v1/leads").permitAll()
                             .requestMatchers("/api/v1/public/**").permitAll()

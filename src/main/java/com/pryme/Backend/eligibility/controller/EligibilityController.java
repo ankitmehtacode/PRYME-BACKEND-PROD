@@ -1,5 +1,7 @@
 package com.pryme.Backend.eligibility.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+
 import com.pryme.Backend.common.entity.PolicyFieldDefinition;
 import com.pryme.Backend.eligibility.dto.EligibilityResult;
 import com.pryme.Backend.eligibility.service.EligibilityEngineService;
@@ -22,6 +24,7 @@ public class EligibilityController {
 
     private final EligibilityEngineService eligibilityEngineService;
 
+    @Operation(summary = "One-line description of this endpoint")
     @PostMapping("/evaluate")
     public ResponseEntity<List<EligibilityResult>> evaluate(@RequestBody @Valid EligibilityRequest request) {
         List<EligibilityResult> results = eligibilityEngineService.evaluate(request);
@@ -35,6 +38,7 @@ public class EligibilityController {
         return ResponseEntity.ok(results);
     }
 
+    @Operation(summary = "One-line description of this endpoint")
     @GetMapping("/fields")
     public ResponseEntity<List<PolicyFieldDefinition>> getFields() {
         List<PolicyFieldDefinition> fields = eligibilityEngineService.getEligibilityConditionFields();
@@ -44,6 +48,7 @@ public class EligibilityController {
         return ResponseEntity.ok(fields);
     }
 
+    @Operation(summary = "One-line description of this endpoint")
     @PostMapping("/lnt-lap/best-match")
     public ResponseEntity<List<EligibilityResult>> bestMatch(@RequestBody @Valid EligibilityRequest request) {
         List<EligibilityResult> results = eligibilityEngineService.evaluate(request);

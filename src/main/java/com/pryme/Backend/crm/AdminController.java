@@ -1,5 +1,7 @@
 package com.pryme.Backend.crm;
 
+import io.swagger.v3.oas.annotations.Operation;
+
 import com.pryme.Backend.common.ForbiddenException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +49,7 @@ public class AdminController {
     // ==========================================
     // 1. MASTER DASHBOARD TELEMETRY (PAGINATED)
     // ==========================================
+    @Operation(summary = "One-line description of this endpoint")
     @GetMapping
     public ResponseEntity<Page<ApplicationResponse>> getAllApplications(
             // 🧠 ELASTIC MEMORY PROTECTION: Defaults to 20 items per page to prevent RAM spikes.
@@ -65,6 +68,7 @@ public class AdminController {
     // ==========================================
     // 2. STATE TRANSITION ENGINE (APPROVE / REJECT)
     // ==========================================
+    @Operation(summary = "One-line description of this endpoint")
     @PatchMapping("/{applicationId}/status")
     public ResponseEntity<Map<String, Object>> updateApplicationStatus(
             @PathVariable String applicationId,
@@ -88,6 +92,7 @@ public class AdminController {
     // ==========================================
     // 3. ASSIGNMENT ROUTING ENGINE
     // ==========================================
+    @Operation(summary = "One-line description of this endpoint")
     @PatchMapping("/{applicationId}/assign")
     public ResponseEntity<Map<String, Object>> assignApplication(
             @PathVariable String applicationId,

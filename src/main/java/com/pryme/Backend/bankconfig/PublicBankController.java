@@ -1,5 +1,7 @@
 package com.pryme.Backend.bankconfig;
 
+import io.swagger.v3.oas.annotations.Operation;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +18,7 @@ public class PublicBankController {
 
     private final BankService bankService;
 
+    @Operation(summary = "One-line description of this endpoint")
     @GetMapping("/partners")
     public ResponseEntity<Map<String, List<PartnerBankResponse>>> partners() {
         return ResponseEntity.ok(Map.of("banks", bankService.getActivePartners()));

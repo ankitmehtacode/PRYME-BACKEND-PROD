@@ -1,5 +1,7 @@
 package com.pryme.Backend.crm;
 
+import io.swagger.v3.oas.annotations.Operation;
+
 import com.pryme.Backend.common.ForbiddenException;
 import com.pryme.Backend.crm.dto.InitialLeadCaptureRequest;
 import jakarta.validation.Valid;
@@ -43,6 +45,7 @@ public class ApplicationController {
     // ==========================================
     // 🧠 PHASE 2: PROGRESSIVE LEAD CAPTURE (STAGE 1)
     // ==========================================
+    @Operation(summary = "One-line description of this endpoint")
     @PostMapping("/initial-intake")
     public ResponseEntity<Map<String, Object>> captureInitialLead(
             @Valid @RequestBody InitialLeadCaptureRequest request,
@@ -66,6 +69,7 @@ public class ApplicationController {
     // 🧠 PHASE 3: DEEP PROFILING & BANK SELECTION
     // ==========================================
     // This dynamically catches the Zustand JSON payload and merges it safely into the database.
+    @Operation(summary = "One-line description of this endpoint")
     @PatchMapping("/{applicationId}")
     public ResponseEntity<ApplicationResponse> updateProgress(
             @PathVariable String applicationId,
@@ -81,6 +85,7 @@ public class ApplicationController {
     // ==========================================
     // 🧠 PHASE 4: STATE TRANSITION ENGINE
     // ==========================================
+    @Operation(summary = "One-line description of this endpoint")
     @PatchMapping("/{applicationId}/status")
     public ResponseEntity<ApplicationResponse> updateStatus(
             @PathVariable String applicationId,
@@ -91,6 +96,7 @@ public class ApplicationController {
         return ResponseEntity.ok(applicationService.updateStatus(applicationId, request, userId));
     }
 
+    @Operation(summary = "One-line description of this endpoint")
     @PatchMapping("/{applicationId}/assign")
     public ResponseEntity<ApplicationResponse> assignLead(
             @PathVariable String applicationId,
@@ -105,6 +111,7 @@ public class ApplicationController {
     // ==========================================
     // DASHBOARD RETRIEVAL
     // ==========================================
+    @Operation(summary = "One-line description of this endpoint")
     @GetMapping("/me")
     public ResponseEntity<Page<ApplicationResponse>> getMyApplications(Authentication authentication) {
         UUID userId = extractUserId(authentication);
@@ -112,6 +119,7 @@ public class ApplicationController {
     }
 
     // Admin endpoint to view the entire matrix
+    @Operation(summary = "One-line description of this endpoint")
     @GetMapping
     public ResponseEntity<Page<ApplicationResponse>> getAllApplications(Authentication authentication) {
         extractUserId(authentication);

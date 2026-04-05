@@ -1,5 +1,7 @@
 package com.pryme.Backend.recommendation;
 
+import io.swagger.v3.oas.annotations.Operation;
+
 import com.pryme.Backend.loanproduct.entity.LoanProduct;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -22,6 +24,7 @@ public class BankRecommendationController {
 
     private final BankRecommendationService bankRecommendationService;
 
+    @Operation(summary = "One-line description of this endpoint")
     @GetMapping("/recommendation")
     public List<BankRecommendationResponse> getRecommendations(
             @RequestParam @NotNull BigDecimal salary,

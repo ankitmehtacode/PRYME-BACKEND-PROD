@@ -1,5 +1,7 @@
 package com.pryme.Backend.cms;
 
+import io.swagger.v3.oas.annotations.Operation;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +18,7 @@ public class PublicTestimonialController {
 
     private final TestimonialService testimonialService;
 
+    @Operation(summary = "One-line description of this endpoint")
     @GetMapping
     public ResponseEntity<Map<String, List<TestimonialResponse>>> reviews() {
         return ResponseEntity.ok(Map.of("reviews", testimonialService.publicTestimonials()));

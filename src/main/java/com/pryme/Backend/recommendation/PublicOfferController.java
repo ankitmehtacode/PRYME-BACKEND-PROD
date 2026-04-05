@@ -1,5 +1,7 @@
 package com.pryme.Backend.recommendation;
 
+import io.swagger.v3.oas.annotations.Operation;
+
 import com.pryme.Backend.loanproduct.entity.LoanProduct;
 import com.pryme.Backend.loanproduct.repository.LoanProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ public class PublicOfferController {
 
     private final LoanProductRepository loanProductRepository;
 
+    @Operation(summary = "One-line description of this endpoint")
     @GetMapping("/hero")
     @Cacheable(cacheNames = "banks:recommendation", key = "'hero-offers'")
     public ResponseEntity<Map<String, Object>> heroOffers() {

@@ -4,6 +4,14 @@
 # Target Capacity: 4,000 Concurrent Users
 # ==========================================
 
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+  default-produces-media-type: application/json
+
 spring:
   threads:
     virtual:
@@ -12,6 +20,8 @@ spring:
     name: pryme-backend
 
   flyway:
+    enabled: true
+    locations: classpath:db/migration
     baseline-on-migrate: true
     baseline-version: 0
   # ==========================================
@@ -37,7 +47,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: ${DDL_AUTO:update} # Set to 'validate' in strict production, 'update' for seamless staging
+      ddl-auto: ${DDL_AUTO:validate} # Flyway owns schema. Hibernate only validates entity mapping.
     open-in-view: false            # CRITICAL: Disables OSIV to prevent silent DB connection hoarding.
     show-sql: false                # Keep false in prod to save Disk I/O.
     properties:

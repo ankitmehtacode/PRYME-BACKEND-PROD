@@ -1,5 +1,7 @@
 package com.pryme.Backend.document;
 
+import io.swagger.v3.oas.annotations.Operation;
+
 import com.pryme.Backend.common.ForbiddenException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +46,7 @@ public class DocumentVaultController {
     // ==========================================
     // 🧠 1. IDENTITY VERIFICATION GATEWAY
     // ==========================================
+    @Operation(summary = "One-line description of this endpoint")
     @PostMapping("/documents/verify-id")
     public ResponseEntity<Map<String, String>> verifyIdentity(@Valid @RequestBody VerifyIdRequest request) {
         log.info("Vault Gateway: Verifying Identity Matrix for Application {}", request.applicationId());
@@ -63,6 +66,7 @@ public class DocumentVaultController {
         ));
     }
 
+    @Operation(summary = "One-line description of this endpoint")
     @PostMapping("/documents/initiate-upload")
     public ResponseEntity<S3PresignedUrlService.PresignedUrlResponse> initiateUpload(@Valid @RequestBody DocumentUploadRequest request) {
         vaultService.markAwaitingUpload(request.documentId());
@@ -72,6 +76,7 @@ public class DocumentVaultController {
     // ==========================================
     // 🧠 3. SECURE METADATA RETRIEVAL ENGINE
     // ==========================================
+    @Operation(summary = "One-line description of this endpoint")
     @GetMapping({"/applications/{applicationId}/documents", "/documents/{applicationId}"})
     public ResponseEntity<List<DocumentMetadataResponse>> applicationDocuments(@PathVariable String applicationId) {
         log.info("Vault Gateway: Retrieving document metadata matrix for Application {}", applicationId);
@@ -81,6 +86,7 @@ public class DocumentVaultController {
     // ==========================================
     // 🧠 4. ZERO-TRUST BINARY STREAMING GATEWAY (NEW)
     // ==========================================
+    @Operation(summary = "One-line description of this endpoint")
     @GetMapping("/documents/{documentId}/download")
     public ResponseEntity<Resource> downloadDocument(
             @PathVariable UUID documentId,

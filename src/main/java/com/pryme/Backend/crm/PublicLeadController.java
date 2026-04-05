@@ -1,5 +1,7 @@
 package com.pryme.Backend.crm;
 
+import io.swagger.v3.oas.annotations.Operation;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +16,7 @@ public class PublicLeadController {
 
     private final LeadService leadService;
 
+    @Operation(summary = "One-line description of this endpoint")
     @PostMapping("/leads")
     public ResponseEntity<Map<String, Object>> submitLead(
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,

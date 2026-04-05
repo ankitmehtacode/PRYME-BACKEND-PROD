@@ -1,10 +1,10 @@
-package com.pryme.backend.config;
+package com.pryme.Backend.config;
 
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.stereotype.Component;
 
-@Component
+@Component("connectionPool")
 public class ConnectionPoolHealthIndicator implements HealthIndicator {
     private final ConnectionPoolProbe probe;
 
@@ -16,12 +16,15 @@ public class ConnectionPoolHealthIndicator implements HealthIndicator {
     public Health health() {
         if (probe.isSaturated()) {
             return Health.outOfService()
-                    .withDetail("reason", "Connection pool saturated for >10s")
-                    .withDetail("utilisation", String.format("%.1f%%", probe.getCurrentUtilisation() * 100))
-                    .build();
+                .withDetail("reason", "Pool saturated for consecutive probe cycles")
+                .withDetail("utilisation",
+                    String.format("%.1f%%", probe.getCurrentUtilisation() * 100))
+                .build();
         }
         return Health.up()
-                .withDetail("utilisation", String.format("%.1f%%", probe.getCurrentUtilisation() * 100))
-                .build();
+            .withDetail("utilisation",
+                String.format("%.1f%%", probe.getCurrentUtilisation() * 100))
+            .withDetail("activeConnections", probe.getActiveConnections())
+            .build();
     }
 }

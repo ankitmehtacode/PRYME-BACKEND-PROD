@@ -32,6 +32,11 @@ services:
       - DB_USER=pryme_admin
       - DB_PASS=${PROD_DB_PASSWORD}
       - PROD_JWT_SECRET=${PROD_JWT_SECRET}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET}
+      - AWS_REGION=${AWS_REGION:-ap-south-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
     # 🧠 1% FIX: Unified depends_on block enforcing the healthcheck
     depends_on:
       pryme-db:
