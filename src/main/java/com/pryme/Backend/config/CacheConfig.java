@@ -38,14 +38,7 @@ public class CacheConfig {
 
                 // 3. COMPUTATIONAL RESULTS: Caches heavy CIBIL/Rule Engine outputs to save CPU.
                 // Scaled to 5,000 to accommodate peak user traffic. 30-Min TTL.
-                buildCache("banks:recommendation", 5000, Duration.ofMinutes(30)),
-
-                // 4. 🧠 SECURITY MICRO-CACHING: The Top 1% Optimization
-                // Max size 10,000. TTL: EXACTLY 5 SECONDS.
-                // Why? If a user's React frontend fires 6 API calls at once on page load,
-                // this cache absorbs 5 of them, dropping DB load by 83%.
-                // But if an Admin bans them, the ban takes effect in maximum 5 seconds.
-                buildCache("auth:sessions", 10000, Duration.ofSeconds(5))
+                buildCache("banks:recommendation", 5000, Duration.ofMinutes(30))
         ));
 
         log.info("Titanium L1 Cache Matrix Initialized. Protection layers active.");

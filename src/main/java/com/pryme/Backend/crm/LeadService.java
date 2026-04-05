@@ -38,7 +38,7 @@ public class LeadService {
                     .map(LeadResponse::from)
                     .orElseGet(() -> saveLead(request, normalizedLoanType, normalizedKey));
         } else {
-            LocalDateTime duplicateWindow = LocalDateTime.now().minusMinutes(2);
+            LocalDateTime duplicateWindow = LocalDateTime.now().minusHours(24);
             result = leadRepository.findTopByPhoneAndLoanAmountAndLoanTypeAndCreatedAtAfterOrderByCreatedAtDesc(
                             request.phone().trim(),
                             request.loanAmount(),

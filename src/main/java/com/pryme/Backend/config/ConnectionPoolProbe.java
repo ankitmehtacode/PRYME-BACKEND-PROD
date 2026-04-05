@@ -1,6 +1,7 @@
 package com.pryme.Backend.config;
 
 import com.zaxxer.hikari.HikariDataSource;
+import com.zaxxer.hikari.HikariPoolMXBean;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -11,45 +12,39 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
 public class ConnectionPoolProbe {
-
     private final HikariDataSource dataSource;
-    private final AtomicInteger highUtilisationCycles = new AtomicInteger(0);
-    private final AtomicInteger activeConnections = new AtomicInteger(0);
-    private volatile double utilisation = 0.0;
-    final AtomicBoolean saturated = new AtomicBoolean(false);
+    private final MeterRegistry meterRegistry;
+    private final AtomicInteger saturatedCycles = new AtomicInteger(0);
+    private final AtomicBoolean saturated = new AtomicBoolean(false);
+    private volatile double currentUtilisation = 0.0;
+    private volatile int activeConnections = 0;
 
     public ConnectionPoolProbe(HikariDataSource dataSource, MeterRegistry meterRegistry) {
         this.dataSource = dataSource;
-        Gauge.builder("hikari.pool.utilisation", () -> utilisation).register(meterRegistry);
+        this.meterRegistry = meterRegistry;
+        Gauge.builder("hikari.pryme.utilisation",
+                this, ConnectionPoolProbe::getCurrentUtilisation)
+             .description("HikariCP utilisation ratio 0.0–1.0")
+             .register(meterRegistry);
     }
 
     @Scheduled(fixedDelay = 5000)
     public void probe() {
-        var poolMxBean = dataSource.getHikariPoolMXBean();
-        int active = poolMxBean.getActiveConnections();
-        int max = poolMxBean.getTotalConnections();
-
-        this.activeConnections.set(active);
-        this.utilisation = max == 0 ? 0.0 : (double) active / max;
-
-        if (utilisation >= 0.95) {
-            if (highUtilisationCycles.incrementAndGet() >= 2) {
-                saturated.set(true);
-            }
-            return;
-        }
-
-        if (utilisation < 0.8) {
+        HikariPoolMXBean pool = dataSource.getHikariPoolMXBean();
+        if (pool == null) return;
+        activeConnections = pool.getActiveConnections();
+        int total = pool.getTotalConnections();
+        if (total == 0) return;
+        currentUtilisation = (double) activeConnections / total;
+        if (currentUtilisation >= 0.95) {
+            if (saturatedCycles.incrementAndGet() >= 2) saturated.set(true);
+        } else if (currentUtilisation < 0.80) {
+            saturatedCycles.set(0);
             saturated.set(false);
-            highUtilisationCycles.set(0);
         }
     }
 
-    public boolean isSaturated() {
-        return saturated.get();
-    }
-
-    public int getActiveConnections() {
-        return activeConnections.get();
-    }
+    public boolean isSaturated() { return saturated.get(); }
+    public double getCurrentUtilisation() { return currentUtilisation; }
+    public int getActiveConnections() { return activeConnections; }
 }

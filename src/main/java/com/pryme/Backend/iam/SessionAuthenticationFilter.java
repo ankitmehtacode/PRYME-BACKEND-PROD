@@ -62,11 +62,10 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
 
             if (session != null) {
                 // 🧠 160 IQ FIX 3: Hydrate directly from Cache. NO DATABASE HITS.
-                // (Assuming a standard ROLE_USER. If you need dynamic roles, add them to SessionRecord!)
                 var auth = new UsernamePasswordAuthenticationToken(
                         session.getUser().getId(), // Principal
                         null,             // Credentials
-                        List.of(new SimpleGrantedAuthority("ROLE_USER")) // Authorities
+                        List.of(new SimpleGrantedAuthority("ROLE_" + session.getUser().getRole().name())) // Authorities
                 );
                 SecurityContextHolder.getContext().setAuthentication(auth);
             } else {

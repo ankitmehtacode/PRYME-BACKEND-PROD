@@ -229,8 +229,7 @@ public class ApplicationService {
     }
 
     private static void validateVersion(Long current, Long requestVersion) {
-        if (requestVersion == null) return;
-        if (current == null || !current.equals(requestVersion)) {
+        if (requestVersion == null || current == null || !current.equals(requestVersion)) {
             throw new ConflictException("Optimistic Lock Fault: Version mismatch. Please refresh to avoid data collision.");
         }
     }

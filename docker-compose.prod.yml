@@ -22,6 +22,19 @@ services:
     networks:
       - pryme_network
 
+  pryme-redis:
+    image: redis:7-alpine
+    container_name: pryme-redis-prod
+    restart: always
+    # 🧠 SECURITY: Redis runs isolated on the internal bridge network. Port 6379 is NOT exposed externally.
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - pryme_network
+
   pryme-backend:
     build: .
     container_name: pryme-backend-prod
@@ -37,9 +50,13 @@ services:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+      - SPRING_DATA_REDIS_HOST=pryme-redis
+      - SPRING_DATA_REDIS_PORT=6379
     # 🧠 1% FIX: Unified depends_on block enforcing the healthcheck
     depends_on:
       pryme-db:
+        condition: service_healthy
+      pryme-redis:
         condition: service_healthy
     networks:
       - pryme_network

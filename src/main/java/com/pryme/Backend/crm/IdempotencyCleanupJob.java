@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 
 @Component
 @RequiredArgsConstructor
+@org.springframework.transaction.annotation.Transactional
 public class IdempotencyCleanupJob {
 
     private static final Logger log = LoggerFactory.getLogger(IdempotencyCleanupJob.class);

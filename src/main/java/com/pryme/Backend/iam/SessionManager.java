@@ -25,10 +25,10 @@ public class SessionManager {
     private int maxSessionsPerUser;
 
     // 🧠 160 IQ FIX: L1 RAM CACHE (Reduces DB Load by 99%)
-    // Caches valid sessions for exactly 30 seconds. Handles API burst requests (e.g., 10 calls on page load)
-    // without hitting the DB. 30s TTL prevents multi-pod "split-brain" if a session is revoked on another pod.
+    // Caches valid sessions for exactly 5 seconds. Handles API burst requests (e.g., 6 calls on page load)
+    // without hitting the DB. 5s TTL ensures immediate revocation if a user is banned.
     private final ConcurrentHashMap<UUID, L1CacheEntry> l1Cache = new ConcurrentHashMap<>();
-    private record L1CacheEntry(UUID userId, Instant localExpiry) {}
+    private record L1CacheEntry(UUID userId, Role role, Instant localExpiry) {}
 
     /**
      * 🧠 ELASTIC SESSION REGISTRY & THE SNIPER PROTOCOL
@@ -78,7 +78,8 @@ public class SessionManager {
         // 1. L1 RAM Cache Check (Bypass DB entirely)
         L1CacheEntry cached = l1Cache.get(UUID.fromString(jwtId));
         if (cached != null && cached.localExpiry().isAfter(Instant.now())) {
-            return sessionRepository.findById(cached.userId()).orElseThrow(() -> new UnauthorizedException("Session matrix not found or corrupted."));
+            User dummyUser = User.builder().id(cached.userId()).role(cached.role()).build();
+            return SessionRecord.builder().id(UUID.fromString(jwtId)).user(dummyUser).isActive(true).expiresAt(Instant.MAX).build();
         }
 
         // 2. DB Fallback (Cache Miss or TTL Expired)
@@ -90,8 +91,9 @@ public class SessionManager {
             throw new UnauthorizedException("Session lifecycle terminated. Please re-authenticate.");
         }
 
-        // 3. Hydrate L1 Cache (Valid for next 30 seconds of burst API calls)
-        l1Cache.put(UUID.fromString(jwtId), new L1CacheEntry(session.getUser().getId(), Instant.now().plusSeconds(30)));
+        // 3. Hydrate L1 Cache (Valid for next 5 seconds of burst API calls)
+        Role role = session.getUser().getRole();
+        l1Cache.put(UUID.fromString(jwtId), new L1CacheEntry(session.getUser().getId(), role, Instant.now().plusSeconds(5)));
         return session;
     }
 

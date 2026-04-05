@@ -1,7 +1,7 @@
 -- Create policy_field_definitions table
 CREATE TABLE policy_field_definitions (
     id                    BIGSERIAL PRIMARY KEY,
-    field_key             VARCHAR(80) NOT NULL UNIQUE,
+    field_key             VARCHAR(80) NOT NULL,
     display_name          VARCHAR(120) NOT NULL,
     field_type            VARCHAR(30) NOT NULL,
     entity_type           VARCHAR(40) NOT NULL,
@@ -32,6 +32,7 @@ CREATE TABLE policy_change_audits (
 );
 
 -- Create indexes
+CREATE UNIQUE INDEX idx_pfd_field_key ON policy_field_definitions(field_key);
 CREATE INDEX idx_pcd_entity_type ON policy_field_definitions(entity_type);
 CREATE INDEX idx_pca_entity ON policy_change_audits(entity_type, entity_id);
 CREATE INDEX idx_pca_field_key ON policy_change_audits(field_key);
@@ -72,35 +73,6 @@ INSERT INTO policy_field_definitions (field_key, display_name, field_type, entit
 ('emi_not_obligated_months', 'EMI Not Obligated Months', 'INTEGER', 'GENERAL_BANK_POLICY', 0, 24, NULL, 'MONTHS', FALSE, TRUE, 'Number of months EMI is not obligated by the bank policy.'),
 ('foir_allowed', 'FOIR Allowed', 'PERCENTAGE', 'SURROGATE_POLICY', 0.30, 1.90, NULL, 'PERCENT', FALSE, TRUE, 'Allowed Frontier Offer to Income ratio for the surrogate policy.'),
 ('business_vintage_min_years', 'Business Vintage Minimum (Years)', 'INTEGER', 'SURROGATE_POLICY', 1, 10, NULL, 'YEARS', FALSE, TRUE, 'Minimum business vintage in years required by the surrogate policy.');
--- Seed boolean fields with requires_reason=TRUE
-INSERT INTO policy_field_definitions (field_key, display_name, field_type, entity_type, absolute_lower_bound, absolute_upper_bound, allowed_values, unit, requires_reason, is_active, description) VALUES
-('dpd_allowed', 'DPD Allowed', 'BOOLEAN', 'LOAN_PRODUCT', NULL, NULL, NULL, 'BOOLEAN', TRUE, TRUE, 'Whether DPD (Days Past Due) is allowed for the loan product.'),
-('write_off_allowed', 'Write-off Allowed', 'BOOLEAN', 'LOAN_PRODUCT', NULL, NULL, NULL, 'BOOLEAN', TRUE, TRUE, 'Whether write-off is allowed for the loan product.'),
-('settlement_allowed', 'Settlement Allowed', 'BOOLEAN', 'LOAN_PRODUCT', NULL, NULL, NULL, 'BOOLEAN', TRUE, TRUE, 'Whether settlement is allowed for the loan product.');
-
--- Seed text/enum fields
-INSERT INTO policy_field_definitions (field_key, display_name, field_type, entity_type, absolute_lower_bound, absolute_upper_bound, allowed_values, unit, requires_reason, is_active, description) VALUES
-('occupation', 'Occupation', 'TEXT', 'ELIGIBILITY_CONDITION', NULL, NULL, NULL, 'TEXT', FALSE, TRUE, 'Occupation of the applicant for eligibility.'),
-('employer_type', 'Employer Type', 'ENUM_LIST', 'ELIGIBILITY_CONDITION', NULL, NULL, 'SALARIED,SELF_EMPLOYED,BUSINESS_OWNER', 'TEXT', FALSE, TRUE, 'Type of employer for eligibility.'),
-('nature_of_business', 'Nature of Business', 'TEXT', 'ELIGIBILITY_CONDITION', NULL, NULL, NULL, 'TEXT', FALSE, TRUE, 'Nature of business for eligibility.'),
-('industry', 'Industry', 'ENUM_LIST', 'ELIGIBILITY_CONDITION', NULL, NULL, 'IT,AUTO,FMCG,RETAIL,MANUFACTURING', 'TEXT', FALSE, TRUE, 'Industry sector for eligibility.'),
-('kyc_requirement', 'KYC Requirement', 'ENUM_LIST', 'LOAN_PRODUCT', NULL, NULL, 'AADHAAR,PAN,VOTER_ID,PASSPORT', 'TEXT', FALSE, TRUE, 'Required KYC documents for the loan product.'),
-('income_proof', 'Income Proof', 'ENUM_LIST', 'LOAN_PRODUCT', NULL, NULL, 'SALARY_SLIP,BANK_STATEMENT,ITR,GST', 'TEXT', FALSE, TRUE, 'Required income proof documents for the loan product.'),
-('residence_profile', 'Residence Profile', 'ENUM_LIST', 'ELIGIBILITY_CONDITION', NULL, NULL, 'OWNED,RENTED,PARENTSRESSED', 'TEXT', FALSE, TRUE, 'Residence profile of the applicant for eligibility.'),
-('property_type', 'Property Type', 'ENUM_LIST', 'GENERAL_BANK_POLICY', NULL, NULL, 'RESIDENTIAL,COMMERCIAL,LAND', 'TEXT', FALSE, TRUE, 'Allowed property types by the bank policy.'),
-('city_tier', 'City Tier', 'ENUM_LIST', 'ELIGIBILITY_CONDITION', NULL, NULL, 'TIER_1,TIER_2,TIER_3', 'TEXT', FALSE, TRUE, 'City tier for eligibility.'),
-('employment_type', 'Employment Type', 'ENUM_LIST', 'ELIGIBILITY_CONDITION', NULL, NULL, 'SALARIED,SELF_EMPLOYED,BUSINESS_OWNER', 'TEXT', FALSE, TRUE, 'Type of employment for eligibility.'),
-('income_type', 'Income Type', 'ENUM_LIST', 'ELIGIBILITY_CONDITION', NULL, NULL, 'FIXED_VARIABLE,SALARY,OCCUPATION_BASED', 'TEXT', FALSE, TRUE, 'Type of income for eligibility.'),
-('obligation_treatment', 'Obligation Treatment', 'ENUM_LIST', 'LOAN_PRODUCT', NULL, NULL, 'STRICT,FLEXIBLE,NONE', 'TEXT', FALSE, TRUE, 'Treatment of obligations for the loan product.'),
-('risk_category', 'Risk Category', 'ENUM_LIST', 'LOAN_PRODUCT', NULL, NULL, 'LOW,MEDIUM,HIGH', 'TEXT', FALSE, TRUE, 'Risk category of the loan product.'),
-('program_name', 'Program Name', 'TEXT', 'SURROGATE_POLICY', NULL, NULL, NULL, 'TEXT', FALSE, TRUE, 'Name of the surrogate policy program.');
-
--- Seed boolean fields with requires_reason=TRUE
-INSERT INTO policy_field_definitions (field_key, display_name, field_type, entity_type, absolute_lower_bound, absolute_upper_bound, allowed_values, unit, requires_reason, is_active, description) VALUES
-('dpd_allowed', 'DPD Allowed', 'BOOLEAN', 'LOAN_PRODUCT', NULL, NULL, NULL, 'BOOLEAN', TRUE, TRUE, 'Whether DPD (Days Past Due) is allowed for the loan product.'),
-('write_off_allowed', 'Write-off Allowed', 'BOOLEAN', 'LOAN_PRODUCT', NULL, NULL, NULL, 'BOOLEAN', TRUE, TRUE, 'Whether write-off is allowed for the loan product.'),
-('settlement_allowed', 'Settlement Allowed', 'BOOLEAN', 'LOAN_PRODUCT', NULL, NULL, NULL, 'BOOLEAN', TRUE, TRUE, 'Whether settlement is allowed for the loan product.');
-
 -- Seed text/enum fields
 INSERT INTO policy_field_definitions (field_key, display_name, field_type, entity_type, absolute_lower_bound, absolute_upper_bound, allowed_values, unit, requires_reason, is_active, description) VALUES
 ('occupation', 'Occupation', 'TEXT', 'ELIGIBILITY_CONDITION', NULL, NULL, NULL, 'TEXT', FALSE, TRUE, 'Occupation of the applicant for eligibility.'),

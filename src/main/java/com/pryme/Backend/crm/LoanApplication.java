@@ -133,8 +133,8 @@ public class LoanApplication {
     // Prevents rogue data transitions (e.g., skipping straight from DRAFT to APPROVED)
     // ==========================================
     public void transitionTo(ApplicationStatus newStatus) {
-        if (this.status == ApplicationStatus.DRAFT && newStatus != ApplicationStatus.PROCESSING) {
-            throw new IllegalStateException("Draft applications must transition to PROCESSING before underwriting.");
+        if (this.status == ApplicationStatus.DRAFT && newStatus != ApplicationStatus.SUBMITTED && newStatus != ApplicationStatus.PROCESSING) {
+            throw new IllegalStateException("Draft applications must transition to SUBMITTED or PROCESSING before underwriting.");
         }
         if (this.status == ApplicationStatus.REJECTED) {
             throw new IllegalStateException("Cannot transition a permanently rejected application.");

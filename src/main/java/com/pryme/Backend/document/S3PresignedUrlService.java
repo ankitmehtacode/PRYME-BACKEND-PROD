@@ -75,8 +75,51 @@ record AwsS3Properties(String bucket, String region) {
 @EnableConfigurationProperties(AwsS3Properties.class)
 class S3PresignerConfiguration {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(S3PresignerConfiguration.class);
+    private final AwsS3Properties awsS3Properties;
+
+    public S3PresignerConfiguration(AwsS3Properties awsS3Properties) {
+        this.awsS3Properties = awsS3Properties;
+    }
+
+    @jakarta.annotation.PostConstruct
+    public void validateDataResidencyAndBucket() {
+        String region = awsS3Properties.region();
+        
+        // 🧠 160 IQ: INDIA DATA RESIDENCY COMPLIANCE (RBI GUIDELINES)
+        if (!region.equals("ap-south-1") && !region.equals("ap-south-2")) {
+            throw new IllegalStateException(
+                "🚨 SEVERE: RBI Data Residency Violation! Financial documents must be stored in India (ap-south-1 or ap-south-2). " 
+                + "Configured region: " + region
+            );
+        }
+
+        // 🧠 PROACTIVE BUCKET EXISTENCE & REGION VERIFICATION
+        log.info("Verifying S3 bucket '{}' exists and is physically located in {}", awsS3Properties.bucket(), region);
+        try (software.amazon.awssdk.services.s3.S3Client s3Client = software.amazon.awssdk.services.s3.S3Client.builder()
+                .region(Region.of(region))
+                .build()) {
+            
+            s3Client.headBucket(b -> b.bucket(awsS3Properties.bucket()));
+            log.info("✅ S3 Bucket Validation Passed. Data residency enforced.");
+            
+        } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
+            if (e.statusCode() == 301) {
+                throw new IllegalStateException("🚨 FATAL: Bucket exists but is physically located outside " + region + "! Data Residency Breach.", e);
+            } else if (e.statusCode() == 403) {
+                throw new IllegalStateException("🚨 FATAL: Access Denied to Bucket '" + awsS3Properties.bucket() + "'. Check IAM Instance Role/Keys.", e);
+            } else if (e.statusCode() == 404) {
+                throw new IllegalStateException("🚨 FATAL: Bucket '" + awsS3Properties.bucket() + "' DOES NOT EXIST.", e);
+            }
+            throw new IllegalStateException("🚨 FATAL: Unknown S3 Validation Error", e);
+        } catch (Exception e) {
+            // Safe fallback for local developer environments without IAM credentials
+            log.warn("⚠️ Skipping strict S3 bucket ping. AWS credentials missing or network unreachable: {}", e.getMessage());
+        }
+    }
+
     @Bean
-    S3Presigner s3Presigner(AwsS3Properties awsS3Properties) {
+    S3Presigner s3Presigner() {
         return S3Presigner.builder()
                 .region(Region.of(awsS3Properties.region()))
                 .build();

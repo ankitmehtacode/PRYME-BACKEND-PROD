@@ -29,7 +29,7 @@ spring:
   # Multiplexes 4000 network requests through exactly 150 DB connections
   # ==========================================
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:8080/pryme_db}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/pryme_db}
     username: ${DB_USER:postgres}
     password: ${DB_PASS:pryme}
     driver-class-name: org.postgresql.Driver
@@ -42,7 +42,17 @@ spring:
       leak-detection-threshold: 2000 # 🧠 Top 1% Rule: Logs a stack trace if a transaction takes >2s.
 
   # ==========================================
-  # 🧠 2. JPA & HIBERNATE BATCH OPTIMIZATION
+  # 🧠 2. DISTRIBUTED CACHE MATRIX (REDIS)
+  # Powers horizontal rate-limiting across N-pods seamlessly.
+  # ==========================================
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      timeout: 2000
+
+  # ==========================================
+  # 🧠 3. JPA & HIBERNATE BATCH OPTIMIZATION
   # ==========================================
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
