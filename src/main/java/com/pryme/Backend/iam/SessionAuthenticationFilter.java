@@ -25,9 +25,11 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
     // 🧠 160 IQ FIX 1: UserRepository is BANNED from the Filter Layer.
     // We rely 100% on the O(1) SessionManager RAM Cache to protect the PostgreSQL DB.
     private final SessionManager sessionManager;
+    private final SessionCookieHelper cookieHelper;
 
-    public SessionAuthenticationFilter(SessionManager sessionManager) {
+    public SessionAuthenticationFilter(SessionManager sessionManager, SessionCookieHelper cookieHelper) {
         this.sessionManager = sessionManager;
+        this.cookieHelper = cookieHelper;
     }
 
     // 🧠 THE FAST-LANE BYPASS
@@ -38,7 +40,6 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
                 path.startsWith("/api/v1/public/") ||
                 path.startsWith("/api/v1/leads") ||
                 path.startsWith("/actuator/"); // 🧠 Added Actuator for KVM2 Health Checks
-        // 🧠 REMOVED: /h2-console (We are fully PostgreSQL now)
     }
 
     @Override
@@ -47,18 +48,20 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
-        String header = request.getHeader("Authorization");
 
-        if (header == null || !header.startsWith("Bearer ") || SecurityContextHolder.getContext().getAuthentication() != null) {
+        // 🧠 SECURITY FIX: DUAL-READ SESSION EXTRACTION
+        // Priority 1: HttpOnly Cookie (browser clients — XSS-proof)
+        // Priority 2: Authorization: Bearer header (mobile apps, Swagger, Postman)
+        String sessionId = extractSessionId(request);
+
+        if (sessionId == null || SecurityContextHolder.getContext().getAuthentication() != null) {
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
-            String token = header.substring(7);
-
-            // 🧠 160 IQ FIX 2: O(1) Memory Validation
-            SessionRecord session = sessionManager.validate(token);
+            // 🧠 160 IQ FIX 2: O(1) Memory Validation (UNTOUCHED — same SessionManager path)
+            SessionRecord session = sessionManager.validate(sessionId);
 
             if (session != null) {
                 // 🧠 160 IQ FIX 3: Hydrate directly from Cache. NO DATABASE HITS.
@@ -83,6 +86,27 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
+     * 🧠 DUAL-READ SESSION ID EXTRACTION
+     * Cookie takes absolute priority (HttpOnly = impossible for XSS to tamper).
+     * Bearer header exists solely for non-browser clients (mobile SDKs, API integrations).
+     */
+    private String extractSessionId(HttpServletRequest request) {
+        // Priority 1: HttpOnly Cookie
+        String fromCookie = cookieHelper.extractSessionId(request);
+        if (fromCookie != null) {
+            return fromCookie;
+        }
+
+        // Priority 2: Bearer Header (mobile/API fallback)
+        String header = request.getHeader("Authorization");
+        if (header != null && header.startsWith("Bearer ")) {
+            return header.substring(7);
+        }
+
+        return null;
+    }
+
+    /**
      * 🧠 160 IQ FIX 4: The Hard Drop
      * Instantly returns a clean 401 JSON to React, preventing Spring Security
      * from generating a massive HTML stack trace that crashes Axios.
@@ -94,3 +118,4 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
         response.getWriter().write("{\"status\": 401, \"error\": \"Unauthorized\", \"message\": \"" + message + "\"}");
     }
 }
+

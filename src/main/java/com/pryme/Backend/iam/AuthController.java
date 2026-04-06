@@ -5,7 +5,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import com.pryme.Backend.common.ForbiddenException;
 import com.pryme.Backend.common.UnauthorizedException;
 import com.pryme.Backend.common.ConflictException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -13,7 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Instant; // Added import
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -26,11 +29,14 @@ public class AuthController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final SessionManager sessionManager;
+    private final SessionCookieHelper cookieHelper;
 
-    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder, SessionManager sessionManager) {
+    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder,
+                          SessionManager sessionManager, SessionCookieHelper cookieHelper) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.sessionManager = sessionManager;
+        this.cookieHelper = cookieHelper;
     }
 
     // ==========================================
@@ -67,9 +73,10 @@ public class AuthController {
     // ==========================================
     // EXISTING IDENTITY ENGINES
     // ==========================================
-    @Operation(summary = "One-line description of this endpoint")
+    @Operation(summary = "Authenticate user and issue HttpOnly session cookie")
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request,
+                                                HttpServletResponse httpResponse) {
         User user = userRepository.findByEmail(request.email().trim().toLowerCase())
                 .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
 
@@ -77,14 +84,22 @@ public class AuthController {
             throw new UnauthorizedException("Invalid email or password");
         }
 
-        SessionRecord session = sessionManager.registerSession(UUID.randomUUID(), user, Instant.now().plusSeconds(3600), request.deviceId(), "Unknown");
+        // 🧠 Configurable TTL — reads app.session.ttl-seconds from YAML (default: 3600)
+        long ttl = cookieHelper.getTtlSeconds();
+        SessionRecord session = sessionManager.registerSession(
+                UUID.randomUUID(), user, Instant.now().plusSeconds(ttl), request.deviceId(), "Unknown");
+
+        // 🧠 SECURITY FIX: Session ID transported EXCLUSIVELY via HttpOnly cookie.
+        // The browser cookie jar stores it. JavaScript physically CANNOT read it.
+        // XSS payloads calling document.cookie or localStorage get nothing.
+        httpResponse.addHeader(HttpHeaders.SET_COOKIE,
+                cookieHelper.createSessionCookie(session.getId().toString()).toString());
 
         return ResponseEntity.ok(new LoginResponse(
-                user.getId(), // 🧠 CRITICAL: Passes the User ID to React for the Lead Elevation Engine
-                session.getId().toString(), // Changed .getToken() to .getId().toString()
+                user.getId(),
                 user.getRole().name(),
                 user.getFullName(),
-                session.getExpiresAt(), // Changed .expiresAt() to .getExpiresAt()
+                session.getExpiresAt(),
                 "Login successful"
         ));
     }
@@ -105,15 +120,29 @@ public class AuthController {
         ));
     }
 
-    @Operation(summary = "One-line description of this endpoint")
+    @Operation(summary = "Terminate session and purge HttpOnly cookie")
     @PostMapping("/logout")
-    public ResponseEntity<Map<String, String>> logout(@RequestHeader("Authorization") String authHeader) {
-        String token = extractBearerToken(authHeader);
-        sessionManager.invalidate(UUID.fromString(token)); // Changed to UUID.fromString(token)
+    public ResponseEntity<Map<String, String>> logout(HttpServletRequest httpRequest,
+                                                       HttpServletResponse httpResponse,
+                                                       @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        // 🧠 DUAL-READ: Cookie first (browser), Bearer fallback (mobile/API)
+        String sessionId = cookieHelper.extractSessionId(httpRequest);
+        if (sessionId == null && authHeader != null && authHeader.startsWith("Bearer ")) {
+            sessionId = authHeader.substring(7);
+        }
+        if (sessionId == null) {
+            throw new UnauthorizedException("No active session found.");
+        }
+
+        sessionManager.invalidate(UUID.fromString(sessionId));
+
+        // 🧠 KILL THE COOKIE: maxAge=0 instructs the browser to purge it immediately
+        httpResponse.addHeader(HttpHeaders.SET_COOKIE, cookieHelper.createClearCookie().toString());
+
         return ResponseEntity.ok(Map.of("message", "Logged out"));
     }
 
-    @Operation(summary = "One-line description of this endpoint")
+    @Operation(summary = "List active sessions for a user")
     @GetMapping("/sessions/{userId}")
     public ResponseEntity<List<SessionRecord>> sessions(@PathVariable UUID userId, Authentication authentication) {
         UUID currentUserId = userIdFromAuth(authentication);
@@ -134,12 +163,5 @@ public class AuthController {
             throw new UnauthorizedException("Authentication required");
         }
         return (UUID) authentication.getPrincipal();
-    }
-
-    private String extractBearerToken(String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new UnauthorizedException("Missing Bearer token");
-        }
-        return authHeader.substring(7);
     }
 }

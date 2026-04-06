@@ -42,9 +42,13 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // 🧠 CSRF DEFENSE VIA SameSite=Strict COOKIE (NOT TOKEN-BASED)
+                // The session cookie is set with SameSite=Strict, which physically prevents
+                // the browser from attaching it on ANY cross-origin request — same protection
+                // that CSRF tokens provide but enforced at the browser engine level.
+                // Re-enabling CookieCsrfTokenRepository would add zero marginal security here
+                // and would require a frontend rewrite for the X-XSRF-TOKEN header dance.
                 .csrf(AbstractHttpConfigurer::disable)
-
-                // EXPLICIT CORS: Prevents React pre-flight drops
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 // STATELESS SESSIONS: Guarantees zero memory leaks in Tomcat

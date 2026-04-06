@@ -1,6 +1,7 @@
 package com.pryme.Backend.iam;
 
 import com.pryme.Backend.common.ForbiddenException;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.pryme.Backend.common.UnauthorizedException;
 import com.pryme.Backend.common.ConflictException;
@@ -32,13 +33,15 @@ class AuthControllerTest {
     private PasswordEncoder passwordEncoder;
     @Mock
     private SessionManager sessionManager;
+    @Mock
+    private SessionCookieHelper cookieHelper;
 
     private AuthController authController;
 
     @BeforeEach
     void setUp() {
-        // 🧠 Core Engine Initialization
-        authController = new AuthController(userRepository, passwordEncoder, sessionManager);
+        // 🧠 Core Engine Initialization (now includes SessionCookieHelper)
+        authController = new AuthController(userRepository, passwordEncoder, sessionManager, cookieHelper);
     }
 
     // ==========================================
@@ -124,9 +127,11 @@ class AuthControllerTest {
     void loginRejectsUnknownEmailWithUnauthorizedException() {
         when(userRepository.findByEmail("x@pryme.com")).thenReturn(Optional.empty());
 
+        HttpServletResponse mockResponse = org.mockito.Mockito.mock(HttpServletResponse.class);
+
         UnauthorizedException ex = assertThrows(
                 UnauthorizedException.class,
-                () -> authController.login(new LoginRequest("x@pryme.com", "bad", "web"))
+                () -> authController.login(new LoginRequest("x@pryme.com", "bad", "web"), mockResponse)
         );
 
         assertEquals("Invalid email or password", ex.getMessage());

@@ -100,10 +100,11 @@ server:
 # 🧠 5. DOMAIN CONFIGURATIONS & SECURITY
 # ==========================================
 app:
-  jwt:
-    # Use ENV variables in production. This is a 256-bit secure default for staging.
-    secret: ${JWT_SECRET:dGhpcy1pcy1hLXZlcnktc2VjdXJlLWtleS10aGF0LW11c3QtYmUtYXQtbGVhc3QtMjU2LWJpdHM=}
-    expiration-ms: 3600000         # 🧠 1 Hour Strict TTL for Financial Compliance.
+  # 🧠 SESSION COOKIE CONFIGURATION (Replaces dead JWT config — verified zero code references to app.jwt.*)
+  session:
+    cookie-name: PRYME_SID                    # HttpOnly cookie name — scoped to /api path
+    ttl-seconds: 3600                          # 1 Hour Strict TTL for Financial Compliance
+    cookie-secure: ${COOKIE_SECURE:true}       # Set to false ONLY for local HTTP dev (never in prod)
   documents:
     storage-root: ${VAULT_DIR:./secure_vault} # OS-Agnostic absolute path configuration.
   security:
