@@ -57,3 +57,15 @@ app:
   webhooks:
     sns:
       shared-secret: ${WEBHOOK_SECRET}
+  session:
+    # 🧠 PRODUCTION: Cookie domain allows sharing across subdomains (crm.pryme.in, api.pryme.in)
+    # Remove this line if running on a single domain behind Nginx reverse proxy
+    cookie-domain: ${COOKIE_DOMAIN:}
+    cookie-secure: true
+  security:
+    # 🧠 PRODUCTION: ONLY allow the actual frontend domains. ZERO localhost.
+    # Anyone trying to make cross-origin requests from localhost will be blocked.
+    allowed-origins: ${CORS_URLS:https://pryme.in,https://crm.pryme.in,https://www.pryme.in}
+    # 🧠 CSP connect-src: If the frontend and API are on the same domain behind Nginx,
+    # 'self' is sufficient. If they're on different subdomains, set this explicitly.
+    csp-connect-src: ${CSP_CONNECT_SRC:}

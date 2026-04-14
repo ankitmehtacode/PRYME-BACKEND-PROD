@@ -60,7 +60,7 @@ public class DocumentRecord {
     @Column
     private Instant uploadedAt;
 
-    @Column
+    @Column(name = "s3_object_key")
     private String s3ObjectKey;
 
 

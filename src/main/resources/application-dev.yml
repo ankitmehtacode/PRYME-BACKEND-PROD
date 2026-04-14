@@ -12,3 +12,14 @@ management:
   endpoint:
     health:
       show-details: always
+
+app:
+  session:
+    # 🧠 CLOSED-LOOP: Must be false for local HTTP dev.
+    # If true, the browser refuses to send the cookie over non-HTTPS,
+    # causing a silent session drop after login (cookie set but never returned).
+    cookie-secure: false
+  security:
+    # Explicitly including 8081 (Vite) and 8082 (Spring Boot)
+    allowed-origins: "http://localhost:8081,http://localhost:5173,http://localhost:3000,http://localhost:8082"
+

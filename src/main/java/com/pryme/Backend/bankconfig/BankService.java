@@ -135,6 +135,7 @@ public class BankService {
         // 1. Always clear UI/Static caches when any edit is made
         clearCacheSafely("banks:all");
         clearCacheSafely("banks:partners");
+        clearCacheSafely("config:dictionaries"); // 🧠 Dictionary contains bank list — must refresh
 
         // 2. ONLY clear the heavy computational cache if the bank was enabled/disabled
         if (isMaterialChange) {

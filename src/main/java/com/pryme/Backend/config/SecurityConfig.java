@@ -36,6 +36,14 @@ public class SecurityConfig {
     @Value("${app.security.allowed-origins:http://localhost:3000,http://localhost:5173,https://pryme.in}")
     private String allowedOrigins;
 
+    /**
+     * 🧠 CSP connect-src MUST match the exact API domain the frontend calls.
+     * In production: https://crm.pryme.in
+     * In dev: the Vite proxy handles it, so 'self' is sufficient.
+     */
+    @Value("${app.security.csp-connect-src:}")
+    private String cspConnectSrc;
+
     private final SessionAuthenticationFilter sessionAuthenticationFilter;
     private final RateLimitingFilter rateLimitingFilter;
 
@@ -84,15 +92,40 @@ public class SecurityConfig {
                     auth.requestMatchers("/actuator/**").denyAll()
                             .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN", "EMPLOYEE");
 
+                    // 🧠 SSE endpoint: AUTHENTICATED (cookie required). NOT public.
+                    // Already covered by anyRequest().authenticated() below.
+
                     // Lockdown everything else
                     auth.anyRequest().authenticated();
                 })
 
-                // 🧠 DYNAMIC CSP & SECURE HEADERS (H2 Ghost completely purged)
+                // ═══════════════════════════════════════════════════════════════════
+                // 🧠 DIRECTIVE 2: CONTENT SECURITY POLICY & HARDENED HEADERS
+                // ═══════════════════════════════════════════════════════════════════
                 .headers(headers -> headers
-                        .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'; frame-ancestors 'self'; object-src 'none'"))
-                        .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31536000))
+                        // ── CSP: The XSS Annihilator ──────────────────────────────
+                        // script-src: NO unsafe-inline, NO unsafe-eval. Period.
+                        // style-src: unsafe-inline required by framer-motion dynamic styles.
+                        // connect-src: Restricts fetch/XHR/SSE to our own domain only.
+                        // img-src: Allows self, data URIs, Unsplash (Auth.tsx bg), and S3.
+                        // font-src: Google Fonts for premium typography.
+                        .contentSecurityPolicy(csp -> csp.policyDirectives(buildCspPolicy()))
+
+                        // ── HSTS: Force HTTPS for 1 year, include subdomains ──────
+                        .httpStrictTransportSecurity(hsts -> hsts
+                                .includeSubDomains(true)
+                                .maxAgeInSeconds(31536000)
+                                .preload(true)
+                        )
+
+                        // ── Frame Protection ──────────────────────────────────────
                         .frameOptions(frame -> frame.sameOrigin())
+
+                        // ── Permissions Policy: Block device APIs ─────────────────
+                        .permissionsPolicy(pp -> pp.policy(
+                                "camera=(), microphone=(), geolocation=(), " +
+                                "payment=(), usb=(), magnetometer=(), gyroscope=()"
+                        ))
                 )
 
                 // 🧠 THE TITANIUM FILTER CHAIN ORDER
@@ -105,6 +138,35 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * 🧠 BUILDS THE CSP DIRECTIVE STRING
+     * Separated into a method for readability and testability.
+     */
+    private String buildCspPolicy() {
+        // Build connect-src: 'self' + any explicit API domain
+        String connectSrc = (cspConnectSrc != null && !cspConnectSrc.isBlank())
+                ? "'self' " + cspConnectSrc.trim()
+                : "'self'";
+
+        return String.join("; ",
+                "default-src 'self'",
+                "script-src 'self'",
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+                "font-src 'self' https://fonts.gstatic.com",
+                "img-src 'self' data: https://images.unsplash.com https://*.amazonaws.com",
+                "connect-src " + connectSrc,
+                "frame-ancestors 'self'",
+                "object-src 'none'",
+                "base-uri 'self'",
+                "form-action 'self'"
+        );
+    }
+
+    /**
+     * 🧠 CORS CONFIGURATION — ZERO WILDCARDS
+     * Every allowed origin, header, and method is explicitly declared.
+     * Wildcards (*) in production are a fireable offense.
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -117,8 +179,23 @@ public class SecurityConfig {
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L); // 1 Hour Preflight Cache
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Idempotency-Key", "Accept"));
-        configuration.setExposedHeaders(List.of("Authorization"));
+
+        // 🧠 DIRECTIVE 1: Explicit header whitelist — X-Client-Trace-Id for distributed tracing,
+        // Idempotency-Key for mutation safety, Cache-Control for SSE EventSource
+        configuration.setAllowedHeaders(List.of(
+                "Content-Type",
+                "Accept",
+                "X-Requested-With",
+                "Idempotency-Key",
+                "X-Client-Trace-Id",
+                "Cache-Control",
+                "Last-Event-ID",           // SSE reconnection header
+                "Authorization"            // Mobile/API fallback (Bearer header)
+        ));
+
+        // 🧠 Exposed headers the browser JS can read from responses
+        // Authorization removed — session lives in HttpOnly cookie, not headers
+        configuration.setExposedHeaders(List.of("X-Request-Id"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

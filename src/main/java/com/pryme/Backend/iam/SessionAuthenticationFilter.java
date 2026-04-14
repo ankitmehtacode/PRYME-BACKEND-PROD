@@ -33,13 +33,28 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
     }
 
     // 🧠 THE FAST-LANE BYPASS
+    // CRITICAL: /auth/me, /auth/logout, /auth/sessions MUST run through this filter
+    // because they require an authenticated session. Only registration and login are public.
+    private static final List<String> PUBLIC_AUTH_PATHS = List.of(
+            "/api/v1/auth/login",
+            "/api/v1/auth/register",
+            "/api/v1/auth/signup"
+    );
+
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
-        return path.startsWith("/api/v1/auth/") ||
-                path.startsWith("/api/v1/public/") ||
+
+        // Exact-match public auth endpoints (NOT wildcard — /auth/me must NOT be skipped)
+        if (PUBLIC_AUTH_PATHS.stream().anyMatch(path::startsWith)) {
+            return true;
+        }
+
+        return path.startsWith("/api/v1/public/") ||
                 path.startsWith("/api/v1/leads") ||
-                path.startsWith("/actuator/"); // 🧠 Added Actuator for KVM2 Health Checks
+                path.startsWith("/api/v1/eligibility/") ||
+                path.startsWith("/api/v1/calculators/") ||
+                path.startsWith("/actuator/"); // KVM2 Health Checks
     }
 
     @Override

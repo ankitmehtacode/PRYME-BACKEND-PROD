@@ -43,7 +43,7 @@ public class AuthController {
     // 🧠 SECURE DATABASE SIGNUP ENGINE
     // ==========================================
     // 🧠 SILICON-VALLEY FIX: Bind to BOTH endpoints to guarantee React never hits a 404
-    @Operation(summary = "One-line description of this endpoint")
+    @Operation(summary = "Register a new user account")
     @PostMapping({"/register", "/signup"})
     public ResponseEntity<Map<String, String>> register(@Valid @RequestBody SignupRequest request) {
         String normalizedEmail = request.email().trim().toLowerCase();
@@ -104,7 +104,15 @@ public class AuthController {
         ));
     }
 
-    @Operation(summary = "One-line description of this endpoint")
+    /**
+     * 🧠 THE GOD ENDPOINT — Hydrates the entire frontend identity layer.
+     *
+     * CRITICAL: This endpoint is NOT in the shouldNotFilter bypass list.
+     * It MUST run through SessionAuthenticationFilter so the HttpOnly cookie
+     * is validated and Authentication is populated. Without this, the frontend
+     * gets a 401 on every cold boot.
+     */
+    @Operation(summary = "Get current user identity, role, and permissions")
     @GetMapping("/me")
     public ResponseEntity<MeResponse> me(Authentication authentication) {
         UUID userId = userIdFromAuth(authentication);
@@ -115,8 +123,9 @@ public class AuthController {
                 user.getId(),
                 user.getEmail(),
                 user.getRole().name(),
-                user.getFullName(),
-                user.getPhone()
+                user.getFullName(),   // Maps to frontend's 'name' field
+                user.getPhone(),
+                derivePermissions(user.getRole())  // 🧠 CLOSED-LOOP: Backend dictates permissions
         ));
     }
 
@@ -163,5 +172,34 @@ public class AuthController {
             throw new UnauthorizedException("Authentication required");
         }
         return (UUID) authentication.getPrincipal();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 🧠 CLOSED-LOOP PERMISSION ENGINE
+    // ═══════════════════════════════════════════════════════════════════════════
+    // The backend is the SOLE authority on what each role can do.
+    // The frontend's ProtectedRoute and hasPermission() only CHECK — never INVENT.
+    // ═══════════════════════════════════════════════════════════════════════════
+    private List<String> derivePermissions(Role role) {
+        return switch (role) {
+            case SUPER_ADMIN -> List.of(
+                    "VIEW_CRM", "MANAGE_LEADS", "MANAGE_APPLICATIONS",
+                    "MANAGE_POLICIES", "VIEW_ANALYTICS", "MANAGE_USERS",
+                    "MANAGE_PARTNERS", "VIEW_AUDIT_LOG",
+                    "UPLOAD_DOCUMENTS", "VERIFY_IDENTITY"
+            );
+            case ADMIN -> List.of(
+                    "VIEW_CRM", "MANAGE_LEADS", "MANAGE_APPLICATIONS",
+                    "MANAGE_POLICIES", "VIEW_ANALYTICS",
+                    "UPLOAD_DOCUMENTS", "VERIFY_IDENTITY"
+            );
+            case EMPLOYEE -> List.of(
+                    "VIEW_CRM", "MANAGE_LEADS", "MANAGE_APPLICATIONS",
+                    "UPLOAD_DOCUMENTS", "VERIFY_IDENTITY"
+            );
+            case USER -> List.of(
+                    "UPLOAD_DOCUMENTS"
+            );
+        };
     }
 }

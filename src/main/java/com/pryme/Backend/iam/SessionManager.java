@@ -21,6 +21,9 @@ public class SessionManager {
     private static final Logger log = LoggerFactory.getLogger(SessionManager.class);
     private final SessionRepository sessionRepository;
 
+    // 🧠 DIRECTIVE 3: SSE Kill Switch Broadcaster
+    private final SessionEventBroadcaster broadcaster;
+
     @Value("${app.security.session.max-sessions-per-user:3}")
     private int maxSessionsPerUser;
 
@@ -59,6 +62,10 @@ public class SessionManager {
 
             // Purge killed sessions from local L1 RAM immediately
             sessionsToKill.forEach(l1Cache::remove);
+
+            // 🧠 DIRECTIVE 3: Push SSE termination to the user's other browser tabs
+            // This fires when max-sessions-per-user is exceeded (e.g., login from 4th device)
+            broadcaster.pushTermination(user.getId());
 
             log.warn("Security Matrix: Max sessions exceeded for User {}. Terminated {} overflow sessions.", user.getId(), overage);
         } else {
@@ -109,10 +116,14 @@ public class SessionManager {
         if (updated > 0) {
             log.info("Security Matrix: Session {} explicitly terminated.", jwtId);
         }
+
+        // 🧠 DIRECTIVE 3: Note — no SSE push on self-logout.
+        // The user is voluntarily leaving. The frontend handles its own redirect.
     }
 
     /**
      * 🧠 THE GLOBAL KILL SWITCH
+     * Used by admin panel to force-terminate all sessions for a user.
      */
     @Transactional
     public void revokeAllUserSessions(UUID userId) {
@@ -120,6 +131,10 @@ public class SessionManager {
         l1Cache.values().removeIf(entry -> entry.userId().equals(userId));
 
         int revokedCount = sessionRepository.deactivateAllByUserId(userId);
+
+        // 🧠 DIRECTIVE 3: Push SESSION_TERMINATED to ALL active browser tabs for this user
+        broadcaster.pushTermination(userId);
+
         log.warn("Security Matrix: GLOBAL KILL SWITCH activated. {} sessions terminated for User {}", revokedCount, userId);
     }
 
@@ -153,14 +168,24 @@ public class SessionManager {
 
     /**
      * Invalidate a session by ID.
+     * 🧠 DIRECTIVE 3: Resolves the userId from the session record to push SSE termination
+     * when an admin manually terminates a specific session from the admin panel.
      */
     @Transactional
     public void invalidate(UUID sessionId) {
+        // Resolve the userId BEFORE deactivating (needed for SSE push)
+        SessionRecord session = sessionRepository.findById(sessionId).orElse(null);
+
         // Deactivate the session in the repository
         int updated = sessionRepository.deactivateSessionById(sessionId);
 
         if (updated > 0) {
             log.info("Security Matrix: Session {} explicitly terminated.", sessionId);
+
+            // 🧠 DIRECTIVE 3: Push termination signal via SSE
+            if (session != null && session.getUser() != null) {
+                broadcaster.pushTermination(session.getUser().getId());
+            }
         }
 
         // Remove the session from the L1 cache

@@ -32,6 +32,7 @@ public class CacheConfig {
                 // 1. STATIC CONFIG DATA: Rarely changes. Tiny footprint. 24-Hour TTL.
                 buildCache("banks:all", 200, Duration.ofHours(24)),
                 buildCache("banks:partners", 100, Duration.ofHours(24)),
+                buildCache("config:dictionaries", 10, Duration.ofHours(24)),
 
                 // 2. DYNAMIC CONTENT: Changes occasionally. 1-Hour TTL.
                 buildCache("content:testimonials", 500, Duration.ofHours(1)),

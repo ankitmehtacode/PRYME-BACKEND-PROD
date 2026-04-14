@@ -19,15 +19,18 @@ public class SessionCookieHelper {
     private final String cookieName;
     private final long ttlSeconds;
     private final boolean secure;
+    private final String domain;
 
     public SessionCookieHelper(
             @Value("${app.session.cookie-name:PRYME_SID}") String cookieName,
             @Value("${app.session.ttl-seconds:3600}") long ttlSeconds,
-            @Value("${app.session.cookie-secure:true}") boolean secure
+            @Value("${app.session.cookie-secure:true}") boolean secure,
+            @Value("${app.session.cookie-domain:}") String domain
     ) {
         this.cookieName = cookieName;
         this.ttlSeconds = ttlSeconds;
         this.secure = secure;
+        this.domain = (domain != null && !domain.isBlank()) ? domain.trim() : null;
     }
 
     /**
@@ -44,15 +47,21 @@ public class SessionCookieHelper {
      * Secure    → Transmitted only over HTTPS (prevents MITM sniffing on HTTP)
      * SameSite  → Strict: Cookie NEVER sent on cross-origin requests (CSRF prevention)
      * Path      → Scoped to /api — frontend HTML/JS routes never see it
+     * Domain    → Explicit when configured (multi-subdomain); implicit otherwise (single-origin)
      */
     public ResponseCookie createSessionCookie(String sessionId) {
-        return ResponseCookie.from(cookieName, sessionId)
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(cookieName, sessionId)
                 .httpOnly(true)
                 .secure(secure)
                 .sameSite("Strict")
                 .path("/api")
-                .maxAge(Duration.ofSeconds(ttlSeconds))
-                .build();
+                .maxAge(Duration.ofSeconds(ttlSeconds));
+
+        if (domain != null) {
+            builder.domain(domain);
+        }
+
+        return builder.build();
     }
 
     /**
@@ -60,13 +69,18 @@ public class SessionCookieHelper {
      * Setting maxAge to 0 instructs the browser to immediately purge the cookie from its jar.
      */
     public ResponseCookie createClearCookie() {
-        return ResponseCookie.from(cookieName, "")
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(cookieName, "")
                 .httpOnly(true)
                 .secure(secure)
                 .sameSite("Strict")
                 .path("/api")
-                .maxAge(0)
-                .build();
+                .maxAge(0);
+
+        if (domain != null) {
+            builder.domain(domain);
+        }
+
+        return builder.build();
     }
 
     /**
