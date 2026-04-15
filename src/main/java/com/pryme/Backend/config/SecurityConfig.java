@@ -33,7 +33,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    @Value("${app.security.allowed-origins:http://localhost:3000,http://localhost:5173,https://pryme.in}")
+    @Value("${app.security.allowed-origins:http://localhost:3000,http://localhost:5173,http://localhost:8081,https://pryme.in}")
     private String allowedOrigins;
 
     /**
@@ -195,7 +195,11 @@ public class SecurityConfig {
 
         // 🧠 Exposed headers the browser JS can read from responses
         // Authorization removed — session lives in HttpOnly cookie, not headers
-        configuration.setExposedHeaders(List.of("X-Request-Id"));
+        configuration.setExposedHeaders(List.of(
+                "X-Request-Id",
+                "Idempotency-Key",
+                "X-Client-Trace-Id"
+        ));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

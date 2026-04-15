@@ -20,17 +20,20 @@ public class SessionCookieHelper {
     private final long ttlSeconds;
     private final boolean secure;
     private final String domain;
+    private final String sameSite;
 
     public SessionCookieHelper(
             @Value("${app.session.cookie-name:PRYME_SID}") String cookieName,
             @Value("${app.session.ttl-seconds:3600}") long ttlSeconds,
             @Value("${app.session.cookie-secure:true}") boolean secure,
-            @Value("${app.session.cookie-domain:}") String domain
+            @Value("${app.session.cookie-domain:}") String domain,
+            @Value("${app.session.cookie-same-site:Lax}") String sameSite
     ) {
         this.cookieName = cookieName;
         this.ttlSeconds = ttlSeconds;
         this.secure = secure;
         this.domain = (domain != null && !domain.isBlank()) ? domain.trim() : null;
+        this.sameSite = sameSite;
     }
 
     /**
@@ -45,7 +48,10 @@ public class SessionCookieHelper {
      * 🧠 BUILD THE FORTRESS COOKIE
      * HttpOnly  → Invisible to document.cookie / XSS payloads
      * Secure    → Transmitted only over HTTPS (prevents MITM sniffing on HTTP)
-     * SameSite  → Strict: Cookie NEVER sent on cross-origin requests (CSRF prevention)
+     * SameSite  → Lax (default): Safe for local dev cross-port proxying (8081→8082).
+     *              Production can override to Strict via app.session.cookie-same-site=Strict.
+     *              Lax still blocks cross-site POST requests (CSRF) while allowing top-level
+     *              navigations to carry the cookie.
      * Path      → Scoped to /api — frontend HTML/JS routes never see it
      * Domain    → Explicit when configured (multi-subdomain); implicit otherwise (single-origin)
      */
@@ -53,7 +59,7 @@ public class SessionCookieHelper {
         ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(cookieName, sessionId)
                 .httpOnly(true)
                 .secure(secure)
-                .sameSite("Strict")
+                .sameSite(sameSite)
                 .path("/api")
                 .maxAge(Duration.ofSeconds(ttlSeconds));
 
@@ -72,7 +78,7 @@ public class SessionCookieHelper {
         ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(cookieName, "")
                 .httpOnly(true)
                 .secure(secure)
-                .sameSite("Strict")
+                .sameSite(sameSite)
                 .path("/api")
                 .maxAge(0);
 

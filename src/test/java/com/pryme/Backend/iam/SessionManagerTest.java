@@ -16,13 +16,16 @@ class SessionManagerTest {
     @Mock
     private SessionRepository sessionRepository;
 
+    @Mock
+    private SessionEventBroadcaster sessionEventBroadcaster;
+
     public SessionManagerTest() {
         MockitoAnnotations.openMocks(this);
     }
 
     @Test
     void issueSessionEnforcesMaxSessionsPerUser() {
-        SessionManager manager = new SessionManager(sessionRepository);
+        SessionManager manager = new SessionManager(sessionRepository, sessionEventBroadcaster);
         UUID userId = UUID.randomUUID();
 
         User user1 = new User();
@@ -42,7 +45,7 @@ class SessionManagerTest {
 
     @Test
     void issueSessionSanitizesAndTruncatesDeviceId() {
-        SessionManager manager = new SessionManager(sessionRepository);
+        SessionManager manager = new SessionManager(sessionRepository, sessionEventBroadcaster);
         UUID userId = UUID.randomUUID();
 
         User user2 = new User();
@@ -56,7 +59,7 @@ class SessionManagerTest {
 
     @Test
     void cleanupRemovesExpiredSessions() throws InterruptedException {
-        SessionManager manager = new SessionManager(sessionRepository);
+        SessionManager manager = new SessionManager(sessionRepository, sessionEventBroadcaster);
         UUID userId = UUID.randomUUID();
 
         User user3 = new User();
@@ -73,7 +76,7 @@ class SessionManagerTest {
 
     @Test
     void validateRejectsBlankToken() {
-        SessionManager manager = new SessionManager(sessionRepository);
+        SessionManager manager = new SessionManager(sessionRepository, sessionEventBroadcaster);
         assertNull(manager.validate(null));
         assertNull(manager.validate(" "));
     }
