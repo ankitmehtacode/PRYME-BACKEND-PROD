@@ -90,7 +90,13 @@ public class LeadService {
                 .idempotencyKey(idempotencyKey)
                 .build();
 
-        return LeadResponse.from(leadRepository.save(lead));
+        try {
+            // 🧠 FIX: Use saveAndFlush to trigger DB-level unique constraints immediately
+            // This prevents TOCTOU race conditions where two threads pass the application-level check
+            return LeadResponse.from(leadRepository.saveAndFlush(lead));
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            throw new ConflictException("Lead submission failed. A lead with this idempotency key already exists.");
+        }
     }
 
     private String normalizeKey(String key) {
