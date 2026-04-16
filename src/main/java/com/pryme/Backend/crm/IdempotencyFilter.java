@@ -44,12 +44,24 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         }
 
         String keyHash = sha256Hex(idempotencyHeader);
-        IdempotencyKey existing = idempotencyKeyRepository.findByKeyHash(keyHash).orElse(null);
-        if (existing != null) {
-            response.setStatus(existing.getHttpStatus());
-            response.setContentType("application/json");
-            response.getWriter().write(existing.getResponseBody());
-            return;
+
+        try {
+            idempotencyKeyRepository.insertInProgressKey(keyHash);
+        } catch (DataIntegrityViolationException ex) {
+            IdempotencyKey existing = idempotencyKeyRepository.findByKeyHash(keyHash).orElse(null);
+            if (existing != null) {
+                if ("IN_PROGRESS".equals(existing.getStatus())) {
+                    response.setStatus(HttpServletResponse.SC_CONFLICT);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\": \"Concurrent request in progress\"}");
+                    return;
+                } else if ("COMPLETED".equals(existing.getStatus())) {
+                    response.setStatus(existing.getHttpStatus());
+                    response.setContentType("application/json");
+                    response.getWriter().write(existing.getResponseBody());
+                    return;
+                }
+            }
         }
 
         ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
@@ -58,23 +70,12 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         String responseBody = new String(wrappedResponse.getContentAsByteArray(), StandardCharsets.UTF_8);
         int responseStatus = wrappedResponse.getStatus();
 
-        try {
-            idempotencyKeyRepository.save(IdempotencyKey.builder()
-                    .keyHash(keyHash)
-                    .responseBody(responseBody)
-                    .httpStatus(responseStatus)
-                    .build());
-        } catch (DataIntegrityViolationException ex) {
-            IdempotencyKey saved = idempotencyKeyRepository.findByKeyHash(keyHash).orElse(null);
-            if (saved != null) {
-                wrappedResponse.resetBuffer();
-                wrappedResponse.setStatus(saved.getHttpStatus());
-                wrappedResponse.setContentType("application/json");
-                wrappedResponse.getWriter().write(saved.getResponseBody());
-                wrappedResponse.copyBodyToResponse();
-                return;
-            }
-        }
+        idempotencyKeyRepository.findByKeyHash(keyHash).ifPresent(key -> {
+            key.setStatus("COMPLETED");
+            key.setResponseBody(responseBody);
+            key.setHttpStatus(responseStatus);
+            idempotencyKeyRepository.save(key);
+        });
 
         wrappedResponse.copyBodyToResponse();
     }

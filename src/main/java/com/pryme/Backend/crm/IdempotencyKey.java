@@ -22,11 +22,14 @@ public class IdempotencyKey {
     @Column(name = "key_hash", nullable = false, unique = true, length = 64)
     private String keyHash;
 
-    @Column(name = "response_body", columnDefinition = "text", nullable = false)
+    @Column(name = "response_body", columnDefinition = "text")
     private String responseBody;
 
-    @Column(name = "http_status", nullable = false)
-    private int httpStatus;
+    @Column(name = "http_status")
+    private Integer httpStatus;
+
+    @Column(name = "status", nullable = false, length = 20)
+    private String status;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

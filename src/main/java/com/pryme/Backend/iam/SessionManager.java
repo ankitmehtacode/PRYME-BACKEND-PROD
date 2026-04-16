@@ -12,7 +12,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.Cache;
 
 @Service
 @RequiredArgsConstructor
@@ -23,15 +27,10 @@ public class SessionManager {
 
     // 🧠 DIRECTIVE 3: SSE Kill Switch Broadcaster
     private final SessionEventBroadcaster broadcaster;
+    private final CacheManager cacheManager;
 
     @Value("${app.security.session.max-sessions-per-user:3}")
     private int maxSessionsPerUser;
-
-    // 🧠 160 IQ FIX: L1 RAM CACHE (Reduces DB Load by 99%)
-    // Caches valid sessions for exactly 5 seconds. Handles API burst requests (e.g., 6 calls on page load)
-    // without hitting the DB. 5s TTL ensures immediate revocation if a user is banned.
-    private final ConcurrentHashMap<UUID, L1CacheEntry> l1Cache = new ConcurrentHashMap<>();
-    private record L1CacheEntry(UUID userId, Role role, Instant localExpiry) {}
 
     /**
      * 🧠 ELASTIC SESSION REGISTRY & THE SNIPER PROTOCOL
@@ -60,8 +59,10 @@ public class SessionManager {
 
             sessionRepository.deactivateSessionsBulk(sessionsToKill);
 
-            // Purge killed sessions from local L1 RAM immediately
-            sessionsToKill.forEach(l1Cache::remove);
+            Cache cache = cacheManager.getCache("sessions");
+            if (cache != null) {
+                sessionsToKill.forEach(id -> cache.evict(id.toString()));
+            }
 
             // 🧠 DIRECTIVE 3: Push SSE termination to the user's other browser tabs
             // This fires when max-sessions-per-user is exceeded (e.g., login from 4th device)
@@ -80,41 +81,28 @@ public class SessionManager {
      * Handles 50,000 QPS seamlessly. If RAM has it, returns in <0.001ms.
      * If not, hits PostgreSQL and memoizes it.
      */
+    @Cacheable(value = "sessions", key = "#sessionId", unless = "#result == null")
     @Transactional(readOnly = true)
-    public SessionRecord validate(String jwtId) {
-        // 1. L1 RAM Cache Check (Bypass DB entirely)
-        L1CacheEntry cached = l1Cache.get(UUID.fromString(jwtId));
-        if (cached != null && cached.localExpiry().isAfter(Instant.now())) {
-            User dummyUser = User.builder().id(cached.userId()).role(cached.role()).build();
-            return SessionRecord.builder().id(UUID.fromString(jwtId)).user(dummyUser).isActive(true).expiresAt(Instant.MAX).build();
-        }
-
-        // 2. DB Fallback (Cache Miss or TTL Expired)
-        SessionRecord session = sessionRepository.findById(UUID.fromString(jwtId))
+    public SessionRecord validate(String sessionId) {
+        SessionRecord session = sessionRepository.findById(UUID.fromString(sessionId))
                 .orElseThrow(() -> new UnauthorizedException("Session matrix not found or corrupted."));
 
         if (!session.getIsActive() || session.getExpiresAt().isBefore(Instant.now())) {
-            l1Cache.remove(UUID.fromString(jwtId));
             throw new UnauthorizedException("Session lifecycle terminated. Please re-authenticate.");
         }
 
-        // 3. Hydrate L1 Cache (Valid for next 5 seconds of burst API calls)
-        Role role = session.getUser().getRole();
-        l1Cache.put(UUID.fromString(jwtId), new L1CacheEntry(session.getUser().getId(), role, Instant.now().plusSeconds(5)));
         return session;
     }
 
     /**
      * 🧠 DIRECT MANUAL OVERRIDE (Logout)
      */
+    @CacheEvict(value = "sessions", key = "#sessionId")
     @Transactional
-    public void revokeSession(String jwtId) {
-        // 🧠 L1 Cache Purge MUST happen first to prevent Zombie sessions
-        l1Cache.remove(UUID.fromString(jwtId));
-
-        int updated = sessionRepository.deactivateSessionById(UUID.fromString(jwtId));
+    public void revokeSession(String sessionId) {
+        int updated = sessionRepository.deactivateSessionById(UUID.fromString(sessionId));
         if (updated > 0) {
-            log.info("Security Matrix: Session {} explicitly terminated.", jwtId);
+            log.info("Security Matrix: Session {} explicitly terminated.", sessionId);
         }
 
         // 🧠 DIRECTIVE 3: Note — no SSE push on self-logout.
@@ -127,8 +115,11 @@ public class SessionManager {
      */
     @Transactional
     public void revokeAllUserSessions(UUID userId) {
-        // 🧠 L1 Cache Purge: Scan RAM and obliterate all entries for this user
-        l1Cache.values().removeIf(entry -> entry.userId().equals(userId));
+        List<SessionRecord> sessions = sessionRepository.findByUserId(userId);
+        Cache cache = cacheManager.getCache("sessions");
+        if (cache != null) {
+            sessions.forEach(s -> cache.evict(s.getId().toString()));
+        }
 
         int revokedCount = sessionRepository.deactivateAllByUserId(userId);
 
@@ -171,6 +162,7 @@ public class SessionManager {
      * 🧠 DIRECTIVE 3: Resolves the userId from the session record to push SSE termination
      * when an admin manually terminates a specific session from the admin panel.
      */
+    @CacheEvict(value = "sessions", key = "#sessionId.toString()")
     @Transactional
     public void invalidate(UUID sessionId) {
         // Resolve the userId BEFORE deactivating (needed for SSE push)
@@ -187,8 +179,5 @@ public class SessionManager {
                 broadcaster.pushTermination(session.getUser().getId());
             }
         }
-
-        // Remove the session from the L1 cache
-        l1Cache.remove(sessionId);
     }
 }

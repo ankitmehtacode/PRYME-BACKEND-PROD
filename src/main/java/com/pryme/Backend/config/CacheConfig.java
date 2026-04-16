@@ -39,7 +39,10 @@ public class CacheConfig {
 
                 // 3. COMPUTATIONAL RESULTS: Caches heavy CIBIL/Rule Engine outputs to save CPU.
                 // Scaled to 5,000 to accommodate peak user traffic. 30-Min TTL.
-                buildCache("banks:recommendation", 5000, Duration.ofMinutes(30))
+                buildCache("banks:recommendation", 5000, Duration.ofMinutes(30)),
+
+                // 4. SESSIONS CACHE: Short TTL to prevent stale session attacks.
+                buildCache("sessions", 10000, Duration.ofMinutes(5))
         ));
 
         log.info("Titanium L1 Cache Matrix Initialized. Protection layers active.");
