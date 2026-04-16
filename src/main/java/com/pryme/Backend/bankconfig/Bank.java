@@ -19,4 +19,10 @@ public class Bank {
     private String logoUrl;
 
     private boolean active;
+
+    // 🧠 OPTIMISTIC LOCKING: Prevents silent last-write-wins when two admins
+    // edit the same bank simultaneously. Hibernate auto-increments on save and
+    // throws OptimisticLockException if the row was modified between read and write.
+    @Version
+    private Long version;
 }
