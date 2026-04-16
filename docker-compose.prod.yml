@@ -1,27 +1,8 @@
 version: '3.8'
 
-services:
-  pryme-db:
-    image: postgres:15-alpine
-    container_name: pryme-postgres-prod
-    restart: always
-    environment:
-      POSTGRES_USER: pryme_admin
-      # 🧠 ZERO-TRUST: Pulls password directly from the Linux Server OS
-      POSTGRES_PASSWORD: ${PROD_DB_PASSWORD}
-      POSTGRES_DB: pryme_db
-    # 🧠 SECURITY: Port 5432 is explicitly NOT exposed. Hackers cannot reach it.
-    volumes:
-      - pryme_prod_pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pryme_admin -d pryme_db"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-      start_period: 10s
-    networks:
-      - pryme_network
+# 🧠 Database: Neon Serverless Postgres (managed cloud) — no local DB container needed.
 
+services:
   pryme-redis:
     image: redis:7-alpine
     container_name: pryme-redis-prod
@@ -41,21 +22,19 @@ services:
     restart: always
     environment:
       - SPRING_PROFILES_ACTIVE=prod
-      - DB_URL=jdbc:postgresql://pryme-db:5432/pryme_db
-      - DB_USER=pryme_admin
-      - DB_PASS=${PROD_DB_PASSWORD}
+      # 🧠 Neon Cloud DB — injected from .env written by CI/CD pipeline
+      - SPRING_DATASOURCE_URL=${PROD_DB_URL}
+      - SPRING_DATASOURCE_USERNAME=${PROD_DB_USER}
+      - SPRING_DATASOURCE_PASSWORD=${PROD_DB_PASSWORD}
       - PROD_JWT_SECRET=${PROD_JWT_SECRET}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - AWS_S3_BUCKET=${AWS_S3_BUCKET}
       - AWS_REGION=${AWS_REGION:-ap-south-1}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
       - SPRING_DATA_REDIS_HOST=pryme-redis
       - SPRING_DATA_REDIS_PORT=6379
-    # 🧠 1% FIX: Unified depends_on block enforcing the healthcheck
     depends_on:
-      pryme-db:
-        condition: service_healthy
       pryme-redis:
         condition: service_healthy
     networks:
@@ -75,9 +54,6 @@ services:
       - pryme-backend
     networks:
       - pryme_network
-
-volumes:
-  pryme_prod_pgdata:
 
 networks:
   pryme_network:

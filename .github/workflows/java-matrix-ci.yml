@@ -41,6 +41,11 @@ jobs:
 
       - name: ✅ Run Tests
         run: ./mvnw test -B
+        env:
+          SPRING_DATASOURCE_URL: ${{ secrets.PROD_DB_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.PROD_DB_USER }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
+          SPRING_PROFILES_ACTIVE: prod
 
   # ─────────────────────────────────────────
   # STAGE 2: Deploy to KVM4 Hostinger
@@ -63,7 +68,7 @@ jobs:
           username: root
           key: ${{ secrets.KVM4_SSH_KEY }}
           port: 22
-          envs: PROD_DB_PASSWORD,PROD_JWT_SECRET
+          envs: PROD_DB_URL,PROD_DB_USER,PROD_DB_PASSWORD,PROD_JWT_SECRET,ALLOWED_ORIGINS
           script: |
             set -e
 
@@ -73,10 +78,18 @@ jobs:
             echo "⬇️ Pulling latest code from GitHub..."
             git pull origin main
 
-            echo "🐳 Rebuilding Docker image and restarting containers..."
-            export PROD_DB_PASSWORD=${{ secrets.PROD_DB_PASSWORD }}
-            export PROD_JWT_SECRET=${{ secrets.PROD_JWT_SECRET }}
+            echo "🔑 Writing .env file securely..."
+            cat > .env <<EOF
+            PROD_DB_URL=${PROD_DB_URL}
+            PROD_DB_USER=${PROD_DB_USER}
+            PROD_DB_PASSWORD=${PROD_DB_PASSWORD}
+            SPRING_PROFILES_ACTIVE=prod
+            PROD_JWT_SECRET=${PROD_JWT_SECRET}
+            ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+            EOF
+            chmod 600 .env
 
+            echo "🐳 Rebuilding Docker image and restarting containers..."
             docker compose -f docker-compose.prod.yml down --remove-orphans
             docker compose -f docker-compose.prod.yml build --no-cache
             docker compose -f docker-compose.prod.yml up -d

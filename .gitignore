@@ -32,3 +32,8 @@ build/
 ### VS Code ###
 .vscode/
 .aider*
+
+### Secrets — never commit these ###
+.env
+.env.*
+secure_vault/
