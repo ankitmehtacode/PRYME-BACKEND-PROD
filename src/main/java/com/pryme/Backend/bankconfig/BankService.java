@@ -40,7 +40,7 @@ public class BankService {
     @Transactional(readOnly = true)
     public List<PartnerBankResponse> getActivePartners() {
         log.debug("L1 Cache Miss: Fetching Active Partners from PostgreSQL");
-        return bankRepository.findTop15ByIsActiveTrueOrderByBankNameAsc()
+        return bankRepository.findTop15ByActiveTrueOrderByBankNameAsc()
                 .stream()
                 .map(PartnerBankResponse::from)
                 .toList();

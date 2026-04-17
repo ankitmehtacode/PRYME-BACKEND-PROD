@@ -16,6 +16,7 @@ public class DataLoader implements CommandLineRunner {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public void run(String... args) {
         if (userRepository.count() == 0) {
             User admin = new User();

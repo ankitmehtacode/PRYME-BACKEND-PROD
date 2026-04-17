@@ -95,12 +95,25 @@ public class AuthController {
         httpResponse.addHeader(HttpHeaders.SET_COOKIE,
                 cookieHelper.createSessionCookie(session.getId().toString()).toString());
 
+        // 🧠 160 IQ: Embed the full MeResponse so the frontend can hydrate
+        // its React Query cache from the login response itself — zero dependency
+        // on a second /auth/me call that may fail due to Vite proxy cookie issues.
+        MeResponse mePayload = new MeResponse(
+                user.getId(),
+                user.getEmail(),
+                user.getRole().name(),
+                user.getFullName(),
+                user.getPhone(),
+                derivePermissions(user.getRole())
+        );
+
         return ResponseEntity.ok(new LoginResponse(
                 user.getId(),
                 user.getRole().name(),
                 user.getFullName(),
                 session.getExpiresAt(),
-                "Login successful"
+                "Login successful",
+                mePayload
         ));
     }
 

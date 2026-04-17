@@ -1,15 +1,25 @@
 package com.pryme.Backend.iam;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
+/**
+ * 🧠 160 IQ LOGIN RESPONSE — Carries the FULL user profile on login.
+ *
+ * WHY: The Vite dev-server proxy does NOT reliably forward Set-Cookie headers,
+ * so the subsequent /auth/me call gets a 401 (cookie missing). By embedding
+ * the full MeResponse payload directly in the login response, the frontend
+ * can hydrate its React Query cache in a SINGLE round-trip — zero cookie
+ * dependency for the initial redirect.
+ *
+ * Contract: The `user` field maps 1:1 to the frontend's MeResponse interface.
+ */
 public record LoginResponse(
-        UUID id, // 🧠 CRITICAL: The Elevation Engine needs this ID
-        // 🧠 SECURITY FIX: `token` field REMOVED.
-        // Session ID is now transported exclusively via HttpOnly cookie (Set-Cookie header).
-        // This physically prevents XSS payloads from reading the session token via localStorage.
+        UUID id,
         String role,
         String name,
         Instant expiresAt,
-        String message
+        String message,
+        MeResponse user   // 🧠 THE PAYLOAD: Full identity for instant cache hydration
 ) {}

@@ -21,7 +21,11 @@ services:
   pryme-redis:
     image: redis:7-alpine
     container_name: pryme-redis-local
-    # No host-port binding to prevent Mac port exhaustion
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     networks:
       - pryme_local_network
 
@@ -33,17 +37,21 @@ services:
       - "8082:8082"
     environment:
       - SPRING_PROFILES_ACTIVE=dev
-      - DB_URL=jdbc:postgresql://pryme-db:5432/pryme_db
-      - DB_USER=postgres
-      - DB_PASS=password
-      # 🧠 1% FIX: Reroute Spring Data Redis to the internal Docker container
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://pryme-db:5432/pryme_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=password
       - SPRING_DATA_REDIS_HOST=pryme-redis
       - SPRING_DATA_REDIS_PORT=6379
+      # S3 placeholders — no real credentials in local dev, bucket ping is caught & warns safely
+      - AWS_S3_REGION=ap-south-1
+      - AWS_S3_BUCKET=pryme-local-placeholder
+      # SNS webhook shared secret — must be non-null; no real SNS traffic in local dev
+      - APP_WEBHOOKS_SNS_SHARED_SECRET=local-dev-sns-secret
     depends_on:
       pryme-db:
         condition: service_healthy
       pryme-redis:
-        condition: service_started
+        condition: service_healthy
     networks:
       - pryme_local_network
 

@@ -1,14 +1,13 @@
 package com.pryme.Backend.iam;
 
 import org.junit.jupiter.api.Test;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.cache.CacheManager;
 
 @org.junit.jupiter.api.Disabled("Pending Migration to @DataJpaTest")
 class SessionManagerTest {
@@ -19,13 +18,16 @@ class SessionManagerTest {
     @Mock
     private SessionEventBroadcaster sessionEventBroadcaster;
 
+    @Mock
+    private CacheManager cacheManager;
+
     public SessionManagerTest() {
         MockitoAnnotations.openMocks(this);
     }
 
     @Test
     void issueSessionEnforcesMaxSessionsPerUser() {
-        SessionManager manager = new SessionManager(sessionRepository, sessionEventBroadcaster);
+        SessionManager manager = new SessionManager(sessionRepository, sessionEventBroadcaster, cacheManager);
         UUID userId = UUID.randomUUID();
 
         User user1 = new User();
@@ -45,13 +47,12 @@ class SessionManagerTest {
 
     @Test
     void issueSessionSanitizesAndTruncatesDeviceId() {
-        SessionManager manager = new SessionManager(sessionRepository, sessionEventBroadcaster);
+        SessionManager manager = new SessionManager(sessionRepository, sessionEventBroadcaster, cacheManager);
         UUID userId = UUID.randomUUID();
 
         User user2 = new User();
         user2.setId(userId);
 
-        String longDeviceId = "x".repeat(256);
         SessionRecord session = manager.registerSession(UUID.randomUUID(), user2, Instant.now().plusSeconds(3600), "127.0.0.1", "TestAgent");
 
         assertEquals(128, session.getUserAgent().length());
@@ -59,7 +60,7 @@ class SessionManagerTest {
 
     @Test
     void cleanupRemovesExpiredSessions() throws InterruptedException {
-        SessionManager manager = new SessionManager(sessionRepository, sessionEventBroadcaster);
+        SessionManager manager = new SessionManager(sessionRepository, sessionEventBroadcaster, cacheManager);
         UUID userId = UUID.randomUUID();
 
         User user3 = new User();
@@ -76,7 +77,7 @@ class SessionManagerTest {
 
     @Test
     void validateRejectsBlankToken() {
-        SessionManager manager = new SessionManager(sessionRepository, sessionEventBroadcaster);
+        SessionManager manager = new SessionManager(sessionRepository, sessionEventBroadcaster, cacheManager);
         assertNull(manager.validate(null));
         assertNull(manager.validate(" "));
     }

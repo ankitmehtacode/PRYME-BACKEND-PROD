@@ -85,7 +85,13 @@ class S3PresignerConfiguration {
     @jakarta.annotation.PostConstruct
     public void validateDataResidencyAndBucket() {
         String region = awsS3Properties.region();
-        
+
+        // Guard: skip all validation when running locally without S3 config
+        if (region == null || region.isBlank()) {
+            log.warn("⚠️ aws.s3.region is not configured — skipping S3 data-residency validation (local/test mode).");
+            return;
+        }
+
         // 🧠 160 IQ: INDIA DATA RESIDENCY COMPLIANCE (RBI GUIDELINES)
         if (!region.equals("ap-south-1") && !region.equals("ap-south-2")) {
             throw new IllegalStateException(

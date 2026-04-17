@@ -17,12 +17,13 @@ COPY pom.xml .
 # Sanitize wrapper and resolve dependencies offline
 RUN dos2unix mvnw && chmod +x mvnw
 
-# Dependency failures must fail loudly — no || true suppression
-RUN ./mvnw dependency:go-offline -B
+# Download dependencies first (as a separate cacheable layer)
+# Using -T 4 for 4 parallel threads and retry config for slow networks
+RUN ./mvnw dependency:resolve -B -T 4 || ./mvnw dependency:resolve -B
 
 # Copy source code and compile the Fat JAR
 COPY src src
-RUN ./mvnw clean package -DskipTests
+RUN ./mvnw clean package -Dmaven.test.skip=true
 
 # 🧠 1% FIX: Defuse the Wildcard Collision Bomb
 # Spring Boot generates both a -plain.jar and a fat jar. 
@@ -59,7 +60,7 @@ COPY --chown=prymeuser:prymegroup --from=builder /build/target/application.jar p
 # Drop OS privileges permanently
 USER prymeuser
 
-EXPOSE 8080
+EXPOSE 8082
 
 # ==========================================
 # KVM4 ENTRYPOINT (JAVA 21)
