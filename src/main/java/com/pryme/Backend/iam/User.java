@@ -26,7 +26,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class User {
+public class User implements java.io.Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

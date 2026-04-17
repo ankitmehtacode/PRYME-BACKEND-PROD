@@ -92,8 +92,8 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
         } catch (Exception e) {
-            log.warn("Security Matrix Blocked Invalid Token: {}", e.getMessage());
-            logAndBlock(response, "Malformed or compromised security token.");
+            log.error("Security Matrix Blocked Token - Exception: {}", e.getMessage(), e);
+            logAndBlock(response, "Session validation failed: " + e.getMessage());
             return; // 🧠 CRITICAL: Stop the filter chain immediately!
         }
 

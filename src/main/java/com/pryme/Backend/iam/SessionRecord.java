@@ -27,7 +27,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SessionRecord {
+public class SessionRecord implements java.io.Serializable {
 
     // 🧠 The JTI (JWT ID) acts as the primary key. This physically links the stateless JWT to the DB state.
     @Id
