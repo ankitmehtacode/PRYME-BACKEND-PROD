@@ -21,19 +21,24 @@ public class SessionCookieHelper {
     private final boolean secure;
     private final String domain;
     private final String sameSite;
+    private final boolean isDevEnvironment;
 
     public SessionCookieHelper(
             @Value("${app.session.cookie-name:PRYME_SID}") String cookieName,
             @Value("${app.session.ttl-seconds:3600}") long ttlSeconds,
             @Value("${app.session.cookie-secure:true}") boolean secure,
             @Value("${app.session.cookie-domain:}") String domain,
-            @Value("${app.session.cookie-same-site:Lax}") String sameSite
+            @Value("${app.session.cookie-same-site:Lax}") String sameSite,
+            org.springframework.core.env.Environment env
     ) {
         this.cookieName = cookieName;
         this.ttlSeconds = ttlSeconds;
-        this.secure = secure;
         this.domain = (domain != null && !domain.isBlank()) ? domain.trim() : null;
         this.sameSite = sameSite;
+        
+        // 🧠 THE 1% FIX: Auto-detect dev profile to prevent silent cookie drops on HTTP
+        this.isDevEnvironment = java.util.Arrays.asList(env.getActiveProfiles()).contains("dev");
+        this.secure = isDevEnvironment ? false : secure; 
     }
 
     /**

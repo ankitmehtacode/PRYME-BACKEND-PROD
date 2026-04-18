@@ -40,27 +40,34 @@ public class SessionEventBroadcaster {
     private static final long SSE_TIMEOUT_MS = 5 * 60 * 1000L;
 
     /**
-     * Registry: userId → list of active SSE connections (one per browser tab)
+     * PRIMARY REGISTRY: sessionId → SseEmitter
+     * Allows precision targeting to terminate distinct sessions.
      */
-    private final Map<UUID, CopyOnWriteArrayList<SseEmitter>> emitterRegistry = new ConcurrentHashMap<>();
+    private final Map<UUID, SseEmitter> sessionEmitterRegistry = new ConcurrentHashMap<>();
+
+    /**
+     * SECONDARY REGISTRY: userId → Set<sessionId>
+     * Allows fast lookup for killing ALL sessions for a user globally.
+     */
+    private final Map<UUID, java.util.Set<UUID>> userSessionMap = new ConcurrentHashMap<>();
 
     /**
      * 🧠 REGISTER AN EMITTER
-     * Called by SystemEventController when a client connects to /api/v1/stream/system-events.
-     * Returns the configured SseEmitter with auto-cleanup callbacks.
      */
-    public SseEmitter register(UUID userId) {
+    public SseEmitter register(UUID userId, UUID sessionId) {
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
 
-        emitterRegistry.computeIfAbsent(userId, k -> new CopyOnWriteArrayList<>()).add(emitter);
+        sessionEmitterRegistry.put(sessionId, emitter);
+        userSessionMap.computeIfAbsent(userId, k -> ConcurrentHashMap.newKeySet()).add(sessionId);
 
         // Auto-cleanup: Remove the emitter when it completes, times out, or errors
         Runnable cleanup = () -> {
-            CopyOnWriteArrayList<SseEmitter> emitters = emitterRegistry.get(userId);
-            if (emitters != null) {
-                emitters.remove(emitter);
-                if (emitters.isEmpty()) {
-                    emitterRegistry.remove(userId);
+            sessionEmitterRegistry.remove(sessionId);
+            java.util.Set<UUID> sessions = userSessionMap.get(userId);
+            if (sessions != null) {
+                sessions.remove(sessionId);
+                if (sessions.isEmpty()) {
+                    userSessionMap.remove(userId);
                 }
             }
         };
@@ -68,16 +75,15 @@ public class SessionEventBroadcaster {
         emitter.onTimeout(cleanup);
         emitter.onError(e -> cleanup.run());
 
-        log.debug("SSE Kill Switch: Emitter registered for User {}, total active: {}",
-                userId, emitterRegistry.getOrDefault(userId, new CopyOnWriteArrayList<>()).size());
+        log.debug("SSE Kill Switch: Emitter registered via Session {}, active user streams: {}",
+                sessionId, userSessionMap.getOrDefault(userId, java.util.Collections.emptySet()).size());
 
-        // 🧠 Send an initial connection confirmation event
         try {
             emitter.send(SseEmitter.event()
                     .name("CONNECTED")
                     .data("{\"status\": \"SSE_PIPE_ACTIVE\"}"));
         } catch (IOException e) {
-            log.warn("SSE Kill Switch: Failed to send initial handshake to User {}", userId);
+            log.warn("SSE Kill Switch: Failed to send initial handshake to Session {}", sessionId);
             emitter.completeWithError(e);
         }
 
@@ -85,72 +91,75 @@ public class SessionEventBroadcaster {
     }
 
     /**
-     * 🧠 PUSH SESSION_TERMINATED EVENT
-     * Called by SessionManager when revokeSession() or revokeAllUserSessions() fires.
-     * Pushes the kill signal to ALL browser tabs belonging to this user.
+     * 🧠 PUSH TARGETED SESSION_TERMINATED EVENT (THE 1% FIX)
+     * Pushes the kill signal ONLY to specific active browser tabs targeting the explicitly revoked sessions.
+     */
+    public void pushSessionTermination(List<UUID> sessionIdsToKill) {
+        if (sessionIdsToKill == null || sessionIdsToKill.isEmpty()) return;
+
+        log.info("SSE Kill Switch: Surgically pushing SESSION_TERMINATED to {} specific sessions.", sessionIdsToKill.size());
+
+        for (UUID sessionId : sessionIdsToKill) {
+            SseEmitter emitter = sessionEmitterRegistry.get(sessionId);
+            if (emitter != null) {
+                try {
+                    emitter.send(SseEmitter.event()
+                            .name("SESSION_TERMINATED")
+                            .data("{\"reason\": \"SESSION_REVOKED\", \"action\": \"REDIRECT_TO_AUTH\"}"));
+                    emitter.complete(); 
+                } catch (IOException e) {
+                    log.warn("SSE Kill Switch: Failed to push termination to stale Session {}", sessionId);
+                    emitter.completeWithError(e);
+                }
+                sessionEmitterRegistry.remove(sessionId);
+            }
+        }
+    }
+
+    /**
+     * 🧠 PUSH GLOBAL SESSION_TERMINATED EVENT (ALL USER SESSIONS)
+     * Kills ALL browser tabs belonging to this user (used for global wipeout/admin panic button).
      */
     public void pushTermination(UUID userId) {
-        CopyOnWriteArrayList<SseEmitter> emitters = emitterRegistry.get(userId);
-        if (emitters == null || emitters.isEmpty()) {
-            log.debug("SSE Kill Switch: No active emitters for User {}. They will hit 401 on next API call.", userId);
+        java.util.Set<UUID> sessions = userSessionMap.get(userId);
+        if (sessions == null || sessions.isEmpty()) {
             return;
         }
 
-        log.info("SSE Kill Switch: Pushing SESSION_TERMINATED to {} active connections for User {}",
-                emitters.size(), userId);
+        // Copy list to avoid concurrent modification issues
+        List<UUID> snapshotSessionsToKill = new java.util.ArrayList<>(sessions);
+        pushSessionTermination(snapshotSessionsToKill);
+        userSessionMap.remove(userId);
+    }
 
-        // 🧠 Iterate a snapshot — CopyOnWriteArrayList is safe for concurrent modification
-        for (SseEmitter emitter : emitters) {
+    /**
+     * 🧠 HEARTBEAT PING
+     */
+    @Scheduled(fixedRate = 30000)
+    public void heartbeat() {
+        List<UUID> deadSessions = new java.util.ArrayList<>();
+
+        sessionEmitterRegistry.forEach((sessionId, emitter) -> {
             try {
                 emitter.send(SseEmitter.event()
-                        .name("SESSION_TERMINATED")
-                        .data("{\"reason\": \"SESSION_REVOKED\", \"action\": \"REDIRECT_TO_AUTH\"}"));
-                emitter.complete(); // Close the connection after sending the kill signal
+                        .name("HEARTBEAT")
+                        .data("{\"ts\": " + System.currentTimeMillis() + "}"));
             } catch (IOException e) {
-                log.warn("SSE Kill Switch: Failed to push termination to a stale emitter for User {}", userId);
-                emitter.completeWithError(e);
-            }
-        }
-
-        // Nuke all emitters for this user after termination
-        emitterRegistry.remove(userId);
-    }
-
-    /**
-     * 🧠 HEARTBEAT PING — Keeps SSE connections alive through Nginx/ALB/CloudFront proxies.
-     * Without this, reverse proxies silently kill idle TCP connections after 60 seconds,
-     * causing the EventSource to reconnect in a storm.
-     */
-    @Scheduled(fixedRate = 30000) // Every 30 seconds
-    public void heartbeat() {
-        emitterRegistry.forEach((userId, emitters) -> {
-            List<SseEmitter> deadEmitters = new java.util.ArrayList<>();
-
-            for (SseEmitter emitter : emitters) {
-                try {
-                    emitter.send(SseEmitter.event()
-                            .name("HEARTBEAT")
-                            .data("{\"ts\": " + System.currentTimeMillis() + "}"));
-                } catch (IOException e) {
-                    deadEmitters.add(emitter);
-                }
-            }
-
-            // Purge dead emitters
-            if (!deadEmitters.isEmpty()) {
-                emitters.removeAll(deadEmitters);
-                if (emitters.isEmpty()) {
-                    emitterRegistry.remove(userId);
-                }
-                log.debug("SSE Kill Switch: Purged {} dead emitters for User {}", deadEmitters.size(), userId);
+                deadSessions.add(sessionId);
             }
         });
+
+        if (!deadSessions.isEmpty()) {
+            deadSessions.forEach(sessionId -> {
+                sessionEmitterRegistry.remove(sessionId);
+                // Also purge from userMap
+                userSessionMap.forEach((uId, set) -> set.remove(sessionId));
+            });
+            log.debug("SSE Kill Switch: Purged {} dead emitters.", deadSessions.size());
+        }
     }
 
-    /**
-     * Returns the count of active SSE connections (for monitoring/actuator).
-     */
     public int getActiveConnectionCount() {
-        return emitterRegistry.values().stream().mapToInt(List::size).sum();
+        return sessionEmitterRegistry.size();
     }
 }

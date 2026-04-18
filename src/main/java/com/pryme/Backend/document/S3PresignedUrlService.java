@@ -92,6 +92,12 @@ class S3PresignerConfiguration {
             return;
         }
 
+        // 🧠 1% FIX: Explicit bypass for staged deployments without AWS
+        if ("dummy_bucket".equals(awsS3Properties.bucket())) {
+            log.warn("⚠️ 'dummy_bucket' detected. Bypassing strict S3 ping. Document vault is currently offline.");
+            return;
+        }
+
         // 🧠 160 IQ: INDIA DATA RESIDENCY COMPLIANCE (RBI GUIDELINES)
         if (!region.equals("ap-south-1") && !region.equals("ap-south-2")) {
             throw new IllegalStateException(

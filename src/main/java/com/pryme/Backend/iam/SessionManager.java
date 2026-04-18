@@ -49,6 +49,14 @@ public class SessionManager {
 
         sessionRepository.save(newSession);
 
+        // 🧠 THE 1% FIX: PRE-WARM THE L1 CACHE
+        // Eliminates the race condition. The subsequent frontend request will hit Redis 
+        // in <1ms without waiting for the Postgres transaction to fully finalize.
+        Cache cache = cacheManager.getCache("sessions");
+        if (cache != null) {
+            cache.put(jwtId.toString(), newSession);
+        }
+
         // 🧠 TOP 1% FIX: Fetch ONLY the UUIDs from the DB, not the entire Hibernate Entity!
         // REQUIRES REPO METHOD: @Query("SELECT s.id FROM SessionRecord s WHERE s.user.id = :userId AND s.isActive = true ORDER BY s.createdAt ASC")
         List<UUID> activeSessionIds = sessionRepository.findActiveSessionIdsByUserId(user.getId());
@@ -59,14 +67,13 @@ public class SessionManager {
 
             sessionRepository.deactivateSessionsBulk(sessionsToKill);
 
-            Cache cache = cacheManager.getCache("sessions");
             if (cache != null) {
                 sessionsToKill.forEach(id -> cache.evict(id.toString()));
             }
 
-            // 🧠 DIRECTIVE 3: Push SSE termination to the user's other browser tabs
-            // This fires when max-sessions-per-user is exceeded (e.g., login from 4th device)
-            broadcaster.pushTermination(user.getId());
+            // 🧠 THE 1% FIX: TARGETED TERMINATION
+            // Stop nuking the whole user. Only target the exact sessions being killed.
+            broadcaster.pushSessionTermination(sessionsToKill); 
 
             log.warn("Security Matrix: Max sessions exceeded for User {}. Terminated {} overflow sessions.", user.getId(), overage);
         } else {
@@ -174,10 +181,8 @@ public class SessionManager {
         if (updated > 0) {
             log.info("Security Matrix: Session {} explicitly terminated.", sessionId);
 
-            // 🧠 DIRECTIVE 3: Push termination signal via SSE
-            if (session != null && session.getUser() != null) {
-                broadcaster.pushTermination(session.getUser().getId());
-            }
+            // 🧠 DIRECTIVE 3: Push termination signal via SSE exclusively to the targeted session
+            broadcaster.pushSessionTermination(List.of(sessionId));
         }
     }
 }

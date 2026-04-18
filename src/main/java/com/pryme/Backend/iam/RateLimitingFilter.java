@@ -1,4 +1,4 @@
-ppackage com.pryme.Backend.iam;
+package com.pryme.Backend.iam;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;

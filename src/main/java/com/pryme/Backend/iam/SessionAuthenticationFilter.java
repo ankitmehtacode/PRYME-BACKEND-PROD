@@ -82,7 +82,7 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
                 // 🧠 160 IQ FIX 3: Hydrate directly from Cache. NO DATABASE HITS.
                 var auth = new UsernamePasswordAuthenticationToken(
                         session.getUser().getId(), // Principal
-                        null,             // Credentials
+                        sessionId,                 // Credentials (used for targeted tracking)
                         List.of(new SimpleGrantedAuthority("ROLE_" + session.getUser().getRole().name())) // Authorities
                 );
                 SecurityContextHolder.getContext().setAuthentication(auth);

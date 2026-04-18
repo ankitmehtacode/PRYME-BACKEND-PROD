@@ -53,6 +53,11 @@ public class SystemEventController {
             throw new UnauthorizedException("Valid session required for event stream.");
         }
 
-        return broadcaster.register(userId);
+        String sessionIdStr = (String) authentication.getCredentials();
+        if (sessionIdStr == null) {
+            throw new UnauthorizedException("Session ID missing from security context.");
+        }
+
+        return broadcaster.register(userId, UUID.fromString(sessionIdStr));
     }
 }
