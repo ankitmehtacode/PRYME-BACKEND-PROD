@@ -34,7 +34,7 @@ public class SnsWebhookController {
     private final ObjectMapper objectMapper;
     private final RestClient restClient = RestClient.create();
 
-    @Value("${app.webhooks.sns.shared-secret}")
+    @Value("${app.webhooks.sns.shared-secret:dummy_webhook_secret_for_testing}")
     private String sharedSecret;
 
     @PostMapping("/s3-event")

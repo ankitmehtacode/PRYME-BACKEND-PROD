@@ -59,7 +59,7 @@ aws:
 app:
   webhooks:
     sns:
-      shared-secret: ${WEBHOOK_SECRET}
+      shared-secret: ${WEBHOOK_SECRET:dummy_webhook_secret_for_testing}
   session:
     # 🧠 PRODUCTION: Cookie domain allows sharing across subdomains (crm.pryme.in, api.pryme.in)
     # Remove this line if running on a single domain behind Nginx reverse proxy

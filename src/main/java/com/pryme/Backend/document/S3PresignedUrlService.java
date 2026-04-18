@@ -37,6 +37,12 @@ public class S3PresignedUrlService {
             throw new DocumentTypeNotAllowedException("Unsupported contentType. Allowed: application/pdf, image/jpeg, image/png");
         }
 
+        if ("dummy_bucket".equals(awsS3Properties.bucket())) {
+            Duration ttl = Duration.ofMinutes(15);
+            Instant expiresAt = Instant.now().plus(ttl);
+            return new PresignedUrlResponse("http://localhost:8080/dummy-s3-upload/" + documentId, documentId, expiresAt);
+        }
+
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(awsS3Properties.bucket())
                 .key(documentId)
@@ -86,15 +92,9 @@ class S3PresignerConfiguration {
     public void validateDataResidencyAndBucket() {
         String region = awsS3Properties.region();
 
-        // Guard: skip all validation when running locally without S3 config
-        if (region == null || region.isBlank()) {
-            log.warn("⚠️ aws.s3.region is not configured — skipping S3 data-residency validation (local/test mode).");
-            return;
-        }
-
-        // 🧠 1% FIX: Explicit bypass for staged deployments without AWS
-        if ("dummy_bucket".equals(awsS3Properties.bucket())) {
-            log.warn("⚠️ 'dummy_bucket' detected. Bypassing strict S3 ping. Document vault is currently offline.");
+        // Guard: skip all validation when running locally or with dummy config
+        if (region == null || region.isBlank() || "dummy_bucket".equals(awsS3Properties.bucket())) {
+            log.warn("⚠️ Dummy S3 configuration detected. Bypassing strict AWS validation. Document vault is operating in offline/local mode.");
             return;
         }
 
@@ -132,8 +132,12 @@ class S3PresignerConfiguration {
 
     @Bean
     S3Presigner s3Presigner() {
+        String regionStr = awsS3Properties.region();
+        if (regionStr == null || regionStr.isBlank()) {
+            regionStr = "ap-south-1"; // fallback to prevent SDK throw on startup
+        }
         return S3Presigner.builder()
-                .region(Region.of(awsS3Properties.region()))
+                .region(Region.of(regionStr))
                 .build();
     }
 }
