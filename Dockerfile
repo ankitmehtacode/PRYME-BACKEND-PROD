@@ -41,6 +41,9 @@ FROM eclipse-temurin:21-jre-jammy
 ENV TZ=UTC
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
+# Install curl for Docker healthcheck (CMD-SHELL requires it)
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # ZERO-TRUST: Create restricted user & group
@@ -64,8 +67,8 @@ EXPOSE 8082
 
 # ==========================================
 # KVM4 ENTRYPOINT (JAVA 21)
-# MaxRAMPercentage=70.0: Leaves 30% for OS + Postgres co-located on KVM4.
-# MaxMetaspaceSize=512m: Larger metaspace for expanded Java 21 class model.
+# Xms/Xmx: Explicit heap bounds for shared VPS — predictable memory footprint.
+# MaxMetaspaceSize=256m: Caps class metadata to prevent unbounded growth.
 # ==========================================
 ENTRYPOINT ["java", \
   "-XX:+UseContainerSupport", \
