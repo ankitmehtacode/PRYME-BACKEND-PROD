@@ -70,8 +70,9 @@ EXPOSE 8082
 ENTRYPOINT ["java", \
   "-XX:+UseContainerSupport", \
   "-XX:+UseG1GC", \
-  "-XX:MaxRAMPercentage=70.0", \
-  "-XX:MaxMetaspaceSize=512m", \
+  "-Xms256m", \
+  "-Xmx768m", \
+  "-XX:MaxMetaspaceSize=256m", \
   "-Djava.security.egd=file:/dev/./urandom", \
   "-Djava.io.tmpdir=/app/tmp", \
   "-Dspring.threads.virtual.enabled=true", \
