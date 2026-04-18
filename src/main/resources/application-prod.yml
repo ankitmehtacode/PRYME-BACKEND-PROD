@@ -68,7 +68,7 @@ app:
   security:
     # 🧠 PRODUCTION: ONLY allow the actual frontend domains. ZERO localhost.
     # Anyone trying to make cross-origin requests from localhost will be blocked.
-    allowed-origins: ${ALLOWED_ORIGINS:https://gopryme.tech,https://api.gopryme.tech}
+    allowed-origins: ${ALLOWED_ORIGINS:https://gopryme.tech,https://www.gopryme.tech,https://api.gopryme.tech}
     # 🧠 CSP connect-src: If the frontend and API are on the same domain behind Nginx,
     # 'self' is sufficient. If they're on different subdomains, set this explicitly.
     csp-connect-src: ${CSP_CONNECT_SRC:}

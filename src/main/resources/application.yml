@@ -110,7 +110,7 @@ app:
     storage-root: ${VAULT_DIR:./secure_vault} # OS-Agnostic absolute path configuration.
   security:
     # 🧠 Dynamic CORS Whitelist: Supports standard Vite, alternative Vite, and Prod domains.
-    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,http://localhost:8081,https://gopryme.tech}
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,http://localhost:8081,https://gopryme.tech,https://www.gopryme.tech}
 
 # ==========================================
 # 🧠 6. TELEMETRY & AUDIT MATRIX (ACTUATOR)
