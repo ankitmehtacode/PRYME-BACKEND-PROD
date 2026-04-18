@@ -37,8 +37,10 @@ public class SessionCookieHelper {
         this.sameSite = sameSite;
         
         // 🧠 THE 1% FIX: Auto-detect dev profile to prevent silent cookie drops on HTTP
-        this.isDevEnvironment = java.util.Arrays.asList(env.getActiveProfiles()).contains("dev");
-        this.secure = isDevEnvironment ? false : secure; 
+        String activeProfile = env.getProperty("spring.profiles.active", "");
+        boolean hasDevInArray = java.util.Arrays.asList(env.getActiveProfiles()).contains("dev");
+        this.isDevEnvironment = hasDevInArray || activeProfile.contains("dev");
+        this.secure = this.isDevEnvironment ? false : secure; 
     }
 
     /**
@@ -105,7 +107,7 @@ public class SessionCookieHelper {
         for (Cookie cookie : request.getCookies()) {
             if (cookieName.equals(cookie.getName())) {
                 String value = cookie.getValue();
-                return (value != null && !value.isBlank()) ? value : null;
+                return (value != null && !value.isBlank()) ? value.replace("\"", "") : null;
             }
         }
         return null;
