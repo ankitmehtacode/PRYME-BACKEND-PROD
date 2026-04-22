@@ -1,3 +1,11 @@
+# 🧠 SECURITY: Disable Swagger/API Docs in Production
+# Prevents attackers from viewing the full API schema at /swagger-ui.html
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
 spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL}

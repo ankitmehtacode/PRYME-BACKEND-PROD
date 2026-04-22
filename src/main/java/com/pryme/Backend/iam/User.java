@@ -1,5 +1,6 @@
 package com.pryme.Backend.iam;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.NaturalId;
@@ -39,6 +40,9 @@ public class User implements java.io.Serializable {
     @Column(nullable = false, unique = true, length = 150, updatable = false)
     private String email;
 
+    // 🧠 DEFENSE-IN-DEPTH: @JsonIgnore ensures BCrypt hash NEVER leaks
+    // even if the User entity is accidentally serialized (e.g., SessionRecord lazy-load).
+    @JsonIgnore
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
@@ -74,10 +78,12 @@ public class User implements java.io.Serializable {
     private String phone;
 
     // Replacing @ElementCollection, @CollectionTable with @JdbcTypeCode and @Column
+    @JsonIgnore
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private Map<String, Object> metadata;
 
+    @JsonIgnore
     @Version
     private Long version;
 

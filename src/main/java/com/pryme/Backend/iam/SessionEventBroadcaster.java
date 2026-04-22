@@ -23,7 +23,7 @@ public class SessionEventBroadcaster {
 
     private static final Logger log = LoggerFactory.getLogger(SessionEventBroadcaster.class);
 
-    private static final long SSE_TIMEOUT_MS = 5 * 60 * 1000L;
+    private static final long SSE_TIMEOUT_MS = 0L; // No timeout — heartbeat() cleans dead connections
 
     // PRIMARY REGISTRY: sessionId → SseEmitter
     private final Map<UUID, SseEmitter> sessionEmitterRegistry = new ConcurrentHashMap<>();

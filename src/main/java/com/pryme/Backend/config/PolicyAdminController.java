@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -55,5 +56,23 @@ public class PolicyAdminController {
             "fieldKey", request.fieldKey(),
             "newValue", request.newValue()
         ));
+    }
+
+    @GetMapping("/entities")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'POLICY_MANAGER', 'ADMIN', 'EMPLOYEE')")
+    public ResponseEntity<List<com.pryme.Backend.config.dto.PolicyEntityDto>> getPolicyEntities() {
+        return ResponseEntity.ok(policyAdminService.getAllPolicyEntities());
+    }
+
+    @GetMapping("/value")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'POLICY_MANAGER', 'ADMIN', 'EMPLOYEE')")
+    public ResponseEntity<Map<String, Object>> getPolicyValue(
+            @RequestParam String entityId,
+            @RequestParam String fieldKey) {
+        
+        Object value = policyAdminService.getPolicyValue(entityId, fieldKey);
+        
+        // React UI expects { "value": <the_value> }
+        return ResponseEntity.ok(Map.of("value", value != null ? value : ""));
     }
 }

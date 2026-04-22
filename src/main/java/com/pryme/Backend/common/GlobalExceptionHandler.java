@@ -13,6 +13,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.stream.Collectors;
@@ -92,16 +93,34 @@ public class GlobalExceptionHandler {
                 .body(new ApiError("REQUEST_ERROR", ex.getMessage()));
     }
 
-    // 🧠 FIX 5: Unmasking the Black Hole. This forces the REAL error message to the console and the frontend.
+    // 🧠 FIX 5a: SSE Async Timeout — MUST be caught before RuntimeException.
+    // When an SSE connection times out, Tomcat dispatches an async error.
+    // We cannot write JSON to a text/event-stream response, so we return null
+    // and let Spring's DefaultHandlerExceptionResolver handle the 503 silently.
+    @ExceptionHandler(AsyncRequestTimeoutException.class)
+    public Object handleAsyncTimeout(AsyncRequestTimeoutException ex) {
+        log.debug("SSE connection timed out (expected for idle event streams).");
+        return null;
+    }
+
+    // 🧠 FIX 5b: Unmasking the Black Hole. This forces the REAL error message to the console and the frontend.
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ApiError> handleRuntime(RuntimeException ex) {
+    public Object handleRuntime(RuntimeException ex) {
+        if (ex instanceof AsyncRequestTimeoutException) {
+            log.debug("SSE connection timed out (caught in handleRuntime).");
+            return null;
+        }
         log.error("CRITICAL RUNTIME EXCEPTION: ", ex); // Prints the exact crash to IntelliJ
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ApiError("INTERNAL_ERROR", "Server Error: " + ex.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiError> handleGeneric(Exception ex) {
+    public Object handleGeneric(Exception ex) {
+        if (ex instanceof AsyncRequestTimeoutException) {
+            log.debug("SSE connection timed out (caught in handleGeneric).");
+            return null;
+        }
         log.error("CRITICAL UNHANDLED EXCEPTION: ", ex); // Prints the exact crash to IntelliJ
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ApiError("INTERNAL_ERROR", "Server Error: " + ex.getMessage()));

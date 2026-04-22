@@ -98,6 +98,14 @@ public class SessionManager {
             throw new UnauthorizedException("Session lifecycle terminated. Please re-authenticate.");
         }
 
+        // 🧠 160 IQ FIX: Force eager load the user proxy before the transaction closes!
+        // This permanently prevents LazyInitializationException in the security filters.
+        if (session.getUser() != null) {
+            session.getUser().getId();
+            session.getUser().getRole();
+            session.getUser().getEmail();
+        }
+
         return session;
     }
 

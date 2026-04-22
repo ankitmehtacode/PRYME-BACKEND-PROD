@@ -2,6 +2,7 @@ package com.pryme.Backend.config;
 
 import com.pryme.Backend.iam.RateLimitingFilter;
 import com.pryme.Backend.iam.SessionAuthenticationFilter;
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -64,6 +65,10 @@ public class SecurityConfig {
                                                                         "{\"status\": 401, \"error\": \"Unauthorized\", \"message\": \"Authentication matrix required or Token expired.\"}");
                                                 }))
                                 .authorizeHttpRequests(auth -> {
+                                        // 🧠 ASYNC DISPATCH: Tomcat re-dispatches SSE timeouts as ASYNC.
+                                        // Without this, the AuthorizationFilter blocks them → Access Denied.
+                                        auth.dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll();
+
                                         // 🧠 Explicit Preflight Handling
                                         auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
 
@@ -112,11 +117,12 @@ public class SecurityConfig {
 
                 return String.join("; ",
                                 "default-src 'self'",
-                                "script-src 'self'",
-                                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+                                "script-src 'self' https://accounts.google.com https://apis.google.com",
+                                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com",
                                 "font-src 'self' https://fonts.gstatic.com",
-                                "img-src 'self' data: https://images.unsplash.com https://*.amazonaws.com",
-                                "connect-src " + connectSrc.trim(),
+                                "img-src 'self' data: https://images.unsplash.com https://*.amazonaws.com https://lh3.googleusercontent.com",
+                                "connect-src " + connectSrc.trim() + " https://accounts.google.com https://oauth2.googleapis.com",
+                                "frame-src https://accounts.google.com",
                                 "frame-ancestors 'self'",
                                 "object-src 'none'",
                                 "base-uri 'self'",

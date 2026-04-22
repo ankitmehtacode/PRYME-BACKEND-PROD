@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public record EligibilityRequest(
-        @NotNull Long lenderId,
+        Long lenderId,
         @NotNull String loanType,
         @NotNull @Min(300) @Max(900) int cibilScore,
         @NotNull @Min(18) int applicantAge,

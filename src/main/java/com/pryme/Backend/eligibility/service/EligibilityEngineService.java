@@ -64,7 +64,7 @@ public class EligibilityEngineService {
                 .stream()
                 // FIX BUG-B: lenderId is Long — no .getId() call
                 // FIX BUG-C: loanType is String — no .name() call
-                .filter(p -> p.getLenderId().equals(request.lenderId())
+                .filter(p -> (request.lenderId() == null || p.getLenderId().equals(request.lenderId()))
                         && p.getLoanType().equalsIgnoreCase(request.loanType())
                         && p.isActive())
                 .toList();

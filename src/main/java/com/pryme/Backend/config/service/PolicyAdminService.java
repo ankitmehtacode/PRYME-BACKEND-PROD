@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class PolicyAdminService {
@@ -76,6 +78,45 @@ public class PolicyAdminService {
                 .build();
                 
         auditRepository.save(audit);
+    }
+
+    @Transactional(readOnly = true)
+    public List<com.pryme.Backend.config.dto.PolicyEntityDto> getAllPolicyEntities() {
+        // Here we map physical database rows (like LoanProducts) into the abstract 'PolicyEntity' structure
+        return loanProductRepository.findAll().stream()
+                .map(product -> new com.pryme.Backend.config.dto.PolicyEntityDto(
+                        String.valueOf(product.getId()),
+                        product.getLenderName() + " — " + (product.getCampaignName() != null ? product.getCampaignName() : product.getLoanType()),
+                        PolicyFieldDefinition.PolicyEntityType.LOAN_PRODUCT.name()
+                ))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Object getPolicyValue(String entityId, String fieldKey) {
+        Long id = Long.parseLong(entityId);
+        // Currently matrix only maps to LOAN_PRODUCT. Scale exactly as we did in the patch branch
+        LoanProduct product = loanProductRepository.findById(id).orElse(null);
+        if (product == null) return null;
+
+        switch (fieldKey) {
+            case "min_cibil": return product.getMinCibil();
+            case "max_cibil": return product.getMaxCibil();
+            case "roi": return product.getRoi();
+            case "processing_fee": return product.getProcessingFee();
+            case "max_emi_nmi_ratio": return product.getMaxEmiNmiRatio();
+            case "min_loan_amount": return product.getMinLoanAmount();
+            case "max_loan_amount": return product.getMaxLoanAmount();
+            case "min_tenure_months": return product.getMinTenureMonths();
+            case "max_tenure_months": return product.getMaxTenureMonths();
+            case "is_active": return product.isActive();
+            
+            // Legacy Mocks compatibility mappings
+            case "foirAllowed": return product.getMaxEmiNmiRatio();
+            case "minBusinessVintageYears": return 3; // Mock fallback
+            case "itrRequiredYears": return 2; // Mock fallback
+            default: return null;
+        }
     }
 
     /**

@@ -53,12 +53,35 @@ public class EligibilityCondition {
     @Column(name = "cibil_min")
     private Integer cibilMin;
 
-    // Stored as decimal: 0.95 = 95%, 0.55 = 55%
     @Column(name = "foir_max", precision = 5, scale = 4)
     private BigDecimal foirMax;
 
+    @Column(name = "bank_name")
+    private String bankName;
+
+    @Column(name = "loan_type")
+    private String loanType;
+
+    @Column(name = "itr_required_years")
+    private Integer itrRequiredYears;
+
+    @Column(name = "ltv_allowed", precision = 5, scale = 4)
+    private BigDecimal ltvAllowed;
+
+    @Column(name = "deviation_formulae", columnDefinition = "text")
+    private String deviationFormulae;
+
+    @Column(name = "conditions", columnDefinition = "text")
+    private String conditions;
+
+    @Column(name = "emi_not_obligated")
+    private Boolean emiNotObligated;
+
     @Column(name = "property_type")
     private String propertyType;
+
+    @Column(name = "negative_property", columnDefinition = "text")
+    private String negativeProperty;
 
     @Column(name = "city_tier", length = 20)
     private String cityTier;
