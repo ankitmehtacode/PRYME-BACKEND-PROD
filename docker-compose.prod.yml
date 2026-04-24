@@ -32,7 +32,7 @@ services:
       - DB_POOL_MIN_IDLE=${DB_POOL_MIN_IDLE:-0}
       - TOMCAT_MAX_THREADS=${TOMCAT_MAX_THREADS:-300}
       - TOMCAT_MAX_CONNECTIONS=${TOMCAT_MAX_CONNECTIONS:-4096}
-      - JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:--XX:+UseZGC -XX:+HeapDumpOnOutOfMemoryError}
+      - JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:--XX:+HeapDumpOnOutOfMemoryError}
     ulimits:
       nofile:
         soft: 65535
