@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +25,9 @@ public class BankRecommendationService {
 
     @Value("${app.recommendation.max-results:8}")
     private int maxResults;
+
+    @Value("${app.recommendation.candidate-pool-size:500}")
+    private int candidatePoolSize;
 
     // 🧠 160 IQ FIX 1: CACHE COHERENCY
     // stripTrailingZeros() forces "50000.00" and "50000" to evaluate to the exact same cache key.
@@ -51,10 +55,14 @@ public class BankRecommendationService {
         // Note on In-Memory Sorting: Because the active FinTech product catalog is bounded
         // (usually < 1000 items), computing this algorithm in RAM is O(1) instantaneous
         // and keeps the SQL database completely unburdened from heavy CPU math.
-        return loanProductRepository.findAll(spec).stream()
+        int candidatePool = Math.max(maxResults, candidatePoolSize);
+
+        return loanProductRepository.findAll(spec, PageRequest.of(0, candidatePool)).stream()
                 .sorted(ranking)
                 .limit(Math.max(1, maxResults))
-                .toList();}
+                .toList();
+    }
+
     public BigDecimal fitScore(LoanProduct product, BigDecimal salary, Integer cibil) {
         // 🧠 160 IQ FIX 3: NULL-SAFE MATHEMATICS
         // Protects the JVM thread from crashing if a database row is missing attributes.

@@ -24,5 +24,7 @@ public interface LoanProductRepository extends JpaRepository<LoanProduct, Long>,
 
     List<LoanProduct> findByLoanTypeAndActive(String loanType, boolean active);
 
+    List<LoanProduct> findByLoanTypeInAndActive(List<String> loanTypes, boolean active);
+
     List<LoanProduct> findTop3ByActiveTrueOrderByRoiAsc();
 }

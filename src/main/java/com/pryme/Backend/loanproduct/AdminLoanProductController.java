@@ -3,11 +3,13 @@ package com.pryme.Backend.loanproduct;
 import com.pryme.Backend.loanproduct.entity.LoanProduct;
 import com.pryme.Backend.loanproduct.repository.LoanProductRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/admin/products")
@@ -18,8 +20,10 @@ public class AdminLoanProductController {
 
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @GetMapping
-    public ResponseEntity<List<LoanProduct>> getAdminProducts() {
-        return ResponseEntity.ok(productRepository.findAll());
+    public ResponseEntity<Page<LoanProduct>> getAdminProducts(
+            @PageableDefault(size = 50, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return ResponseEntity.ok(productRepository.findAll(pageable));
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
