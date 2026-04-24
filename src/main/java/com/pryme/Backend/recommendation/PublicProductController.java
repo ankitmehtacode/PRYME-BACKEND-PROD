@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 
 import com.pryme.Backend.loanproduct.repository.LoanProductRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -37,7 +39,9 @@ public class PublicProductController {
                 buildCard("EDUCATION", "EDUCATION LOAN", "100% FUNDING", "/apply?type=education", "270, 70%, 60%", bestByType)
         );
 
-        return ResponseEntity.ok(Map.of("products", cards));
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(Duration.ofMinutes(5)).cachePublic())
+                .body(Map.of("products", cards));
     }
 
     private ProductCardResponse buildCard(
