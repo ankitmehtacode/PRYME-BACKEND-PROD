@@ -82,7 +82,7 @@ class LeadServiceTest {
 
         when(leadRepository.findTopByPhoneAndLoanAmountAndLoanTypeAndCreatedAtAfterOrderByCreatedAtDesc(any(), any(), any(), any()))
                 .thenReturn(Optional.empty());
-        when(leadRepository.save(any(Lead.class))).thenReturn(saved);
+        when(leadRepository.saveAndFlush(any(Lead.class))).thenReturn(saved);
 
         // 🧠 PRODUCTION FIX: Passing an empty Map.of() to fulfill constructor requirements for leads missing metadata
         LeadResponse response = leadService.submitLead(
@@ -98,7 +98,7 @@ class LeadServiceTest {
         );
 
         assertThat(response.offerId()).isEqualTo("icici-cashback");
-        verify(leadRepository, times(1)).save(any(Lead.class));
+        verify(leadRepository, times(1)).saveAndFlush(any(Lead.class));
         verify(leadBackupService).markCommitted(opId);
     }
 }

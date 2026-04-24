@@ -39,7 +39,7 @@ class ApplicationControllerTest {
 
         when(applicationService.listMyApplications(userId, Pageable.unpaged())).thenReturn(Page.empty());
 
-        ResponseEntity<Page<ApplicationResponse>> response = controller.getMyApplications(auth);
+        ResponseEntity<Page<ApplicationResponse>> response = controller.getMyApplications(auth, Pageable.unpaged());
 
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
@@ -52,11 +52,11 @@ class ApplicationControllerTest {
     void myApplicationsRequiresAuthenticationPrincipal() {
         var auth = new UsernamePasswordAuthenticationToken("anonymous_string_user", "token");
 
-        assertThrows(ForbiddenException.class, () -> controller.getMyApplications(auth));
+        assertThrows(ForbiddenException.class, () -> controller.getMyApplications(auth, Pageable.unpaged()));
     }
 
     @Test
     void myApplicationsRequiresNonNullAuthentication() {
-        assertThrows(ForbiddenException.class, () -> controller.getMyApplications(null));
+        assertThrows(ForbiddenException.class, () -> controller.getMyApplications(null, Pageable.unpaged()));
     }
 }

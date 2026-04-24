@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.verify;
@@ -35,13 +36,15 @@ class AuthControllerTest {
     private SessionManager sessionManager;
     @Mock
     private SessionCookieHelper cookieHelper;
+    @Mock
+    private ObjectMapper objectMapper;
 
     private AuthController authController;
 
     @BeforeEach
     void setUp() {
         // 🧠 Core Engine Initialization (now includes SessionCookieHelper)
-        authController = new AuthController(userRepository, passwordEncoder, sessionManager, cookieHelper);
+        authController = new AuthController(userRepository, passwordEncoder, sessionManager, cookieHelper, objectMapper);
     }
 
     // ==========================================
