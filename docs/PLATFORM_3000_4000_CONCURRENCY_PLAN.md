@@ -44,6 +44,7 @@ This repository now includes the concrete baseline changes required to move from
 - Add fetch-join/entity-graph strategy where repositories fan out and create N+1 behavior during CRM list endpoints.
 - Move cross-domain side effects to outbox-only async consumers so write transaction scope remains short.
 - Enforce pagination on admin/high-cardinality endpoints (no unpaged `findAll` reads).
+- Cap recommendation candidate scans and avoid per-loan-type query fan-out on public product grid APIs.
 
 ## Step 4 — HA + Edge Performance (what to change next)
 

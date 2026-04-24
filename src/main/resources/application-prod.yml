@@ -73,6 +73,9 @@ aws:
     region: ${AWS_REGION:ap-south-1}
 
 app:
+  recommendation:
+    max-results: ${RECO_MAX_RESULTS:8}
+    candidate-pool-size: ${RECO_CANDIDATE_POOL_SIZE:500}
   webhooks:
     sns:
       shared-secret: ${WEBHOOK_SECRET:dummy_webhook_secret_for_testing}
