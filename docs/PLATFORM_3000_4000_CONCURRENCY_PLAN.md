@@ -53,6 +53,7 @@ This repository now includes the concrete baseline changes required to move from
 - Enable CDN caching headers for immutable static assets on frontend deploy artifact.
 - Add OpenTelemetry trace export for request-path + DB wait visibility.
 - Add API-level `Cache-Control` + ETag on read-heavy public endpoints to cut repeat-origin load.
+- Add Micrometer timers + percentile histograms/SLO buckets for public APIs and recommendation compute path.
 
 ## Configuration envelope for 3k/4k target
 

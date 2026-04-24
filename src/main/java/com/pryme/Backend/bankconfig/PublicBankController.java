@@ -2,6 +2,7 @@ package com.pryme.Backend.bankconfig;
 
 import io.swagger.v3.oas.annotations.Operation;
 
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +23,7 @@ public class PublicBankController {
 
     @Operation(summary = "One-line description of this endpoint")
     @GetMapping("/partners")
+    @Timed(value = "pryme.api.public.partner_banks", description = "Public partner banks latency")
     public ResponseEntity<Map<String, List<PartnerBankResponse>>> partners() {
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.maxAge(Duration.ofMinutes(5)).cachePublic())

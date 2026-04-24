@@ -104,5 +104,12 @@ management:
         enabled: true
       show-details: never
   metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        pryme.recommendation.compute: true
+      slo:
+        http.server.requests: 100ms,250ms,500ms,1s,2s
+        pryme.recommendation.compute: 50ms,100ms,250ms,500ms
     tags:
       application: pryme-modular-monolith

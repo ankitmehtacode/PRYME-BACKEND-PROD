@@ -2,6 +2,7 @@ package com.pryme.Backend.cms;
 
 import io.swagger.v3.oas.annotations.Operation;
 
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +23,7 @@ public class PublicTestimonialController {
 
     @Operation(summary = "One-line description of this endpoint")
     @GetMapping
+    @Timed(value = "pryme.api.public.reviews", description = "Public reviews endpoint latency")
     public ResponseEntity<Map<String, List<TestimonialResponse>>> reviews() {
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.maxAge(Duration.ofMinutes(5)).cachePublic())

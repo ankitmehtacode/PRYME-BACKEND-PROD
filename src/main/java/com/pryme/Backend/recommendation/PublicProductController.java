@@ -3,6 +3,7 @@ package com.pryme.Backend.recommendation;
 import io.swagger.v3.oas.annotations.Operation;
 
 import com.pryme.Backend.loanproduct.repository.LoanProductRepository;
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
 import org.springframework.cache.annotation.Cacheable;
@@ -28,6 +29,7 @@ public class PublicProductController {
     @Operation(summary = "One-line description of this endpoint")
     @GetMapping
     @Cacheable(cacheNames = "banks:recommendation", key = "'product-grid'")
+    @Timed(value = "pryme.api.public.products", description = "Public product grid latency")
     public ResponseEntity<Map<String, Object>> productGrid() {
         List<String> loanTypes = List.of("PERSONAL", "BUSINESS", "HOME", "EDUCATION");
         Map<String, LoanProductSnapshot> bestByType = bestProductByLoanType(loanTypes);

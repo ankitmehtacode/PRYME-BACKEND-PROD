@@ -2,6 +2,7 @@ package com.pryme.Backend.recommendation;
 
 import com.pryme.Backend.loanproduct.entity.LoanProduct;
 import com.pryme.Backend.loanproduct.repository.LoanProductRepository;
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +34,7 @@ public class BankRecommendationService {
     // stripTrailingZeros() forces "50000.00" and "50000" to evaluate to the exact same cache key.
     @Cacheable(cacheNames = "banks:recommendation",
             key = "#salary != null ? #salary.stripTrailingZeros().toPlainString() + ':' + #cibil : 'null'")
+    @Timed(value = "pryme.recommendation.compute", description = "Loan recommendation compute latency")
     public List<LoanProduct> recommend(BigDecimal salary, Integer cibil) {
 
         if (salary == null || cibil == null){

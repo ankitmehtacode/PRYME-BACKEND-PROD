@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 
 import com.pryme.Backend.loanproduct.entity.LoanProduct;
 import com.pryme.Backend.loanproduct.repository.LoanProductRepository;
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.CacheControl;
@@ -26,6 +27,7 @@ public class PublicOfferController {
     @Operation(summary = "One-line description of this endpoint")
     @GetMapping("/hero")
     @Cacheable(cacheNames = "banks:recommendation", key = "'hero-offers'")
+    @Timed(value = "pryme.api.public.hero_offers", description = "Public hero offers latency")
     public ResponseEntity<Map<String, Object>> heroOffers() {
         List<HeroOfferResponse> offers = loanProductRepository.findTop3ByActiveTrueOrderByRoiAsc()
                 .stream()
