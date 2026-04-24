@@ -1,8 +1,9 @@
 package com.pryme.Backend.loanproduct;
 
 public enum LoanProductType {
-    HOME,
-    PERSONAL,
-    BUSINESS,
+    HOME_LOAN,
+    LAP,
+    PERSONAL_LOAN,
+    BUSINESS_LOAN,
     EDUCATION
 }

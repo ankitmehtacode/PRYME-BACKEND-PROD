@@ -8,5 +8,7 @@ public record ElevateRequest(
         UUID leadId,
 
         @NotNull(message = "Authenticated User ID is strictly required to bind the application")
-        UUID userId
+        UUID userId,
+
+        String selectedBank
 ) {}

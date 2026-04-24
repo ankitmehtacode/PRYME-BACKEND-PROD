@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
  * It returns all dropdown/select data from database enums and live bank configs.
  *
  * Contract: GET /api/v1/config/dictionaries
- * Auth:     Required (authenticated users only — falls through to anyRequest().authenticated())
+ * Auth:     Public (dropdown labels, state codes — zero sensitive data)
  * Cache:    L1 Caffeine — invalidated on bank CRUD via BankService.surgicallyEvictCaches()
  */
 @RestController

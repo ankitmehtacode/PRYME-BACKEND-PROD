@@ -9,6 +9,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
+import java.util.Map;
+import java.util.HashMap;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 @Service
 @RequiredArgsConstructor
@@ -18,8 +22,10 @@ public class LeadElevationService {
     private final LoanApplicationRepository applicationRepository;
     private final UserRepository userRepository;
 
+    private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
+
     @Transactional
-    public ApplicationResponse elevate(UUID leadId, UUID userId) {
+    public ApplicationResponse elevate(UUID leadId, UUID userId, String selectedBank) {
 
         // 1. Validate the public lead exists
         Lead lead = leadRepository.findById(leadId)
@@ -37,6 +43,15 @@ public class LeadElevationService {
         // 4. Generate sequential CRM Application ID
         String generateAppId = "PRY-" + (10000 + applicationRepository.count() + 1);
 
+        Map<String, Object> metadataMap = new HashMap<>();
+        if (lead.getMetadata() != null && !lead.getMetadata().isBlank()) {
+            try {
+                metadataMap = JSON_MAPPER.readValue(lead.getMetadata(), new TypeReference<Map<String, Object>>() {});
+            } catch (Exception e) {
+                // Ignore parsing errors, default to empty map
+            }
+        }
+
         // 5. Fuse the data into the highly-secure LoanApplication entity
         LoanApplication application = LoanApplication.builder()
                 .applicationId(generateAppId)
@@ -44,6 +59,8 @@ public class LeadElevationService {
                 .loanType(lead.getLoanType())
                 .requestedAmount(lead.getLoanAmount())
                 .declaredCibilScore(lead.getCibilScore() != null ? lead.getCibilScore() : 0)
+                .selectedBank(selectedBank)
+                .metadata(metadataMap)
                 .status(ApplicationStatus.SUBMITTED) // Places it natively into the Admin Kanban board
                 .build();
 

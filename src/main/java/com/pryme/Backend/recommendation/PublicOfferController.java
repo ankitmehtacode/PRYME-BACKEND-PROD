@@ -34,10 +34,13 @@ public class PublicOfferController {
     }
 
     private HeroOfferResponse toHeroOffer(LoanProduct product) {
-        String lenderName = product.getLenderName();
-        String displayType = product.getLoanType();
+        String lenderName = product.getLenderName() != null ? product.getLenderName() : "unknown";
+        String displayType = product.getLoanType() != null ? product.getLoanType() : "loan";
+        String idStr = String.valueOf(product.getId());
+        // Safe slug: lender-name-{id} — no substring crash regardless of ID length
+        String slug = lenderName.toLowerCase().replace(" ", "-") + "-" + idStr;
         return new HeroOfferResponse(
-                lenderName.toLowerCase().replace(" ", "-") + "-" + product.getId().toString().substring(0, 8),
+                slug,
                 product.getId(),
                 product.getLenderId(),
                 lenderName,

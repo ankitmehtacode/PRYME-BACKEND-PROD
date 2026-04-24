@@ -78,6 +78,7 @@ public class SecurityConfig {
                                                         "/api-docs",
                                                         "/error", "/api/v1/auth/**", "/api/v1/public/**",
                                                         "/api/v1/eligibility/**", "/api/v1/calculators/**",
+                                                        "/api/v1/config/dictionaries",
                                                         "/internal/webhooks/**", "/actuator/health").permitAll();
 
                                         auth.requestMatchers(HttpMethod.POST, "/api/v1/leads").permitAll();

@@ -32,6 +32,10 @@ public class EligibilityCondition {
     @Column(name = "employment_type", length = 50)
     private String employmentType;
 
+    // NIP (Net Income Program), BANKING (ABB), GST, STANDARD
+    @Column(name = "surrogate", length = 50)
+    private String surrogate;
+
     @Column(name = "min_age")
     private Integer minAge;
 
@@ -77,7 +81,7 @@ public class EligibilityCondition {
     @Column(name = "emi_not_obligated")
     private Boolean emiNotObligated;
 
-    @Column(name = "property_type")
+    @Column(name = "property_type", columnDefinition = "text")
     private String propertyType;
 
     @Column(name = "negative_property", columnDefinition = "text")
@@ -86,10 +90,10 @@ public class EligibilityCondition {
     @Column(name = "city_tier", length = 20)
     private String cityTier;
 
-    @Column(name = "profile_restrictions")
+    @Column(name = "profile_restrictions", columnDefinition = "text")
     private String profileRestrictions;
 
-    @Column(name = "notes")
+    @Column(name = "notes", columnDefinition = "text")
     private String notes;
 
     @Builder.Default

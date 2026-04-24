@@ -21,7 +21,7 @@ public class ElevationController {
     public ResponseEntity<Map<String, Object>> elevateLead(
             @Valid @RequestBody ElevateRequest request
     ) {
-        ApplicationResponse elevatedApp = elevationService.elevate(request.leadId(), request.userId());
+        ApplicationResponse elevatedApp = elevationService.elevate(request.leadId(), request.userId(), request.selectedBank());
 
         return ResponseEntity.ok(Map.of(
                 "code", "SUCCESS",
