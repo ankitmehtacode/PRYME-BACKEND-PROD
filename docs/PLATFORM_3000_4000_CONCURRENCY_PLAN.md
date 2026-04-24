@@ -13,12 +13,7 @@ This repository now includes the concrete baseline changes required to move from
 - The old `ThreadPoolTaskExecutor` (`core=20`, `max=500`, queue `4000`) introduced queue latency and complex backpressure behavior.
 - Neon with PgBouncer should not be fronted by a very large app-side idle pool.
 
-## Step 2 — Systemic Debug + Stress Gate (implemented tooling)
-
-### Delivered assets
-- `performance/k6/steady_3k.js` for 3,000-user steady profile.
-- `performance/k6/peak_4k.js` for 4,000-user peak profile.
-- `scripts/loadtest_gate.sh` to run both gates via Dockerized k6.
+## Step 2 — Systemic Debug + Stress Gate (what to run next)
 
 ### Required load profile
 - **Steady state target:** 3,000 concurrent users for 30 minutes.
