@@ -84,6 +84,7 @@ app:
   recommendation:
     max-results: ${RECO_MAX_RESULTS:8}
     candidate-pool-size: ${RECO_CANDIDATE_POOL_SIZE:500}
+main
   session:
     cookie-name: PRYME_SID
     ttl-seconds: 3600
