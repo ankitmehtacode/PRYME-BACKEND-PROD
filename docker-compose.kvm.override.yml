@@ -1,8 +1,4 @@
 services:
   pryme-backend:
-    devices:
-      - /dev/kvm:/dev/kvm
-    device_cgroup_rules:
-      - 'c 10:232 rwm'
     tmpfs:
       - /tmp:size=512m
