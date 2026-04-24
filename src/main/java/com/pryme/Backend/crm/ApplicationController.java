@@ -10,6 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -113,16 +115,22 @@ public class ApplicationController {
     // ==========================================
     @Operation(summary = "One-line description of this endpoint")
     @GetMapping("/me")
-    public ResponseEntity<Page<ApplicationResponse>> getMyApplications(Authentication authentication) {
+    public ResponseEntity<Page<ApplicationResponse>> getMyApplications(
+            Authentication authentication,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
         UUID userId = extractUserId(authentication);
-        return ResponseEntity.ok(applicationService.listMyApplications(userId, Pageable.unpaged()));
+        return ResponseEntity.ok(applicationService.listMyApplications(userId, pageable));
     }
 
     // Admin endpoint to view the entire matrix
     @Operation(summary = "One-line description of this endpoint")
     @GetMapping
-    public ResponseEntity<Page<ApplicationResponse>> getAllApplications(Authentication authentication) {
+    public ResponseEntity<Page<ApplicationResponse>> getAllApplications(
+            Authentication authentication,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
         extractUserId(authentication);
-        return ResponseEntity.ok(applicationService.listApplications(Pageable.unpaged()));
+        return ResponseEntity.ok(applicationService.listApplications(pageable));
     }
 }

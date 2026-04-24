@@ -1,5 +1,3 @@
-# 🧠 SECURITY: Disable Swagger/API Docs in Production
-# Prevents attackers from viewing the full API schema at /swagger-ui.html
 springdoc:
   api-docs:
     enabled: false
@@ -12,13 +10,15 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
     hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
-      connection-timeout: 3000
-      idle-timeout: 600000
-      max-lifetime: 1800000
+      maximum-pool-size: ${DB_POOL_MAX:24}
+      minimum-idle: ${DB_POOL_MIN_IDLE:0}
+      connection-timeout: ${DB_CONN_TIMEOUT_MS:3000}
+      idle-timeout: 60000
+      max-lifetime: 900000
+      keepalive-time: 30000
+      validation-timeout: 1000
       pool-name: PrymeHikariPool
-      leak-detection-threshold: 10000
+      leak-detection-threshold: 0
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -35,6 +35,14 @@ spring:
           order_inserts: true
           order_updates: true
           generate_statistics: false
+
+server:
+  tomcat:
+    threads:
+      max: ${TOMCAT_MAX_THREADS:300}
+      min-spare: ${TOMCAT_MIN_SPARE:20}
+    accept-count: ${TOMCAT_ACCEPT_COUNT:1000}
+    max-connections: ${TOMCAT_MAX_CONNECTIONS:4096}
 
 management:
   endpoints:
@@ -69,14 +77,8 @@ app:
     sns:
       shared-secret: ${WEBHOOK_SECRET:dummy_webhook_secret_for_testing}
   session:
-    # 🧠 PRODUCTION: Cookie domain allows sharing across subdomains (crm.pryme.in, api.pryme.in)
-    # Remove this line if running on a single domain behind Nginx reverse proxy
     cookie-domain: ${COOKIE_DOMAIN:}
     cookie-secure: true
   security:
-    # 🧠 PRODUCTION: ONLY allow the actual frontend domains. ZERO localhost.
-    # Anyone trying to make cross-origin requests from localhost will be blocked.
     allowed-origins: ${ALLOWED_ORIGINS:https://gopryme.tech,https://www.gopryme.tech,https://api.gopryme.tech}
-    # 🧠 CSP connect-src: If the frontend and API are on the same domain behind Nginx,
-    # 'self' is sufficient. If they're on different subdomains, set this explicitly.
     csp-connect-src: ${CSP_CONNECT_SRC:}
