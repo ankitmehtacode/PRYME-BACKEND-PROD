@@ -12,6 +12,9 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -58,6 +61,31 @@ public class S3PresignedUrlService {
                 .build();
 
         PresignedPutObjectRequest presignedRequest = s3Presigner.presignPutObject(presignRequest);
+
+        return new PresignedUrlResponse(presignedRequest.url().toString(), documentId, expiresAt);
+    }
+
+    public PresignedUrlResponse generateDownloadUrl(String documentId) {
+        if ("dummy_bucket".equals(awsS3Properties.bucket())) {
+            Duration ttl = Duration.ofMinutes(15);
+            Instant expiresAt = Instant.now().plus(ttl);
+            return new PresignedUrlResponse("http://localhost:8080/dummy-s3-download/" + documentId, documentId, expiresAt);
+        }
+
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(awsS3Properties.bucket())
+                .key(documentId)
+                .build();
+
+        Duration ttl = Duration.ofMinutes(15);
+        Instant expiresAt = Instant.now().plus(ttl);
+
+        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                .signatureDuration(ttl)
+                .getObjectRequest(getObjectRequest)
+                .build();
+
+        PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(presignRequest);
 
         return new PresignedUrlResponse(presignedRequest.url().toString(), documentId, expiresAt);
     }

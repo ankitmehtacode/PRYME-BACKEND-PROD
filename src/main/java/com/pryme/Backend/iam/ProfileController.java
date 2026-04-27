@@ -38,7 +38,7 @@ public class ProfileController {
         UUID userId = userIdFromAuth(authentication);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UnauthorizedException("User not found"));
-        return ResponseEntity.ok(UserProfileResponse.from(user));
+        return ResponseEntity.ok(createProfileResponse(user));
     }
 
     @Operation(summary = "Update user profile and metadata")
@@ -64,7 +64,27 @@ public class ProfileController {
         }
 
         user = userRepository.save(user);
-        return ResponseEntity.ok(UserProfileResponse.from(user));
+        return ResponseEntity.ok(createProfileResponse(user));
+    }
+
+    private UserProfileResponse createProfileResponse(User user) {
+        String profileUrl = user.getProfilePictureUrl();
+        if (profileUrl != null && !profileUrl.isBlank() && !profileUrl.startsWith("http")) {
+            // It's an S3 object key, generate a secure, temporary GET URL
+            profileUrl = s3PresignedUrlService.generateDownloadUrl(profileUrl).uploadUrl();
+        }
+
+        return new UserProfileResponse(
+                user.getId(),
+                user.getEmail(),
+                user.getFullName(),
+                user.getPhone() != null ? user.getPhone() : user.getPhoneNumber(),
+                user.getCity(),
+                user.getState(),
+                profileUrl,
+                user.getRole().name(),
+                user.getMetadata()
+        );
     }
 
     @Operation(summary = "Generate S3 upload URL for profile picture")
