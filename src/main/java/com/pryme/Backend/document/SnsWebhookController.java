@@ -40,7 +40,7 @@ public class SnsWebhookController {
     @PostMapping("/s3-event")
     public ResponseEntity<Void> receiveS3Event(
             @RequestHeader("x-amz-sns-message-type") String snsMessageType,
-            @RequestHeader(value = "x-internal-shared-secret", required = false) String providedSecret,
+            @org.springframework.web.bind.annotation.RequestParam(value = "secret", required = false) String providedSecret,
             @RequestBody String payload
     ) {
         if (!StringUtils.hasText(sharedSecret) || !sharedSecret.equals(providedSecret)) {
