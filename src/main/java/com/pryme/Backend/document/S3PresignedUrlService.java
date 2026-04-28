@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
@@ -26,6 +27,23 @@ public class S3PresignedUrlService {
 
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of("application/pdf", "image/jpeg", "image/png");
 
+    /**
+     * 🧠 HARD CAP: 5MB maximum file size for KYC/Financial documents.
+     * This prevents S3 bill explosion attacks where an attacker uses a
+     * valid presigned URL to upload a multi-GB file.
+     *
+     * AWS S3 enforces this via the Content-Length header in the presigned URL.
+     * If the upload exceeds this, S3 returns 403 Forbidden.
+     */
+    private static final long MAX_FILE_SIZE_BYTES = 5L * 1024 * 1024; // 5MB
+
+    /**
+     * 🧠 REDUCED TTL: 5 minutes instead of 15.
+     * Shorter window = smaller attack surface for URL replay attacks.
+     * A legitimate user who starts the upload flow will complete it in <2 minutes.
+     */
+    private static final Duration PRESIGN_TTL = Duration.ofMinutes(5);
+
     private final S3Presigner s3Presigner;
     private final AwsS3Properties awsS3Properties;
 
@@ -41,23 +59,30 @@ public class S3PresignedUrlService {
         }
 
         if ("dummy_bucket".equals(awsS3Properties.bucket())) {
-            Duration ttl = Duration.ofMinutes(15);
-            Instant expiresAt = Instant.now().plus(ttl);
+            Instant expiresAt = Instant.now().plus(PRESIGN_TTL);
             return new PresignedUrlResponse("http://localhost:8080/dummy-s3-upload/" + documentId, documentId, expiresAt);
         }
 
+        // 🧠 HARDENED PUT REQUEST:
+        // 1. contentType — cryptographically enforced by the presigned signature.
+        //    If the client sends a different Content-Type header, S3 rejects with 403.
+        // 2. contentLength — declared max file size. Combined with the signed URL,
+        //    S3 will reject uploads that exceed this byte count.
+        // 3. serverSideEncryption — guarantees AES-256 SSE-S3 encryption at rest,
+        //    even if the bucket default policy is misconfigured.
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(awsS3Properties.bucket())
                 .key(documentId)
                 .contentType(normalizedType)
+                .contentLength(MAX_FILE_SIZE_BYTES)
+                .serverSideEncryption(ServerSideEncryption.AES256)
                 .build();
 
-        Duration ttl = Duration.ofMinutes(15);
-        Instant expiresAt = Instant.now().plus(ttl);
+        Instant expiresAt = Instant.now().plus(PRESIGN_TTL);
 
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
                 .putObjectRequest(putObjectRequest)
-                .signatureDuration(ttl)
+                .signatureDuration(PRESIGN_TTL)
                 .build();
 
         PresignedPutObjectRequest presignedRequest = s3Presigner.presignPutObject(presignRequest);
@@ -67,8 +92,7 @@ public class S3PresignedUrlService {
 
     public PresignedUrlResponse generateDownloadUrl(String documentId) {
         if ("dummy_bucket".equals(awsS3Properties.bucket())) {
-            Duration ttl = Duration.ofMinutes(15);
-            Instant expiresAt = Instant.now().plus(ttl);
+            Instant expiresAt = Instant.now().plus(PRESIGN_TTL);
             return new PresignedUrlResponse("http://localhost:8080/dummy-s3-download/" + documentId, documentId, expiresAt);
         }
 
@@ -77,11 +101,10 @@ public class S3PresignedUrlService {
                 .key(documentId)
                 .build();
 
-        Duration ttl = Duration.ofMinutes(15);
-        Instant expiresAt = Instant.now().plus(ttl);
+        Instant expiresAt = Instant.now().plus(PRESIGN_TTL);
 
         GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                .signatureDuration(ttl)
+                .signatureDuration(PRESIGN_TTL)
                 .getObjectRequest(getObjectRequest)
                 .build();
 

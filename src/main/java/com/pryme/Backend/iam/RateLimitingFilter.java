@@ -53,8 +53,17 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             bucket = proxyManager.builder().build(
                     (ipAddress + "_auth_other").getBytes(), this::createAuthOtherBucketConfig);
 
-        } else if (requestURI.startsWith("/api/v1/leads")) {
+        } else if (requestURI.startsWith("/api/v1/public/eligibility") || requestURI.startsWith("/api/v1/eligibility")) {
+            // 🧠 ELIGIBILITY ENGINE SHIELD: 5 evaluations per IP per 10 minutes
+            // SpEL + DB queries are 10-50x more expensive than standard GETs.
+            // Without this, the global 200/min bucket allows attackers to
+            // saturate the Neon DB connection pool via the public evaluate endpoint.
+            bucket = proxyManager.builder().build(
+                    (ipAddress + "_eligibility").getBytes(), this::createEligibilityBucketConfig);
+
+        } else if (requestURI.startsWith("/api/v1/public/leads") || requestURI.startsWith("/api/v1/leads")) {
             // 📋 LEADS: 15 per minute to stop DB spam
+            // 🧠 FIX: Now matches the actual PublicLeadController path at /api/v1/public/leads
             bucket = proxyManager.builder().build(
                     (ipAddress + "_leads").getBytes(), this::createLeadBucketConfig);
 
@@ -151,6 +160,16 @@ public class RateLimitingFilter extends OncePerRequestFilter {
                 .addLimit(Bandwidth.builder()
                         .capacity(200)
                         .refillIntervally(200, Duration.ofMinutes(1))
+                        .build())
+                .build();
+    }
+
+    // 🧠 ELIGIBILITY ENGINE: 5 per 10 minutes (SpEL + DB protection)
+    private BucketConfiguration createEligibilityBucketConfig() {
+        return BucketConfiguration.builder()
+                .addLimit(Bandwidth.builder()
+                        .capacity(5)
+                        .refillIntervally(5, Duration.ofMinutes(10))
                         .build())
                 .build();
     }

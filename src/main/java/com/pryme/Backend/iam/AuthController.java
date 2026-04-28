@@ -16,6 +16,8 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import com.pryme.Backend.crm.LeadRepository;
+import com.pryme.Backend.crm.LeadStatus;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -40,6 +42,7 @@ public class AuthController {
     private final SessionManager sessionManager;
     private final SessionCookieHelper cookieHelper;
     private final ObjectMapper objectMapper;
+    private final LeadRepository leadRepository;
 
     @Value("${GOOGLE_CLIENT_ID:}")
     private String googleClientId;
@@ -50,12 +53,13 @@ public class AuthController {
 
     public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder,
                           SessionManager sessionManager, SessionCookieHelper cookieHelper,
-                          ObjectMapper objectMapper) {
+                          ObjectMapper objectMapper, LeadRepository leadRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.sessionManager = sessionManager;
         this.cookieHelper = cookieHelper;
         this.objectMapper = objectMapper;
+        this.leadRepository = leadRepository;
     }
 
     // ==========================================
@@ -126,13 +130,17 @@ public class AuthController {
                 derivePermissions(user.getRole())
         );
 
+        // 🧠 LEAD HANDOFF: Validate and echo the anonymous lead UUID
+        String pendingLeadId = validateAndResolveLead(request.leadId());
+
         return ResponseEntity.ok(new LoginResponse(
                 user.getId(),
                 user.getRole().name(),
                 user.getFullName(),
                 session.getExpiresAt(),
                 "Login successful",
-                mePayload
+                mePayload,
+                pendingLeadId
         ));
     }
 
@@ -292,13 +300,17 @@ public class AuthController {
                 derivePermissions(user.getRole())
         );
 
+        // 🧠 LEAD HANDOFF: Check for leadId in Google OAuth body
+        String pendingLeadId = validateAndResolveLead(body.get("leadId"));
+
         return ResponseEntity.ok(new LoginResponse(
                 user.getId(),
                 user.getRole().name(),
                 user.getFullName(),
                 session.getExpiresAt(),
                 "Google authentication successful",
-                mePayload
+                mePayload,
+                pendingLeadId
         ));
     }
 
@@ -307,6 +319,29 @@ public class AuthController {
             throw new UnauthorizedException("Authentication required");
         }
         return (UUID) authentication.getPrincipal();
+    }
+
+    /**
+     * 🧠 LEAD HANDOFF VALIDATOR: Prevents injection attacks by:
+     * 1. Validating the leadId is a proper UUID format (not SQL/XSS payload)
+     * 2. Checking the lead actually exists and hasn't been converted already
+     * 3. Returns null if invalid — never throws (login must always succeed)
+     */
+    private String validateAndResolveLead(String leadId) {
+        if (leadId == null || leadId.isBlank()) {
+            return null;
+        }
+        try {
+            UUID parsed = UUID.fromString(leadId.trim());
+            // Verify the lead exists and is still claimable
+            return leadRepository.findById(parsed)
+                    .filter(lead -> lead.getStatus() != LeadStatus.CONVERTED)
+                    .map(lead -> lead.getId().toString())
+                    .orElse(null);
+        } catch (IllegalArgumentException e) {
+            // Invalid UUID format — possible injection attempt. Silently ignore.
+            return null;
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

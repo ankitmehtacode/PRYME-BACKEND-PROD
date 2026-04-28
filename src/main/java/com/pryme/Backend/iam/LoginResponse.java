@@ -14,6 +14,10 @@ import java.util.UUID;
  * dependency for the initial redirect.
  *
  * Contract: The `user` field maps 1:1 to the frontend's MeResponse interface.
+ *
+ * 🧠 LEAD HANDOFF: `pendingLeadId` is set when the user logged in with an
+ * anonymous lead UUID. The frontend reads this and auto-calls /elevate.
+ * Will be null if no lead was attached to the login request.
  */
 public record LoginResponse(
         UUID id,
@@ -21,5 +25,6 @@ public record LoginResponse(
         String name,
         Instant expiresAt,
         String message,
-        MeResponse user   // 🧠 THE PAYLOAD: Full identity for instant cache hydration
+        MeResponse user,
+        String pendingLeadId
 ) {}
