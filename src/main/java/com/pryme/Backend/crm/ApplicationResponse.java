@@ -2,6 +2,7 @@ package com.pryme.Backend.crm;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Map;
 
 /**
  * 🧠 SILICON-GRADE DTO:
@@ -20,6 +21,8 @@ public record ApplicationResponse(
         // 🧠 NEW: Progressive Profiling & Lead Salvage Engine
         Integer completionPercentage,
         String currentStep,
+
+        Map<String, Object> metadata, // 🧠 FIXED: Expose application metadata for frontend hydration
 
         String assignee,
         Instant createdAt, // 🧠 UPGRADED: Standardized to UTC Instant
@@ -48,6 +51,8 @@ public record ApplicationResponse(
                 // 🧠 FALLBACK INJECTION: If a legacy application lacks this data, default to post-auth state
                 app.getCompletionPercentage() != null ? app.getCompletionPercentage() : 50,
                 app.getCurrentStep() != null ? app.getCurrentStep() : "COMPLEX_PROFILING",
+
+                app.getMetadata(), // 🧠 FIXED: Re-hydrate dashboard forms correctly
 
                 assigneeName,
                 app.getCreatedAt(),
