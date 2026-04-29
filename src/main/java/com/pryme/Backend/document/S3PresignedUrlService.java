@@ -60,7 +60,7 @@ public class S3PresignedUrlService {
 
         if ("dummy_bucket".equals(awsS3Properties.bucket())) {
             Instant expiresAt = Instant.now().plus(PRESIGN_TTL);
-            return new PresignedUrlResponse("http://localhost:8080/dummy-s3-upload/" + documentId, documentId, expiresAt);
+            return new PresignedUrlResponse("/api/v1/dummy-s3-upload/" + documentId, documentId, expiresAt);
         }
 
         // 🧠 HARDENED PUT REQUEST:
@@ -74,7 +74,6 @@ public class S3PresignedUrlService {
                 .bucket(awsS3Properties.bucket())
                 .key(documentId)
                 .contentType(normalizedType)
-                .contentLength(MAX_FILE_SIZE_BYTES)
                 .serverSideEncryption(ServerSideEncryption.AES256)
                 .build();
 
@@ -93,7 +92,7 @@ public class S3PresignedUrlService {
     public PresignedUrlResponse generateDownloadUrl(String documentId) {
         if ("dummy_bucket".equals(awsS3Properties.bucket())) {
             Instant expiresAt = Instant.now().plus(PRESIGN_TTL);
-            return new PresignedUrlResponse("http://localhost:8080/dummy-s3-download/" + documentId, documentId, expiresAt);
+            return new PresignedUrlResponse("/api/v1/dummy-s3-download/" + documentId, documentId, expiresAt);
         }
 
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()
@@ -170,7 +169,9 @@ class S3PresignerConfiguration {
             if (e.statusCode() == 301) {
                 throw new IllegalStateException("🚨 FATAL: Bucket exists but is physically located outside " + region + "! Data Residency Breach.", e);
             } else if (e.statusCode() == 403) {
-                throw new IllegalStateException("🚨 FATAL: Access Denied to Bucket '" + awsS3Properties.bucket() + "'. Check IAM Instance Role/Keys.", e);
+                log.warn("⚠️ S3 HeadBucket returned 403 for '{}'. IAM may lack s3:ListBucket on the bucket ARN. " +
+                         "Presigned URL operations (PutObject/GetObject) may still work. Continuing startup.", awsS3Properties.bucket());
+                return;
             } else if (e.statusCode() == 404) {
                 throw new IllegalStateException("🚨 FATAL: Bucket '" + awsS3Properties.bucket() + "' DOES NOT EXIST.", e);
             }

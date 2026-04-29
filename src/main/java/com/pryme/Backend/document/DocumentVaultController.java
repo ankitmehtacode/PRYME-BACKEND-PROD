@@ -66,11 +66,11 @@ public class DocumentVaultController {
         ));
     }
 
-    @Operation(summary = "One-line description of this endpoint")
+    @Operation(summary = "Initiates a zero-trust S3 upload session")
     @PostMapping("/documents/initiate-upload")
     public ResponseEntity<S3PresignedUrlService.PresignedUrlResponse> initiateUpload(@Valid @RequestBody DocumentUploadRequest request) {
-        vaultService.markAwaitingUpload(request.documentId());
-        return ResponseEntity.ok(s3PresignedUrlService.generateUploadUrl(request.documentId(), request.contentType()));
+        DocumentRecord doc = vaultService.initiateDocumentUpload(request);
+        return ResponseEntity.ok(s3PresignedUrlService.generateUploadUrl(doc.getS3ObjectKey(), request.contentType()));
     }
 
     // ==========================================
@@ -86,9 +86,9 @@ public class DocumentVaultController {
     // ==========================================
     // 🧠 4. ZERO-TRUST BINARY STREAMING GATEWAY (NEW)
     // ==========================================
-    @Operation(summary = "One-line description of this endpoint")
+    @Operation(summary = "Secure Document Download Gateway")
     @GetMapping("/documents/{documentId}/download")
-    public ResponseEntity<Resource> downloadDocument(
+    public ResponseEntity<?> downloadDocument(
             @PathVariable UUID documentId,
             Authentication authentication) {
 
@@ -100,11 +100,18 @@ public class DocumentVaultController {
         // 2. Fetch the metadata to correctly set HTTP Headers
         DocumentRecord metadata = vaultService.getDocumentMetadata(documentId);
 
-        // 3. Initiate the Byte-Stream
+        // 3. Failproof S3 Redirect
+        if (metadata.getS3ObjectKey() != null && metadata.getS3ObjectKey().contains("/")) {
+            S3PresignedUrlService.PresignedUrlResponse response = s3PresignedUrlService.generateDownloadUrl(metadata.getS3ObjectKey());
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FOUND)
+                    .location(java.net.URI.create(response.uploadUrl()))
+                    .build();
+        }
+
+        // 4. Initiate the Byte-Stream (Local Fallback)
         Resource resource = vaultService.loadDocumentAsResource(documentId);
 
-        // 4. Pipe directly to HTTP Response
-        // Using "inline" allows PDFs/Images to open directly in the browser instead of forcing a download
+        // 5. Pipe directly to HTTP Response
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(metadata.getContentType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + metadata.getOriginalFilename() + "\"")

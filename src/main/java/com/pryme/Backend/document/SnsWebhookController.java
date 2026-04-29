@@ -107,18 +107,22 @@ public class SnsWebhookController {
         appendField(sb, "Message", envelope.path("Message").asText(null));
         appendField(sb, "MessageId", envelope.path("MessageId").asText(null));
 
-        if ("Notification".equals(type)) {
+        if ("Notification".equals(type) && envelope.hasNonNull("Subject")) {
             appendField(sb, "Subject", envelope.path("Subject").asText(null));
         }
 
-        appendField(sb, "Timestamp", envelope.path("Timestamp").asText(null));
-        appendField(sb, "TopicArn", envelope.path("TopicArn").asText(null));
-        appendField(sb, "Type", type);
-
         if ("SubscriptionConfirmation".equals(type) || "UnsubscribeConfirmation".equals(type)) {
             appendField(sb, "SubscribeURL", envelope.path("SubscribeURL").asText(null));
+        }
+
+        appendField(sb, "Timestamp", envelope.path("Timestamp").asText(null));
+
+        if ("SubscriptionConfirmation".equals(type) || "UnsubscribeConfirmation".equals(type)) {
             appendField(sb, "Token", envelope.path("Token").asText(null));
         }
+
+        appendField(sb, "TopicArn", envelope.path("TopicArn").asText(null));
+        appendField(sb, "Type", type);
 
         return sb.toString();
     }

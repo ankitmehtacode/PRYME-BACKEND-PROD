@@ -189,13 +189,48 @@ public class DocumentVaultService {
 
 
     @Transactional
-    public void markAwaitingUpload(String documentId) {
-        DocumentRecord documentRecord = documentRecordRepository.findById(UUID.fromString(documentId))
-                .orElseThrow(() -> new NotFoundException("Document matrix not found."));
-        documentRecord.setStatus(DocumentRecord.DocumentStatus.AWAITING_UPLOAD);
-        documentRecord.setS3ObjectKey(documentId);
-        documentRecord.setUploadedAt(null);
-        documentRecordRepository.save(documentRecord);
+    public DocumentRecord initiateDocumentUpload(DocumentUploadRequest request) {
+        String safeApplicationId = sanitizeApplicationId(request.applicationId());
+        String safeDocType = sanitizeDocType(request.docType());
+
+        LoanApplication application = getAuthorizedApplication(safeApplicationId);
+
+        String cleanedOriginalFilename = sanitizeOriginalFilename(request.filename());
+        String extension = extensionFromFilename(cleanedOriginalFilename);
+        String normalizedContentType = request.contentType().toLowerCase(Locale.ROOT);
+
+        if (!ALLOWED_EXTENSIONS.contains(extension)) {
+            throw new IllegalArgumentException("Unsupported document extension. Allowed: pdf, jpg, jpeg, png");
+        }
+        validateMimeExtensionConsistency(normalizedContentType, extension);
+
+        UUID uploaderId = userIdFromAuth();
+        String tempUnique = UUID.randomUUID().toString();
+
+        DocumentRecord newDocument = DocumentRecord.builder()
+                .docType(safeDocType)
+                .originalFilename(cleanedOriginalFilename)
+                .contentType(normalizedContentType)
+                .storagePath("PENDING_" + tempUnique)
+                .fileSize(request.fileSize())
+                .checksum("PENDING_S3_UPLOAD")
+                .uploadedBy(uploaderId)
+                .s3ObjectKey("PENDING_" + tempUnique)
+                .status(DocumentRecord.DocumentStatus.AWAITING_UPLOAD)
+                .build();
+
+        application.addDocument(newDocument);
+        DocumentRecord saved = documentRecordRepository.save(newDocument);
+        
+        String s3ObjectKey = safeApplicationId + "/" + saved.getId().toString();
+        saved.setStoragePath(s3ObjectKey);
+        saved.setS3ObjectKey(s3ObjectKey);
+        
+        saved = documentRecordRepository.save(saved);
+        loanApplicationRepository.save(application);
+
+        log.info("Secure Vault: Initiated zero-trust document creation. Document {} assigned to Application {}", saved.getId(), safeApplicationId);
+        return saved;
     }
 
     @Transactional
