@@ -66,15 +66,14 @@ public class S3PresignedUrlService {
         // 🧠 HARDENED PUT REQUEST:
         // 1. contentType — cryptographically enforced by the presigned signature.
         //    If the client sends a different Content-Type header, S3 rejects with 403.
-        // 2. contentLength — declared max file size. Combined with the signed URL,
-        //    S3 will reject uploads that exceed this byte count.
-        // 3. serverSideEncryption — guarantees AES-256 SSE-S3 encryption at rest,
-        //    even if the bucket default policy is misconfigured.
+        // 2. Encryption — handled by S3 bucket-level default encryption (SSE-S3).
+        //    All objects are encrypted at rest automatically. We do NOT sign the
+        //    x-amz-server-side-encryption header here because it forces the frontend
+        //    to send that exact header, creating signature mismatches and CORS issues.
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(awsS3Properties.bucket())
                 .key(documentId)
                 .contentType(normalizedType)
-                .serverSideEncryption(ServerSideEncryption.AES256)
                 .build();
 
         Instant expiresAt = Instant.now().plus(PRESIGN_TTL);
