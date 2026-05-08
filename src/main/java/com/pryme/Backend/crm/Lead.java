@@ -55,6 +55,9 @@ public class Lead {
     @Column(length = 40, unique = true)
     private String idempotencyKey;
 
+    @Column(name = "assigned_to")
+    private UUID assignedTo;
+
     private LocalDateTime createdAt;
 
     @PrePersist

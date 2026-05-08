@@ -78,6 +78,7 @@ public class User implements java.io.Serializable {
     private String phone;
 
     // Replacing @ElementCollection, @CollectionTable with @JdbcTypeCode and @Column
+    @Setter
     @JsonIgnore
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")

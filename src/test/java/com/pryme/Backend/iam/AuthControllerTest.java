@@ -11,6 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.pryme.Backend.crm.LeadRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -38,13 +39,15 @@ class AuthControllerTest {
     private SessionCookieHelper cookieHelper;
     @Mock
     private ObjectMapper objectMapper;
+    @Mock
+    private LeadRepository leadRepository;
 
     private AuthController authController;
 
     @BeforeEach
     void setUp() {
         // 🧠 Core Engine Initialization (now includes SessionCookieHelper)
-        authController = new AuthController(userRepository, passwordEncoder, sessionManager, cookieHelper, objectMapper);
+        authController = new AuthController(userRepository, passwordEncoder, sessionManager, cookieHelper, objectMapper, leadRepository);
     }
 
     // ==========================================
@@ -134,7 +137,7 @@ class AuthControllerTest {
 
         UnauthorizedException ex = assertThrows(
                 UnauthorizedException.class,
-                () -> authController.login(new LoginRequest("x@pryme.com", "bad", "web"), mockResponse)
+                () -> authController.login(new LoginRequest("x@pryme.com", "bad", "web", null), mockResponse)
         );
 
         assertEquals("Invalid email or password", ex.getMessage());

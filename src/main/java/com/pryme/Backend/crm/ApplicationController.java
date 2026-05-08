@@ -130,7 +130,17 @@ public class ApplicationController {
             Authentication authentication,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        extractUserId(authentication);
+        UUID userId = extractUserId(authentication);
+        
+        boolean isEmployee = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_EMPLOYEE"));
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+
+        if (isEmployee && !isAdmin) {
+            return ResponseEntity.ok(applicationService.listAssignedApplications(userId, pageable));
+        }
+        
         return ResponseEntity.ok(applicationService.listApplications(pageable));
     }
 }

@@ -57,7 +57,7 @@ public class BankService {
 
         Bank bank = new Bank();
         bank.setBankName(request.bankName().trim());
-        bank.setLogoUrl(request.logoUrl().trim());
+        bank.setLogoUrl(request.logoUrl() != null ? request.logoUrl().trim() : "");
         bank.setActive(request.isActive());
 
         Bank savedBank = bankRepository.save(bank);
@@ -84,7 +84,7 @@ public class BankService {
         boolean materialStatusChange = bank.isActive() != request.isActive();
 
         bank.setBankName(newName);
-        bank.setLogoUrl(request.logoUrl().trim());
+        bank.setLogoUrl(request.logoUrl() != null ? request.logoUrl().trim() : "");
         bank.setActive(request.isActive());
 
         Bank savedBank = bankRepository.save(bank);

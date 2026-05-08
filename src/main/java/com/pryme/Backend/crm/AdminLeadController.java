@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PatchMapping;
 
 @RestController
 @RequestMapping("/api/v1/admin/leads")
@@ -27,5 +28,24 @@ public class AdminLeadController {
     ) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(leadService.getLeads(pageable));
+    }
+
+    @Operation(summary = "Assign a lead to a team member")
+    @PatchMapping("/{leadId}/assign")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<LeadResponse> assignLead(
+            @org.springframework.web.bind.annotation.PathVariable java.util.UUID leadId,
+            @org.springframework.web.bind.annotation.RequestBody java.util.Map<String, String> body
+    ) {
+        String assigneeIdStr = body.get("assigneeId");
+        java.util.UUID assigneeId = null;
+        if (assigneeIdStr != null && !assigneeIdStr.isBlank()) {
+            try {
+                assigneeId = java.util.UUID.fromString(assigneeIdStr);
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest().build();
+            }
+        }
+        return ResponseEntity.ok(leadService.assignLead(leadId, assigneeId));
     }
 }

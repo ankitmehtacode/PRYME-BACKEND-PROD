@@ -13,7 +13,9 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
+import java.io.IOException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.stream.Collectors;
@@ -103,6 +105,24 @@ public class GlobalExceptionHandler {
         return null;
     }
 
+    // 🧠 FIX 6: Handle SSE Broken Pipe (Client disconnected abruptly)
+    @ExceptionHandler({AsyncRequestNotUsableException.class, IOException.class})
+    public Object handleAsyncNotUsable(Exception ex) {
+        // If it's a broken pipe / client abort, we just log debug and return null so Spring doesn't
+        // try to write JSON to a text/event-stream connection which causes HttpMessageNotWritableException
+        if ((ex.getMessage() != null && ex.getMessage().toLowerCase().contains("broken pipe")) || 
+            ex instanceof AsyncRequestNotUsableException ||
+            ex.getClass().getSimpleName().equals("ClientAbortException") ||
+            (ex.getCause() != null && ex.getCause().getClass().getSimpleName().equals("ClientAbortException"))) {
+            log.debug("SSE client disconnected abruptly (Broken pipe).");
+            return null;
+        }
+        
+        log.error("IO/Async Exception: ", ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiError("INTERNAL_ERROR", "Connection Error: " + ex.getMessage()));
+    }
+
     // 🧠 FIX 5b: Unmasking the Black Hole. This forces the REAL error message to the console and the frontend.
     @ExceptionHandler(RuntimeException.class)
     public Object handleRuntime(RuntimeException ex) {
@@ -117,8 +137,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public Object handleGeneric(Exception ex) {
-        if (ex instanceof AsyncRequestTimeoutException) {
-            log.debug("SSE connection timed out (caught in handleGeneric).");
+        if (ex instanceof AsyncRequestTimeoutException || ex instanceof AsyncRequestNotUsableException) {
+            log.debug("SSE connection timed out or disconnected (caught in handleGeneric).");
+            return null;
+        }
+        if (ex.getMessage() != null && ex.getMessage().toLowerCase().contains("broken pipe")) {
+            log.debug("SSE client disconnected abruptly (caught in handleGeneric).");
             return null;
         }
         log.error("CRITICAL UNHANDLED EXCEPTION: ", ex); // Prints the exact crash to IntelliJ

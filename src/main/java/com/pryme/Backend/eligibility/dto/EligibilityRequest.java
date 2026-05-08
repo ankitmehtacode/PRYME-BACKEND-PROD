@@ -12,7 +12,7 @@ import java.util.List;
 public record EligibilityRequest(
         Long lenderId,
         @NotNull String loanType,
-        @NotNull @Min(300) @Max(900) int cibilScore,
+        @NotNull @com.pryme.Backend.common.validation.ValidCibilScore int cibilScore,
         @NotNull @Min(18) int applicantAge,
         @NotNull String employmentType,
         @NotNull String propertyType,
@@ -25,6 +25,10 @@ public record EligibilityRequest(
         @NotNull @Min(0) int businessAgeYears,
         @NotNull @Min(0) int workExpYears,
         @NotNull IncomeComputationInput incomeComputationInput,
-        @NotNull String idempotencyKey
+        @NotNull String idempotencyKey,
+        // ── Optional fields — engine enforces only when non-null ──
+        Integer itrYearsAvailable,           // Applicant's ITR filing years
+        BigDecimal grossMonthlyIncome,       // Declared gross monthly income (for minIncome check fallback)
+        String pinCode                       // 6-digit PIN code — used for geo-fencing (Indore-only)
 ) {
 }

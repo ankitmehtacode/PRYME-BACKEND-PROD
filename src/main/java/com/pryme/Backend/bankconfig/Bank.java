@@ -16,6 +16,7 @@ public class Bank {
     @Column(nullable = false, unique = true)
     private String bankName;
 
+    @Column(columnDefinition = "TEXT")
     private String logoUrl;
 
     private boolean active;

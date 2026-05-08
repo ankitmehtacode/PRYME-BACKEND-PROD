@@ -33,6 +33,8 @@ class DocumentVaultServiceTest {
     private LoanApplicationRepository loanApplicationRepository;
     @Mock
     private DocumentRecordRepository documentRecordRepository;
+    @Mock
+    private S3PresignedUrlService s3PresignedUrlService;
 
     private Path tempDir;
     private DocumentVaultService service;
@@ -40,7 +42,7 @@ class DocumentVaultServiceTest {
     @BeforeEach
     void setUp() throws Exception {
         tempDir = Files.createTempDirectory("vault-test");
-        service = new DocumentVaultService(loanApplicationRepository, documentRecordRepository, tempDir.toString());
+        service = new DocumentVaultService(loanApplicationRepository, documentRecordRepository, s3PresignedUrlService, tempDir.toString());
     }
 
     @AfterEach

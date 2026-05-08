@@ -36,9 +36,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-        // 🧠 FIX 1: Aligned with standard .env naming conventions to prevent injection
-        // failure
-        @Value("${ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,https://gopryme.tech}")
+        // 🧠 FIX 1: Reads from application.yml → app.security.allowed-origins
+        // which in turn resolves ${ALLOWED_ORIGINS} from Docker .env if present.
+        // The YAML default includes www.gopryme.tech to prevent CORS rejections.
+        @Value("${app.security.allowed-origins:http://localhost:3000,http://localhost:5173,http://localhost:8081,https://gopryme.tech,https://www.gopryme.tech}")
         private String allowedOrigins;
 
         @Value("${app.security.csp-connect-src:}")

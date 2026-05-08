@@ -56,6 +56,38 @@ public class LoanProduct {
     @Column(name = "processing_fee", precision = 14, scale = 4)
     private BigDecimal processingFee;
 
+    /**
+     * 🧠 PIECEWISE FEE RESOLVER: SpEL expression that computes the absolute processing fee.
+     * Variable: #loanAmount (injected as double from the applicant's requested amount).
+     *
+     * Examples:
+     *   Flat %:       "#loanAmount * 0.003"                                     → 0.30%
+     *   Piecewise:    "#loanAmount <= 20000000 ? 10000.00 : #loanAmount * 0.0025" → ₹10K or 0.25%
+     *   Flat ₹:       "15000.00"                                                → ₹15,000
+     *
+     * When non-null, the FinancialComputationEngine evaluates this INSTEAD of the static
+     * processingFee field. When null, the engine falls back to processingFee × loanAmount.
+     */
+    @Column(name = "pf_computation_logic", length = 500)
+    private String pfComputationLogic;
+
+    /**
+     * 🧠 MULTI-DIMENSIONAL ROI RESOLVER: SpEL expression that computes dynamic interest rate.
+     * Variables injected by FinancialComputationEngine.resolveInterestRate():
+     *   #cibil      — Integer (applicant CIBIL score)
+     *   #loanAmount — Double  (requested loan amount)
+     *   #empType    — String  ('SALARIED', 'SEP', 'ANY')
+     *
+     * Examples:
+     *   CIBIL-tiered:   "#cibil >= 750 ? 8.20 : (#cibil >= 700 ? 8.50 : 8.90)"
+     *   Multi-dim:      "(#empType == 'SALARIED' && #cibil >= 750) ? 8.20 : 8.90"
+     *
+     * When non-null, the FinancialComputationEngine evaluates this INSTEAD of the static
+     * roi field. When null, the engine falls back to product.getRoi() (the base rate).
+     */
+    @Column(name = "roi_computation_logic", length = 2000)
+    private String roiComputationLogic;
+
     @Column(name = "prepayment_charges", precision = 6, scale = 4)
     private BigDecimal prepaymentCharges;
 

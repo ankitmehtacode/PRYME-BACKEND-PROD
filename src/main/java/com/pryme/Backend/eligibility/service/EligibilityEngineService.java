@@ -22,6 +22,7 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -39,8 +40,56 @@ public class EligibilityEngineService {
     private final PolicyFieldDefinitionRepository policyFieldDefinitionRepository;
     private final SpelExpressionCacheService spelExpressionCacheService;
     private final SimpleEvaluationContext simpleSandboxEvaluationContext;
+    private final FinancialComputationEngine financialComputationEngine;
 
     private static final BigDecimal DEFAULT_FOIR = new BigDecimal("0.65");
+
+    // ── PROPERTY TYPE NORMALIZATION ──────────────────────────────────────────
+    // DB stores categories (RESIDENTIAL, COMMERCIAL, INDUSTRIAL, LAND, PLOT).
+    // Frontend sends sub-types (FLAT, HOME, PLOT, SHOP, HOSPITAL, etc.).
+    // This map resolves sub-types → categories so the allow-list check works.
+    private static final Map<String, String> PROPERTY_SUBTYPE_TO_CATEGORY = Map.ofEntries(
+            // Residential sub-types
+            Map.entry("FLAT", "RESIDENTIAL"),
+            Map.entry("HOME", "RESIDENTIAL"),
+            Map.entry("VILLA", "RESIDENTIAL"),
+            Map.entry("APARTMENT", "RESIDENTIAL"),
+            Map.entry("BUILDER_FLOOR", "RESIDENTIAL"),
+            Map.entry("ROW_HOUSE", "RESIDENTIAL"),
+            Map.entry("PENTHOUSE", "RESIDENTIAL"),
+            Map.entry("RESIDENTIAL", "RESIDENTIAL"),
+            // Commercial sub-types
+            Map.entry("HOSPITAL", "COMMERCIAL"),
+            Map.entry("HOSTEL", "COMMERCIAL"),
+            Map.entry("RESTAURANTS", "COMMERCIAL"),
+            Map.entry("HOTEL", "COMMERCIAL"),
+            Map.entry("MARRIAGE_GARDEN", "COMMERCIAL"),
+            Map.entry("SCHOOL", "COMMERCIAL"),
+            Map.entry("SHOP", "COMMERCIAL"),
+            Map.entry("WAREHOUSE", "COMMERCIAL"),
+            Map.entry("GODOWN", "COMMERCIAL"),
+            Map.entry("OFFICE", "COMMERCIAL"),
+            Map.entry("COMMERCIAL", "COMMERCIAL"),
+            // Industrial sub-types
+            Map.entry("FACTORIES", "INDUSTRIAL"),
+            Map.entry("WAREHOUSES", "INDUSTRIAL"),
+            Map.entry("DISTRIBUTION_CENTER", "INDUSTRIAL"),
+            Map.entry("R_AND_D_FACILITY", "INDUSTRIAL"),
+            Map.entry("FLEX_SPACES", "INDUSTRIAL"),
+            Map.entry("INDUSTRIAL", "INDUSTRIAL"),
+            // Land / Plot (mapped to itself — negative property deny-list handles these)
+            Map.entry("PLOT", "PLOT"),
+            Map.entry("LAND", "LAND")
+    );
+
+    /**
+     * Resolve a frontend property sub-type to its bank-policy category.
+     * Falls back to the input itself if no mapping exists (forward-compatible).
+     */
+    private static String resolvePropertyCategory(String propertyType) {
+        if (propertyType == null) return "RESIDENTIAL";
+        return PROPERTY_SUBTYPE_TO_CATEGORY.getOrDefault(propertyType.toUpperCase(), propertyType.toUpperCase());
+    }
 
     public List<EligibilityResult> evaluate(EligibilityRequest request) {
 
@@ -55,6 +104,23 @@ public class EligibilityEngineService {
                     preflightResult.violations(),
                     "Pre-flight gate failed"
             ));
+        }
+
+        // ── STEP 1.5: GEO-FENCE — Indore-only operations ─────────────────────
+        // PRYME currently operates exclusively in Indore.
+        // Valid Indore pincodes: 452xxx (Indore city) and 453xxx (Indore district).
+        // If pinCode is provided but not from Indore, reject immediately.
+        if (request.pinCode() != null && !request.pinCode().isBlank()) {
+            String pin = request.pinCode().trim();
+            boolean isIndore = pin.length() == 6
+                    && (pin.startsWith("452") || pin.startsWith("453"));
+            if (!isIndore) {
+                log.info("🚫 GEO-FENCE: pinCode={} is outside Indore. Rejecting.", pin);
+                return List.of(EligibilityResult.rejected(
+                        List.of(String.format("Service area restricted: PIN %s is outside Indore (452xxx/453xxx)", pin)),
+                        "PRYME currently operates only in Indore"
+                ));
+            }
         }
 
         // ── STEP 2: Load candidate products by CIBIL band ────────────────────
@@ -115,7 +181,52 @@ public class EligibilityEngineService {
     private EligibilityResult evaluateProduct(LoanProduct product, EligibilityRequest request) {
 
         // a. Load eligibility conditions for this product
-        var conditions = eligibilityConditionRepository.findByProductId(product.getId());
+        var allConditions = eligibilityConditionRepository.findByProductId(product.getId());
+
+        // ── SURROGATE SCOPE FILTER ───────────────────────────────────────────
+        // Conditions with a non-null `surrogate` field only apply to applicants
+        // using that specific income program. Conditions with null surrogate
+        // apply universally. This makes the surrogate field a scope selector,
+        // not a fail gate — an NIP condition won't block a BANKING applicant.
+        String applicantProgram = (request.incomeComputationInput() != null
+                && request.incomeComputationInput().programName() != null)
+                ? request.incomeComputationInput().programName().toUpperCase()
+                : null;
+
+        // ── EMPLOYMENT TYPE FILTER ───────────────────────────────────────────
+        // Each condition represents an eligibility lane for a specific employment
+        // type (SALARIED, SELF_EMPLOYED, PROFESSIONAL). A SALARIED applicant
+        // should only be evaluated against SALARIED conditions. Conditions with
+        // null employment_type are universal.
+        String requestEmpType = request.employmentType() != null
+                ? request.employmentType().toUpperCase()
+                : null;
+
+        var conditions = allConditions.stream()
+                .filter(c -> c.getSurrogate() == null
+                        || c.getSurrogate().isBlank()
+                        || (applicantProgram != null
+                            && c.getSurrogate().equalsIgnoreCase(applicantProgram)))
+                .filter(c -> c.getEmploymentType() == null
+                        || c.getEmploymentType().isBlank()
+                        || (requestEmpType != null
+                            && c.getEmploymentType().equalsIgnoreCase(requestEmpType)))
+                .toList();
+
+        // If no conditions match the applicant's employment type + surrogate,
+        // this product doesn't serve this applicant profile at all.
+        if (conditions.isEmpty()) {
+            log.info("⏭️ Product {} has no conditions for empType={}, surrogate={}. Skipping.",
+                    product.getProductCode(), requestEmpType, applicantProgram);
+            return EligibilityResult.ineligible(
+                    product.getProductCode(),
+                    product.getProductName(),
+                    List.of(String.format("No eligibility lane for empType=%s, surrogate=%s", requestEmpType, applicantProgram)),
+                    "No matching condition lane for applicant profile"
+            );
+        }
+
+        // ── BUILD APPLICANT PAYLOAD for SpEL rules ───────────────────────────
         Map<String, Object> applicantPayload = new HashMap<>();
         applicantPayload.put("cibilScore", request.cibilScore());
         applicantPayload.put("loanAmount", request.loanAmount());
@@ -129,46 +240,183 @@ public class EligibilityEngineService {
         applicantPayload.put("workExpYears", request.workExpYears());
         applicantPayload.put("employmentType", request.employmentType());
 
-        // b. Condition checks: age, business vintage, work experience, property type, city tier
-        boolean conditionsFailed = conditions.stream().anyMatch(c ->
-                (c.getMinAge() != null && request.applicantAge() < c.getMinAge()) ||
-                        (c.getMaxAge() != null && request.applicantAge() > c.getMaxAge()) ||
-                        (c.getBusinessAgeYears() != null && request.businessAgeYears() < c.getBusinessAgeYears()) ||
-                        (c.getWorkExpYears() != null && request.workExpYears() < c.getWorkExpYears()) ||
-                        (c.getPropertyType() != null && !c.getPropertyType().contains(request.propertyType())) ||
-                        (c.getCityTier() != null && !c.getCityTier().equalsIgnoreCase(request.cityTier())) ||
-                        (c.getProfileRestrictions() != null && !c.getProfileRestrictions().isBlank() &&
-                                !Boolean.TRUE.equals(evaluateProfileRule(c.getId(), c.getProfileRestrictions(), applicantPayload)))
-        );
-        if (conditionsFailed) {
+        // ── PROPERTY TYPE NORMALIZATION ───────────────────────────────────
+        // Frontend sends sub-types (FLAT, HOME, SHOP, etc.).
+        // DB stores categories (RESIDENTIAL, COMMERCIAL, INDUSTRIAL).
+        // Resolve the sub-type to its parent category for allow-list matching.
+        final String resolvedPropertyCategory = resolvePropertyCategory(request.propertyType());
+        final String rawPropertySubType = request.propertyType() != null ? request.propertyType().toUpperCase() : "RESIDENTIAL";
+        applicantPayload.put("propertyCategory", resolvedPropertyCategory);
+
+        // b. Condition checks: age, business vintage, work experience, property,
+        //    city, CIBIL floor, ITR requirement + SpEL rules
+        //
+        //    🧠 CORRECT SEMANTICS: Each condition is an independent eligibility LANE.
+        //    The product is eligible if AT LEAST ONE condition passes all checks.
+        //    Example: HDFC Home Loan has 4 conditions:
+        //      - Salaried NIP (workExp >= 1, FOIR 75%, LTV 65%)
+        //      - Self-Employed NIP (bizAge >= 3, FOIR 95%, LTV 45%)
+        //      - Self-Employed BANKING (bizAge >= 3, FOIR 55%, LTV 85%)
+        //      - Self-Employed GST (bizAge >= 2, FOIR 75%, LTV 65%)
+        //    A SALARIED applicant need only pass the first one.
+        EligibilityCondition matchedCondition = null;
+        List<String> allRejectionReasons = new ArrayList<>();
+
+        for (var c : conditions) {
+            List<String> reasonsForThisCondition = new ArrayList<>();
+
+            // ── Standard numeric/range checks ────────
+            if (c.getMinAge() != null && request.applicantAge() < c.getMinAge()) {
+                reasonsForThisCondition.add(String.format("AGE_TOO_LOW: applicantAge=%d < minAge=%d (condition=%d, surrogate=%s)",
+                        request.applicantAge(), c.getMinAge(), c.getId(), c.getSurrogate()));
+            }
+            if (c.getMaxAge() != null && request.applicantAge() > c.getMaxAge()) {
+                reasonsForThisCondition.add(String.format("AGE_TOO_HIGH: applicantAge=%d > maxAge=%d (condition=%d, surrogate=%s)",
+                        request.applicantAge(), c.getMaxAge(), c.getId(), c.getSurrogate()));
+            }
+            if (c.getBusinessAgeYears() != null && request.businessAgeYears() < c.getBusinessAgeYears()) {
+                reasonsForThisCondition.add(String.format("BIZ_VINTAGE_LOW: businessAge=%d < required=%d (condition=%d, surrogate=%s)",
+                        request.businessAgeYears(), c.getBusinessAgeYears(), c.getId(), c.getSurrogate()));
+            }
+            if (c.getWorkExpYears() != null && request.workExpYears() < c.getWorkExpYears()) {
+                reasonsForThisCondition.add(String.format("WORK_EXP_LOW: workExp=%d < required=%d (condition=%d, surrogate=%s)",
+                        request.workExpYears(), c.getWorkExpYears(), c.getId(), c.getSurrogate()));
+            }
+
+            // ── PROPERTY TYPE ALLOW-LIST CHECK ────────
+            if (c.getPropertyType() != null) {
+                String allowedRaw = c.getPropertyType().toUpperCase();
+                boolean propertyAllowed = Arrays.stream(allowedRaw.split("[,;]"))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .anyMatch(allowed -> allowed.equals(resolvedPropertyCategory)
+                                || allowed.equals(rawPropertySubType));
+                if (!propertyAllowed) {
+                    reasonsForThisCondition.add(String.format("PROPERTY_NOT_ALLOWED: subType=%s, resolved=%s, allowList='%s' (condition=%d, surrogate=%s)",
+                            rawPropertySubType, resolvedPropertyCategory, c.getPropertyType(), c.getId(), c.getSurrogate()));
+                }
+            }
+
+            if (c.getCityTier() != null && !c.getCityTier().equalsIgnoreCase(request.cityTier())) {
+                reasonsForThisCondition.add(String.format("CITY_TIER_MISMATCH: requested=%s, required=%s (condition=%d)",
+                        request.cityTier(), c.getCityTier(), c.getId()));
+            }
+            if (c.getCibilMin() != null && request.cibilScore() < c.getCibilMin()) {
+                reasonsForThisCondition.add(String.format("CIBIL_TOO_LOW: score=%d < conditionMin=%d (condition=%d)",
+                        request.cibilScore(), c.getCibilMin(), c.getId()));
+            }
+            if (c.getItrRequiredYears() != null
+                    && request.itrYearsAvailable() != null
+                    && request.itrYearsAvailable() < c.getItrRequiredYears()) {
+                reasonsForThisCondition.add(String.format("ITR_YEARS_LOW: available=%d < required=%d (condition=%d)",
+                        request.itrYearsAvailable(), c.getItrRequiredYears(), c.getId()));
+            }
+
+            // ── SpEL / deny-list / memo rules ────────
+            if (!smartEvaluate(c.getProfileRestrictions(), applicantPayload, "employmentType")) {
+                reasonsForThisCondition.add(String.format("PROFILE_RESTRICTED: empType=%s hit deny-list (condition=%d, surrogate=%s)",
+                        request.employmentType(), c.getId(), c.getSurrogate()));
+            }
+            if (!smartEvaluatePropertyDenyList(c.getNegativeProperty(), rawPropertySubType, resolvedPropertyCategory)) {
+                reasonsForThisCondition.add(String.format("NEGATIVE_PROPERTY: subType=%s, category=%s denied by '%s' (condition=%d)",
+                        rawPropertySubType, resolvedPropertyCategory, c.getNegativeProperty(), c.getId()));
+            }
+            if (!smartEvaluate(c.getConditions(), applicantPayload, null)) {
+                reasonsForThisCondition.add(String.format("CONDITION_RULE_FAILED: rule='%s' (condition=%d)",
+                        c.getConditions(), c.getId()));
+            }
+            if (!smartEvaluate(c.getDeviationFormulae(), applicantPayload, null)) {
+                reasonsForThisCondition.add(String.format("DEVIATION_RULE_FAILED: rule='%s' (condition=%d)",
+                        c.getDeviationFormulae(), c.getId()));
+            }
+
+            // ── If this condition passed ALL checks → product is eligible via this lane
+            if (reasonsForThisCondition.isEmpty()) {
+                matchedCondition = c;
+                log.info("✅ Product {} PASSED via condition lane [id={}, empType={}, surrogate={}]",
+                        product.getProductCode(), c.getId(), c.getEmploymentType(), c.getSurrogate());
+                break; // One pass is enough — short-circuit
+            }
+
+            // Otherwise, collect reasons for diagnostic reporting
+            allRejectionReasons.addAll(reasonsForThisCondition);
+        }
+
+        // If no condition passed, the product is ineligible
+        if (matchedCondition == null) {
+            log.warn("❌ Product {} REJECTED for applicant [cibil={}, empType={}, propType={}, age={}]. All {} condition lanes failed. Reasons: {}",
+                    product.getProductCode(), request.cibilScore(), request.employmentType(),
+                    request.propertyType(), request.applicantAge(), conditions.size(), allRejectionReasons);
+
             return EligibilityResult.ineligible(
                     product.getProductCode(),
                     product.getProductName(),
-                    List.of("One or more eligibility conditions not met"),
-                    "Applicant profile does not satisfy product conditions"
+                    allRejectionReasons,
+                    "Applicant profile does not satisfy any eligibility lane"
             );
         }
 
-        // c. Resolve effective FOIR — condition-level overrides product-level.
-        //    FIX BUG-I: compute once as a local variable, not duplicated 3×
-        //    FIX BUG-D: product.getEffectiveFoir() does not exist — derive it here
-        final BigDecimal effectiveFoir = conditions.stream()
-                .filter(c -> c.getFoirMax() != null)
-                .map(EligibilityCondition::getFoirMax)
-                .findFirst()
-                .orElseGet(() -> product.getMaxEmiNmiRatio() != null
-                        ? product.getMaxEmiNmiRatio()
-                        : DEFAULT_FOIR);
+        // c. Resolve effective FOIR — use the MATCHED condition's values, evaluating SpEL if present
+        final BigDecimal effectiveFoir = financialComputationEngine.resolveFoir(
+                matchedCondition,
+                request.cibilScore(),
+                request.employmentType(),
+                request.loanAmount(),
+                product.getMaxEmiNmiRatio());
+
+        // ── WIRED: Resolve effective LTV — from matched condition, evaluating SpEL if present
+        final BigDecimal effectiveLtv = financialComputationEngine.resolveLtv(
+                matchedCondition,
+                request.cibilScore(),
+                request.employmentType(),
+                request.loanAmount(),
+                product.getLtv());
 
         // d. Resolve surrogate income (monthly, BigDecimal precision)
         var computedIncome = surrogateIncomeResolver.resolve(request.incomeComputationInput());
 
-        // e. Calculate proposed EMI using closed-form PMT formula
-        var proposedEmi = calculateProposedEmi(product, request);
+        // ── WIRED: minIncome check — enforced against computed income.
+        //    Uses the best available income figure: computed surrogate income
+        //    first, then declared grossMonthlyIncome if present.
+        BigDecimal incomeForFloorCheck = computedIncome;
+        if ((incomeForFloorCheck == null || incomeForFloorCheck.compareTo(BigDecimal.ZERO) <= 0)
+                && request.grossMonthlyIncome() != null) {
+            incomeForFloorCheck = request.grossMonthlyIncome();
+        }
+        final BigDecimal effectiveIncome = incomeForFloorCheck;
+        boolean incomeFloorFailed = matchedCondition.getMinIncome() != null
+                && effectiveIncome != null
+                && effectiveIncome.compareTo(matchedCondition.getMinIncome()) < 0;
+        if (incomeFloorFailed) {
+            log.warn("❌ Product {} INCOME_FLOOR_FAILED: income={}, required={} (condition={})",
+                    product.getProductCode(), effectiveIncome, matchedCondition.getMinIncome(), matchedCondition.getId());
+            return EligibilityResult.ineligible(
+                    product.getProductCode(),
+                    product.getProductName(),
+                    List.of(String.format("Computed income ₹%s below minimum ₹%s", effectiveIncome, matchedCondition.getMinIncome())),
+                    "Applicant's resolved monthly income is below the product's minimum income requirement"
+            );
+        }
 
-        // f. FOIR check — uses the single effectiveFoir local variable
+        // ── WIRED: Dynamic ROI via FinancialComputationEngine ────────────────
+        //    Evaluates roiComputationLogic SpEL (#cibil, #empType, #loanAmount).
+        //    Falls back to product.getRoi() when SpEL is null/blank.
+        final BigDecimal effectiveRoi = financialComputationEngine.resolveInterestRate(
+                product,
+                request.cibilScore(),
+                request.employmentType(),
+                request.loanAmount());
+
+        log.debug("Dynamic ROI resolved: product={} cibil={} empType={} staticRoi={} → effectiveRoi={}",
+                product.getProductCode(), request.cibilScore(), request.employmentType(),
+                product.getRoi(), effectiveRoi);
+
+        // e. Calculate proposed EMI using closed-form PMT formula
+        //    NOW USES effectiveRoi instead of static product.getRoi()
+        var proposedEmi = calculateProposedEmiWithRate(request.loanAmount(), effectiveRoi, request.requestedTenureMonths());
+
+        // f. FOIR check
         if (!checkFoir(request.existingEmiTotal(), proposedEmi, computedIncome, effectiveFoir)) {
-            // FIX BUG-E: getProdctCode() typo corrected to getProductCode()
             return EligibilityResult.ineligible(
                     product.getProductCode(),
                     product.getProductName(),
@@ -178,21 +426,28 @@ public class EligibilityEngineService {
             );
         }
 
-        // g. Maximum eligible loan amount (income × FOIR − existing EMI, back-calculated)
+        // g. Maximum eligible loan amount (income × FOIR − existing EMI)
         var maxEligibleAmount = calculateMaxEligibleAmount(
                 computedIncome, request.existingEmiTotal(), effectiveFoir);
 
-        // h. LTV check — BigDecimal.min() chain, no double conversion
-        //    FIX BUG-F: removed stray )); that caused syntax error
-        var ltv = product.getLtv();
+        // h. LTV check — USES effectiveLtv (condition-level override)
         boolean ltvDeviated = request.loanAmount()
-                .compareTo(request.propertyValue().multiply(ltv, MathContext.DECIMAL128)) > 0;
+                .compareTo(request.propertyValue().multiply(effectiveLtv, MathContext.DECIMAL128)) > 0;
 
         var finalLoanAmount = request.loanAmount()
-                .min(request.propertyValue().multiply(ltv, MathContext.DECIMAL128))
+                .min(request.propertyValue().multiply(effectiveLtv, MathContext.DECIMAL128))
                 .min(maxEligibleAmount);
 
-        // i. Build eligible result
+        // ── WIRED: Dynamic Processing Fee via FinancialComputationEngine ─────
+        //    Evaluates pfComputationLogic SpEL (#loanAmount).
+        //    Falls back to product.processingFee × loanAmount, then ZERO.
+        final BigDecimal processingFee = financialComputationEngine.resolveProcessingFee(
+                product, finalLoanAmount);
+
+        log.debug("Processing fee resolved: product={} loanAmount={} → fee={}",
+                product.getProductCode(), finalLoanAmount, processingFee);
+
+        // i. Build eligible result — now carries effectiveRoi, effectiveLtv, and processingFee
         return new EligibilityResult(
                 true,
                 product.getProductCode(),
@@ -202,12 +457,13 @@ public class EligibilityEngineService {
                 effectiveFoir,
                 proposedEmi,
                 finalLoanAmount,
-                product.getRoi(),
+                effectiveRoi,
                 request.requestedTenureMonths(),
-                ltv,
+                effectiveLtv,
                 ltvDeviated,
                 List.of(),
-                "Eligible"
+                "Eligible",
+                processingFee
         );
     }
 
@@ -215,23 +471,34 @@ public class EligibilityEngineService {
     // PMT formula: EMI = P × [r(1+r)^n] / [(1+r)^n − 1]
     // Closed-form O(1) — no amortisation loop.
     // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Original method signature preserved for backward compatibility.
+     * Delegates to the rate-parameterised version using static product ROI.
+     */
     private BigDecimal calculateProposedEmi(LoanProduct product, EligibilityRequest request) {
-        BigDecimal principal = request.loanAmount();
-        BigDecimal annualRate = product.getRoi();
-        int tenureMonths = request.requestedTenureMonths() > 0
-                ? request.requestedTenureMonths() : 12;
+        return calculateProposedEmiWithRate(
+                request.loanAmount(), product.getRoi(), request.requestedTenureMonths());
+    }
+
+    /**
+     * Rate-parameterised EMI calculator — accepts the EFFECTIVE annual rate
+     * (which may come from dynamic SpEL resolution instead of static product.roi).
+     */
+    private BigDecimal calculateProposedEmiWithRate(BigDecimal principal, BigDecimal annualRate, int tenureMonths) {
+        int effectiveTenure = tenureMonths > 0 ? tenureMonths : 12;
 
         if (principal == null || principal.compareTo(BigDecimal.ZERO) <= 0) {
             return BigDecimal.ZERO;
         }
         // Zero-rate edge case: equal instalments
         if (annualRate == null || annualRate.compareTo(BigDecimal.ZERO) == 0) {
-            return principal.divide(BigDecimal.valueOf(tenureMonths), 2, RoundingMode.HALF_UP);
+            return principal.divide(BigDecimal.valueOf(effectiveTenure), 2, RoundingMode.HALF_UP);
         }
 
         MathContext mc = MathContext.DECIMAL128;
         BigDecimal monthlyRate = annualRate.divide(BigDecimal.valueOf(12), mc);
-        BigDecimal onePlusRToN = BigDecimal.ONE.add(monthlyRate, mc).pow(tenureMonths, mc);
+        BigDecimal onePlusRToN = BigDecimal.ONE.add(monthlyRate, mc).pow(effectiveTenure, mc);
         BigDecimal numerator = monthlyRate.multiply(onePlusRToN, mc);
         BigDecimal denominator = onePlusRToN.subtract(BigDecimal.ONE, mc);
 
@@ -278,5 +545,93 @@ public class EligibilityEngineService {
                     "Rule evaluation error for expression: " + expressionString + " -> " + e.getMessage()
             );
         }
+    }
+
+    /**
+     * "200 IQ" Smart Evaluator: Handles SpEL expressions, implicit SpEL, text deny-lists, and pure text memos.
+     * Returns TRUE if the rule PASSES or is just a MEMO. Returns FALSE if the rule FAILS.
+     */
+    private boolean smartEvaluate(String ruleText, Map<String, Object> payload, String targetField) {
+        if (ruleText == null || ruleText.isBlank()) {
+            return true; // No rule = Pass
+        }
+
+        String trimmed = ruleText.trim();
+
+        // 1. Explicit SpEL rule
+        if (trimmed.toUpperCase().startsWith("SPEL:")) {
+            String spelContent = trimmed.substring(5).trim();
+            try {
+                var expr = spelExpressionCacheService.getOrCompile(spelContent);
+                Boolean result = expr.getValue(simpleSandboxEvaluationContext, payload, Boolean.class);
+                return Boolean.TRUE.equals(result);
+            } catch (Exception e) {
+                log.error("Explicit SpEL execution failed for rule '{}'. Rejecting. Error: {}", ruleText, e.getMessage());
+                return false; // Explicit SpEL failure blocks the loan for safety
+            }
+        }
+
+        // 2. Implicit SpEL (contains #, ==, >, <)
+        if (trimmed.contains("#") && (trimmed.contains("==") || trimmed.contains(">") || trimmed.contains("<") || trimmed.contains("!="))) {
+            try {
+                var expr = spelExpressionCacheService.getOrCompile(trimmed);
+                Boolean result = expr.getValue(simpleSandboxEvaluationContext, payload, Boolean.class);
+                return Boolean.TRUE.equals(result);
+            } catch (Exception e) {
+                log.trace("Implicit SpEL parsing failed for '{}', falling back to memo/list evaluation. Error: {}", ruleText, e.getMessage());
+                // Fall down to treat as list or memo
+            }
+        }
+
+        // 3. Smart Deny-List (Comma or Semicolon separated list applied to targetField)
+        if (targetField != null && (trimmed.contains(";") || trimmed.contains(",") || !trimmed.contains(" "))) {
+            Object targetValueObj = payload.get(targetField);
+            if (targetValueObj instanceof String targetValue) {
+                boolean matchesDenyList = Arrays.stream(trimmed.split("[,;]"))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .anyMatch(denyItem -> denyItem.equalsIgnoreCase(targetValue));
+                
+                if (matchesDenyList) {
+                    return false; // Failed deny list
+                }
+                return true; // Pass
+            }
+        }
+
+        // 4. Fallback (Internal Memo / English text)
+        log.trace("Treating rule '{}' as an internal memo (not evaluated).", ruleText);
+        return true; 
+    }
+
+    /**
+     * Specialized deny-list evaluator for negative property types.
+     * Checks the deny-list against BOTH the raw sub-type (e.g., PLOT) and
+     * the resolved category (e.g., RESIDENTIAL). If either matches, the
+     * property is denied.
+     *
+     * @return true if the property PASSES (not in deny-list), false if denied
+     */
+    private boolean smartEvaluatePropertyDenyList(String denyListText, String rawSubType, String resolvedCategory) {
+        if (denyListText == null || denyListText.isBlank()) {
+            return true; // No deny-list = pass
+        }
+
+        String trimmed = denyListText.trim();
+
+        // Parse as a deny-list (comma or semicolon separated, or single word)
+        boolean matchesDenyList = Arrays.stream(trimmed.split("[,;]"))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .anyMatch(denyItem ->
+                        denyItem.equalsIgnoreCase(rawSubType) ||
+                        denyItem.equalsIgnoreCase(resolvedCategory));
+
+        if (matchesDenyList) {
+            log.debug("Property '{}' (category: '{}') matches negative property deny-list: '{}'",
+                    rawSubType, resolvedCategory, denyListText);
+            return false; // Denied
+        }
+        return true; // Passed
     }
 }

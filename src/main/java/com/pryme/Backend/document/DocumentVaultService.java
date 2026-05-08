@@ -54,15 +54,18 @@ public class DocumentVaultService {
 
     private final LoanApplicationRepository loanApplicationRepository;
     private final DocumentRecordRepository documentRecordRepository;
+    private final S3PresignedUrlService s3PresignedUrlService;
     private final Path storageRoot;
 
     public DocumentVaultService(
             LoanApplicationRepository loanApplicationRepository,
             DocumentRecordRepository documentRecordRepository,
+            S3PresignedUrlService s3PresignedUrlService,
             @Value("${app.documents.storage-root:./secure_vault}") String storageRoot
     ) {
         this.loanApplicationRepository = loanApplicationRepository;
         this.documentRecordRepository = documentRecordRepository;
+        this.s3PresignedUrlService = s3PresignedUrlService;
 
         this.storageRoot = Paths.get(storageRoot).toAbsolutePath().normalize();
 
@@ -242,6 +245,56 @@ public class DocumentVaultService {
         documentRecord.setStatus(DocumentRecord.DocumentStatus.UPLOADED);
         documentRecord.setUploadedAt(Instant.now());
         documentRecordRepository.save(documentRecord);
+    }
+
+    @Transactional
+    public void deleteDocument(String applicationId, String docType) {
+        String safeApplicationId = sanitizeApplicationId(applicationId);
+        String safeDocType = sanitizeDocType(docType);
+
+        LoanApplication application = getAuthorizedApplication(safeApplicationId);
+
+        DocumentRecord documentRecord = application.getDocuments().stream()
+                .filter(doc -> doc.getDocType().equals(safeDocType))
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException("Document not found."));
+
+        if (documentRecord.getS3ObjectKey() != null) {
+            s3PresignedUrlService.deleteObject(documentRecord.getS3ObjectKey());
+        }
+
+        application.getDocuments().remove(documentRecord);
+        documentRecordRepository.delete(documentRecord);
+        loanApplicationRepository.save(application);
+
+        log.info("Vault Gateway: Deleted document {} for Application {}", safeDocType, safeApplicationId);
+    }
+
+    @Transactional
+    public void deleteDocumentById(UUID documentId) {
+        DocumentRecord documentRecord = documentRecordRepository.findById(documentId)
+                .orElseThrow(() -> new NotFoundException("Document not found."));
+
+        // Add an authorization check: Ensure the user has permission to delete this document
+        // Since Admin/SuperAdmin is the one deleting, or the user who uploaded it
+        // The getAuthorizedApplication method would normally verify user access to the application.
+        // Let's do a basic check by fetching the application using getAuthorizedApplication
+        if (documentRecord.getLoanApplication() != null) {
+            LoanApplication application = getAuthorizedApplication(documentRecord.getLoanApplication().getApplicationId());
+            if (documentRecord.getS3ObjectKey() != null) {
+                s3PresignedUrlService.deleteObject(documentRecord.getS3ObjectKey());
+            }
+            application.getDocuments().remove(documentRecord);
+            documentRecordRepository.delete(documentRecord);
+            loanApplicationRepository.save(application);
+        } else {
+            if (documentRecord.getS3ObjectKey() != null) {
+                s3PresignedUrlService.deleteObject(documentRecord.getS3ObjectKey());
+            }
+            documentRecordRepository.delete(documentRecord);
+        }
+
+        log.info("Vault Gateway: Deleted document ID {}", documentId);
     }
 
     @Transactional(readOnly = true)

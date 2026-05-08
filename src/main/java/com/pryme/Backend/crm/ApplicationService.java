@@ -46,9 +46,12 @@ public class ApplicationService {
                 .orElseThrow(() -> new NotFoundException("User footprint not found in IAM module."));
 
         // 🧠 160 IQ FIX 1: Hibernate Dirty Checking (Removed userRepository.save)
-        if (user.getPhoneNumber() == null || user.getPhoneNumber().isBlank()) user.setPhoneNumber(request.getMobileNumber());
-        if (user.getCity() == null || user.getCity().isBlank()) user.setCity(request.getCity());
-        if (user.getState() == null || user.getState().isBlank()) user.setState(request.getState());
+        if (user.getPhoneNumber() == null || user.getPhoneNumber().isBlank())
+            user.setPhoneNumber(request.getMobileNumber());
+        if (user.getCity() == null || user.getCity().isBlank())
+            user.setCity(request.getCity());
+        if (user.getState() == null || user.getState().isBlank())
+            user.setState(request.getState());
 
         LoanApplication application = applicationRepository.findByApplicantIdAndStatus(userId, ApplicationStatus.DRAFT)
                 .stream()
@@ -67,14 +70,18 @@ public class ApplicationService {
         application.setCompletionPercentage(25);
 
         // 🧠 160 IQ FIX 2: Immutable JSONB Matrix Bypass
-        Map<String, Object> meta = application.getMetadata() != null ? new HashMap<>(application.getMetadata()) : new HashMap<>();
+        Map<String, Object> meta = application.getMetadata() != null ? new HashMap<>(application.getMetadata())
+                : new HashMap<>();
         meta.put("dob", request.getDob());
         meta.put("pinCode", request.getPinCode());
         meta.put("employmentType", request.getEmploymentType());
 
-        if (request.getSalariedSubType() != null) meta.put("salariedSubType", request.getSalariedSubType());
-        if (request.getProfessionalSubType() != null) meta.put("professionalSubType", request.getProfessionalSubType());
-        if (request.getBusinessSubType() != null) meta.put("businessSubType", request.getBusinessSubType());
+        if (request.getSalariedSubType() != null)
+            meta.put("salariedSubType", request.getSalariedSubType());
+        if (request.getProfessionalSubType() != null)
+            meta.put("professionalSubType", request.getProfessionalSubType());
+        if (request.getBusinessSubType() != null)
+            meta.put("businessSubType", request.getBusinessSubType());
 
         application.setMetadata(meta);
 
@@ -94,7 +101,8 @@ public class ApplicationService {
             application.setCompletionPercentage(((Number) updates.get("completionPercentage")).intValue());
         }
 
-        // 🧠 160 IQ FIX 3: Removed updates.remove() to prevent Jackson Immutable Map crashes
+        // 🧠 160 IQ FIX 3: Removed updates.remove() to prevent Jackson Immutable Map
+        // crashes
         if (updates.containsKey("selectedBank")) {
             application.setSelectedBank(String.valueOf(updates.get("selectedBank")));
         }
@@ -104,7 +112,10 @@ public class ApplicationService {
             if (amtObj instanceof Number) {
                 application.setRequestedAmount(BigDecimal.valueOf(((Number) amtObj).doubleValue()));
             } else if (amtObj instanceof String) {
-                try { application.setRequestedAmount(new BigDecimal((String) amtObj)); } catch (Exception ignored) {}
+                try {
+                    application.setRequestedAmount(new BigDecimal((String) amtObj));
+                } catch (Exception ignored) {
+                }
             }
         }
 
@@ -113,8 +124,11 @@ public class ApplicationService {
             Map<String, Object> newMetadata = (Map<String, Object>) updates.get("metadata");
 
             // 🧠 Safe Merging Matrix
-            Map<String, Object> existingMetadata = application.getMetadata() != null ? new HashMap<>(application.getMetadata()) : new HashMap<>();
-            if (newMetadata != null) existingMetadata.putAll(newMetadata);
+            Map<String, Object> existingMetadata = application.getMetadata() != null
+                    ? new HashMap<>(application.getMetadata())
+                    : new HashMap<>();
+            if (newMetadata != null)
+                existingMetadata.putAll(newMetadata);
             application.setMetadata(existingMetadata);
         }
 
@@ -178,8 +192,7 @@ public class ApplicationService {
                     savedApp.getLoanType(),
                     savedApp.getSelectedBank(),
                     savedApp.getRequestedAmount(),
-                    ApplicantSnapshot.from(savedApp)
-            ));
+                    ApplicantSnapshot.from(savedApp)));
         }
 
         return ApplicationResponse.from(savedApp);
@@ -215,6 +228,52 @@ public class ApplicationService {
         return ApplicationResponse.from(applicationRepository.save(application));
     }
 
+    @Transactional
+    public ApplicationResponse updateProfile(String applicationId, UpdateApplicationProfileRequest request,
+            UUID adminId) {
+        LoanApplication application = applicationRepository.findByApplicationId(applicationId)
+                .orElseThrow(() -> new NotFoundException("Application Matrix not found"));
+
+        if (application.getApplicant() != null) {
+            if (request.fullName() != null)
+                application.getApplicant().setFullName(request.fullName());
+            if (request.phone() != null)
+                application.getApplicant().setPhone(request.phone());
+            if (request.email() != null)
+                application.getApplicant().setEmail(request.email());
+            if (request.state() != null)
+                application.getApplicant().setState(request.state());
+            if (request.city() != null)
+                application.getApplicant().setCity(request.city());
+        }
+
+        if (request.loanType() != null)
+            application.setLoanType(request.loanType());
+        if (request.requestedAmount() != null)
+            application.setRequestedAmount(request.requestedAmount());
+        if (request.declaredCibilScore() != null)
+            application.setDeclaredCibilScore(request.declaredCibilScore());
+
+        if (request.metadata() != null) {
+            Map<String, Object> currentMeta = application.getMetadata();
+            if (currentMeta != null) {
+                currentMeta.putAll(request.metadata());
+            } else {
+                application.setMetadata(request.metadata());
+            }
+        }
+
+        historyRepository.save(ApplicationStatusHistory.builder()
+                .applicationId(application.getApplicationId())
+                .oldStatus(application.getStatus().name())
+                .newStatus(application.getStatus().name())
+                .changedBy(adminId)
+                .changedAt(Instant.now())
+                .build());
+
+        return ApplicationResponse.from(applicationRepository.save(application));
+    }
+
     // ==========================================
     // 🧠 DATA RETRIEVAL (OOM PREVENTION VIA PAGINATION)
     // ==========================================
@@ -228,9 +287,15 @@ public class ApplicationService {
         return applicationRepository.findAllByApplicant_Id(applicantId, pageable).map(ApplicationResponse::from);
     }
 
+    @Transactional(readOnly = true)
+    public Page<ApplicationResponse> listAssignedApplications(UUID assigneeId, Pageable pageable) {
+        return applicationRepository.findAllByAssignee_Id(assigneeId, pageable).map(ApplicationResponse::from);
+    }
+
     private static void validateVersion(Long current, Long requestVersion) {
         if (requestVersion == null || current == null || !current.equals(requestVersion)) {
-            throw new ConflictException("Optimistic Lock Fault: Version mismatch. Please refresh to avoid data collision.");
+            throw new ConflictException(
+                    "Optimistic Lock Fault: Version mismatch. Please refresh to avoid data collision.");
         }
     }
 }

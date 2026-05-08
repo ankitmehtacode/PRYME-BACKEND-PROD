@@ -75,13 +75,76 @@ public class LeadElevationService {
             }
         }
 
+        // 🧠 PIPELINE FIX: Inject top-level Lead fields into metadata for Admin Dashboard visibility.
+        // These fields are stored as columns on the Lead entity but were never forwarded to the
+        // LoanApplication.metadata JSONB column, causing them to appear empty in the admin panel.
+        if (lead.getCibilScore() != null) metadataMap.putIfAbsent("cibilScore", lead.getCibilScore());
+        metadataMap.putIfAbsent("phone", lead.getPhone());
+        metadataMap.putIfAbsent("userName", lead.getUserName());
+        if (lead.getLoanAmount() != null) metadataMap.putIfAbsent("loanAmount", lead.getLoanAmount());
+
+        // 5.5 🧠 PIPELINE DATA INTEGRITY FIX: Backfill User with Lead Data
+        boolean userUpdated = false;
+        
+        // Fix Name (if missing or just an email prefix from Google Auth)
+        String currentName = applicant.getFullName();
+        if (currentName == null || currentName.trim().isEmpty() || currentName.equals("Guest") || 
+            (applicant.getEmail() != null && currentName.equals(applicant.getEmail().split("@")[0]))) {
+            if (lead.getUserName() != null && !lead.getUserName().isBlank()) {
+                applicant.setFullName(lead.getUserName());
+                userUpdated = true;
+            }
+        }
+        
+        // Fix Phone
+        if (applicant.getPhone() == null || applicant.getPhone().trim().isEmpty()) {
+            if (lead.getPhone() != null && !lead.getPhone().isBlank()) {
+                applicant.setPhone(lead.getPhone());
+                userUpdated = true;
+            }
+        }
+        
+        // Fix City & State
+        if (metadataMap.containsKey("city") && (applicant.getCity() == null || applicant.getCity().trim().isEmpty())) {
+            applicant.setCity((String) metadataMap.get("city"));
+            userUpdated = true;
+        }
+        if (metadataMap.containsKey("state") && (applicant.getState() == null || applicant.getState().trim().isEmpty())) {
+            applicant.setState((String) metadataMap.get("state"));
+            userUpdated = true;
+        }
+        
+        // Sync full metadata to User for ApplicantSnapshot
+        Map<String, Object> userMetadata = applicant.getMetadata();
+        if (userMetadata == null) {
+            userMetadata = new HashMap<>();
+        }
+        
+        boolean metadataUpdated = false;
+        for (Map.Entry<String, Object> entry : metadataMap.entrySet()) {
+            if (!userMetadata.containsKey(entry.getKey()) || userMetadata.get(entry.getKey()) == null) {
+                userMetadata.put(entry.getKey(), entry.getValue());
+                metadataUpdated = true;
+            }
+        }
+        
+        if (metadataUpdated) {
+            applicant.setMetadata(userMetadata);
+            userUpdated = true;
+        }
+        
+        if (userUpdated) {
+            applicant = userRepository.save(applicant);
+            log.info("🔄 Backfilled User {} with missing metadata from Lead {}", userId, leadId);
+        }
+
         // 6. Fuse the data into the highly-secure LoanApplication entity
         LoanApplication application = LoanApplication.builder()
                 .applicationId(generateAppId)
                 .applicant(applicant)
                 .loanType(lead.getLoanType())
                 .requestedAmount(lead.getLoanAmount())
-                .declaredCibilScore(lead.getCibilScore() != null ? lead.getCibilScore() : 0)
+                .declaredCibilScore(lead.getCibilScore() != null ? lead.getCibilScore() : -1)
                 .selectedBank(selectedBank)
                 .metadata(metadataMap)
                 .status(ApplicationStatus.SUBMITTED) // Places it natively into the Admin Kanban board

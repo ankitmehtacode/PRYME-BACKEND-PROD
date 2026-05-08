@@ -11,19 +11,26 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.UUID;
+import com.pryme.Backend.iam.UserRepository;
+import com.pryme.Backend.iam.User;
+import com.pryme.Backend.iam.Role;
+import com.pryme.Backend.common.NotFoundException;
 
 @Service
 @RequiredArgsConstructor
 public class LeadService {
 
-    // 🧠 PRODUCTION FIX: Aligned with frontend product catalog
-    private static final Set<String> ALLOWED_LOAN_TYPES = Set.of("personal", "business", "home", "education", "lap");
+    // 🧠 PRODUCTION FIX: Aligned with frontend product catalog (accepts both short and enum formats)
+    private static final Set<String> ALLOWED_LOAN_TYPES = Set.of(
+            "personal", "business", "home", "education", "lap", "auto"
+    );
 
     // 🧠 PRODUCTION FIX: Static, thread-safe mapper prevents memory leaks during high-volume JSON serialization
     private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
     private final LeadRepository leadRepository;
     private final LeadBackupService leadBackupService;
+    private final UserRepository userRepository;
 
     @Transactional
     public LeadResponse submitLead(LeadSubmitRequest request, String idempotencyKey) {
@@ -55,7 +62,35 @@ public class LeadService {
 
     @Transactional(readOnly = true)
     public Page<LeadResponse> getLeads(Pageable pageable) {
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated()) {
+            boolean isEmployee = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_EMPLOYEE"));
+            if (isEmployee) {
+                User caller = userRepository.findByEmail(auth.getName()).orElseThrow(() -> new NotFoundException("Caller not found"));
+                return leadRepository.findByAssignedTo(caller.getId(), pageable).map(LeadResponse::from);
+            }
+        }
         return leadRepository.findAll(pageable).map(LeadResponse::from);
+    }
+
+    @Transactional
+    public LeadResponse assignLead(UUID leadId, UUID assigneeId) {
+        Lead lead = leadRepository.findById(leadId)
+                .orElseThrow(() -> new NotFoundException("Lead not found with ID: " + leadId));
+
+        if (assigneeId == null) {
+            lead.setAssignedTo(null);
+        } else {
+            User assignee = userRepository.findById(assigneeId)
+                    .orElseThrow(() -> new NotFoundException("User not found with ID: " + assigneeId));
+
+            if (assignee.getRole() == Role.USER) {
+                throw new ConflictException("Cannot assign leads to standard users. Must be a team member.");
+            }
+            lead.setAssignedTo(assigneeId);
+        }
+
+        return LeadResponse.from(leadRepository.save(lead));
     }
 
     private LeadResponse saveLead(LeadSubmitRequest request, String loanType, String idempotencyKey) {
@@ -105,8 +140,13 @@ public class LeadService {
 
     private String normalizeLoanType(String loanType) {
         String normalized = loanType == null ? "" : loanType.trim().toLowerCase();
+        // 🧠 PIPELINE FIX: Frontend sends HOME_LOAN, PERSONAL_LOAN, etc.
+        // Strip _loan suffix for backward compat: home_loan → home
+        if (normalized.endsWith("_loan")) {
+            normalized = normalized.replace("_loan", "");
+        }
         if (!ALLOWED_LOAN_TYPES.contains(normalized)) {
-            throw new ConflictException("Unsupported loanType. Allowed: personal, business, home, education, lap");
+            throw new ConflictException("Unsupported loanType '" + loanType + "'. Allowed: personal, business, home, education, lap, auto");
         }
         return normalized;
     }

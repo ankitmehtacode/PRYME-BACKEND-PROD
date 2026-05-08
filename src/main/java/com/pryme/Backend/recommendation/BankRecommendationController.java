@@ -28,7 +28,7 @@ public class BankRecommendationController {
     @GetMapping("/recommendation")
     public List<BankRecommendationResponse> getRecommendations(
             @RequestParam @NotNull BigDecimal salary,
-            @RequestParam @NotNull @Min(300) @Max(900) Integer cibil
+            @RequestParam @NotNull @com.pryme.Backend.common.validation.ValidCibilScore Integer cibil
     ) {
         return bankRecommendationService.recommend(salary, cibil)
                 .stream()

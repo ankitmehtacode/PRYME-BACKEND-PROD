@@ -60,6 +60,9 @@ public class EligibilityCondition {
     @Column(name = "foir_max", precision = 5, scale = 4)
     private BigDecimal foirMax;
 
+    @Column(name = "foir_computation_logic", columnDefinition = "text")
+    private String foirComputationLogic;
+
     @Column(name = "bank_name")
     private String bankName;
 
@@ -72,14 +75,17 @@ public class EligibilityCondition {
     @Column(name = "ltv_allowed", precision = 5, scale = 4)
     private BigDecimal ltvAllowed;
 
+    @Column(name = "ltv_computation_logic", columnDefinition = "text")
+    private String ltvComputationLogic;
+
     @Column(name = "deviation_formulae", columnDefinition = "text")
     private String deviationFormulae;
 
     @Column(name = "conditions", columnDefinition = "text")
     private String conditions;
 
-    @Column(name = "emi_not_obligated")
-    private Boolean emiNotObligated;
+    @Column(name = "emi_not_obligated", length = 20)
+    private String emiNotObligated;
 
     @Column(name = "property_type", columnDefinition = "text")
     private String propertyType;

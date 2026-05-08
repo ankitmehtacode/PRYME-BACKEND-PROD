@@ -12,7 +12,8 @@ public record LeadResponse(
         String loanType,
         String status,
         String offerId,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        UUID assignedTo
 ) {
     public static LeadResponse from(Lead lead) {
         return new LeadResponse(
@@ -23,7 +24,8 @@ public record LeadResponse(
                 lead.getLoanType(),
                 lead.getStatus().name(),
                 lead.getOfferId(),
-                lead.getCreatedAt()
+                lead.getCreatedAt(),
+                lead.getAssignedTo()
         );
     }
 }

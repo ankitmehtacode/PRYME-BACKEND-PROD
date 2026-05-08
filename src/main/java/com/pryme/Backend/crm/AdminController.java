@@ -112,4 +112,26 @@ public class AdminController {
                 "application", updated
         ));
     }
+
+    // ==========================================
+    // 4. LEAD PROFILE OVERRIDE ENGINE
+    // ==========================================
+    @Operation(summary = "Allows Super Admins and Admins to override lead profile data")
+    @PatchMapping("/{applicationId}/profile")
+    public ResponseEntity<Map<String, Object>> updateApplicationProfile(
+            @PathVariable String applicationId,
+            @Valid @RequestBody UpdateApplicationProfileRequest payload,
+            Authentication authentication
+    ) {
+        UUID adminId = extractAdminId(authentication);
+        log.warn("Audit Trail: Admin {} overriding profile data for Application {}", adminId, applicationId);
+
+        ApplicationResponse updated = applicationService.updateProfile(applicationId, payload, adminId);
+
+        return ResponseEntity.ok(Map.of(
+                "status", "UPDATE_SUCCESS",
+                "message", "Lead profile data successfully overridden.",
+                "application", updated
+        ));
+    }
 }

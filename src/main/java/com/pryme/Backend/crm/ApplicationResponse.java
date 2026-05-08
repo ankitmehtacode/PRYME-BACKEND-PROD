@@ -39,10 +39,17 @@ public record ApplicationResponse(
                 ? "UNASSIGNED"
                 : app.getAssignee().getFullName();
 
+        // 🧠 PIPELINE FIX: User has both 'phone' and 'phoneNumber' columns. Fall back to ensure data.
+        String applicantPhone = app.getApplicant().getPhone() != null
+                ? app.getApplicant().getPhone()
+                : app.getApplicant().getPhoneNumber();
+
         return new ApplicationResponse(
                 app.getId() != null ? app.getId().toString() : null,
                 app.getApplicationId(),
-                new ApplicantSnapshot(app.getApplicant().getId(), applicantName, app.getApplicant().getEmail(), app.getApplicant().getPhone(), app.getApplicant().getState(), app.getApplicant().getCity(), app.getApplicant().getMetadata()),
+                // 🧠 FIX: ApplicantSnapshot positional args are (id, name, email, phone, CITY, STATE, metadata)
+                // Previously city and state were swapped. Also uses the phone fallback above.
+                new ApplicantSnapshot(app.getApplicant().getId(), applicantName, app.getApplicant().getEmail(), applicantPhone, app.getApplicant().getCity(), app.getApplicant().getState(), app.getApplicant().getMetadata()),
                 app.getLoanType(),
                 app.getRequestedAmount(),
                 app.getDeclaredCibilScore(),

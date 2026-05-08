@@ -42,6 +42,7 @@ services:
       - SPRING_DATASOURCE_PASSWORD=password
       - SPRING_DATA_REDIS_HOST=pryme-redis
       - SPRING_DATA_REDIS_PORT=6379
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       # S3 placeholders — no real credentials in local dev, bucket ping is caught & warns safely
       - AWS_S3_REGION=ap-south-1
       - AWS_S3_BUCKET=pryme-local-placeholder

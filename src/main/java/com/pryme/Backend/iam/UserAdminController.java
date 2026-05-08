@@ -38,9 +38,9 @@ public class UserAdminController {
      * 2. Cannot demote yourself (prevents admin lockout)
      * 3. Cannot assign USER role via this endpoint (use registration flow)
      */
-    @Operation(summary = "Update a user's role (SUPER_ADMIN only)")
+    @Operation(summary = "Update a user's role (SUPER_ADMIN or ADMIN)")
     @PatchMapping("/{userId}/role")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<?> updateUserRole(
             @PathVariable UUID userId,
             @RequestBody Map<String, String> body,
@@ -72,6 +72,29 @@ public class UserAdminController {
         String callerEmail = authentication.getName();
         if (targetUser.getEmail().equalsIgnoreCase(callerEmail)) {
             return ResponseEntity.badRequest().body(Map.of("message", "Cannot modify your own role."));
+        }
+
+        // Safety guard: prevent ADMIN from creating a SUPER_ADMIN
+        boolean isCallerSuperAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+        
+        if (newRole == Role.SUPER_ADMIN && !isCallerSuperAdmin) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Only a Super Admin can create another Super Admin."));
+        }
+
+        // 🧠 RBAC COUNT CONSTRAINTS
+        // Only count if they are actually changing the role
+        if (targetUser.getRole() != newRole) {
+            long currentCount = userRepository.countByRole(newRole);
+            if (newRole == Role.SUPER_ADMIN && currentCount >= 1) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Maximum of 1 Super Admin allowed."));
+            }
+            if (newRole == Role.ADMIN && currentCount >= 2) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Maximum of 2 Admins allowed."));
+            }
+            if (newRole == Role.EMPLOYEE && currentCount >= 10) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Maximum of 10 Employees allowed."));
+            }
         }
 
         targetUser.elevateRole(newRole);

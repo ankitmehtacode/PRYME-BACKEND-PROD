@@ -16,4 +16,6 @@ public interface LeadRepository extends JpaRepository<Lead, UUID> {
             String loanType,
             LocalDateTime createdAtAfter
     );
+
+    org.springframework.data.domain.Page<Lead> findByAssignedTo(UUID assignedTo, org.springframework.data.domain.Pageable pageable);
 }

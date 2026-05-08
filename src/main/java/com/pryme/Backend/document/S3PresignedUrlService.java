@@ -111,6 +111,21 @@ public class S3PresignedUrlService {
         return new PresignedUrlResponse(presignedRequest.url().toString(), documentId, expiresAt);
     }
 
+    public void deleteObject(String documentId) {
+        if ("dummy_bucket".equals(awsS3Properties.bucket())) {
+            return;
+        }
+
+        try (software.amazon.awssdk.services.s3.S3Client s3Client = software.amazon.awssdk.services.s3.S3Client.builder()
+                .region(Region.of(awsS3Properties.region() != null && !awsS3Properties.region().isBlank() ? awsS3Properties.region() : "ap-south-1"))
+                .build()) {
+            
+            s3Client.deleteObject(b -> b.bucket(awsS3Properties.bucket()).key(documentId));
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to delete document from S3 vault.", e);
+        }
+    }
+
     public record PresignedUrlResponse(String uploadUrl, String documentId, Instant expiresAt) {
     }
 
