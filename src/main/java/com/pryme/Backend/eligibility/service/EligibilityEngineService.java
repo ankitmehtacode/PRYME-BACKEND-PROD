@@ -176,8 +176,23 @@ public class EligibilityEngineService {
                 .filter(p -> (request.lenderId() == null || p.getLenderId().equals(request.lenderId()))
                         && p.getLoanType().equalsIgnoreCase(normalizedLoanType)
                         && p.isActive())
+                // ── LOAN AMOUNT RANGE GATE ──────────────────────────────────
+                // Products define min_loan_amount / max_loan_amount boundaries.
+                // A ₹25L request must NOT surface a product with min ₹35L.
+                // This was the root cause of "same products always appear".
+                .filter(p -> {
+                    BigDecimal reqAmt = request.loanAmount();
+                    if (reqAmt == null || reqAmt.compareTo(BigDecimal.ZERO) <= 0) return true; // No amount → don't filter
+                    boolean aboveMin = p.getMinLoanAmount() == null || reqAmt.compareTo(p.getMinLoanAmount()) >= 0;
+                    boolean belowMax = p.getMaxLoanAmount() == null || reqAmt.compareTo(p.getMaxLoanAmount()) <= 0;
+                    if (!aboveMin || !belowMax) {
+                        log.info("   ⛔ LOAN_AMOUNT_RANGE: product={} excluded — requested={} not in [{}, {}]",
+                                p.getProductCode(), reqAmt, p.getMinLoanAmount(), p.getMaxLoanAmount());
+                    }
+                    return aboveMin && belowMax;
+                })
                 .toList();
-        log.info("   After loanType='{}' + active filter: {} candidates", normalizedLoanType, candidates.size());
+        log.info("   After loanType='{}' + active + loanAmount filter: {} candidates", normalizedLoanType, candidates.size());
 
         if (candidates.isEmpty()) {
             log.warn("❌ STEP 2 FAILED: No candidates after filter. loanType='{}' → normalized='{}', cibil={}, lenderId={}",
