@@ -23,6 +23,9 @@ import static org.mockito.Mockito.when;
  * Unit tests for LoanRecommendationService.
  * Uses Mockito for the repository and FinancialComputationEngine
  * to isolate the FILTER → HYDRATE → RANK pipeline logic.
+ *
+ * ROI is now read directly from product.getRoi() (static field).
+ * Only Processing Fee uses the FinancialComputationEngine.
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("LoanRecommendationService — Best Match Pipeline")
@@ -110,9 +113,7 @@ class LoanRecommendationServiceTest {
     void lowCibilFiltersHighTierProducts() {
         when(loanProductRepository.findByLoanTypeAndActive("HL", true))
                 .thenReturn(List.of(sbiHl, lntLap, hdfcPrime));
-
-        // Only SBI (650+) should survive for CIBIL 620
-        stubDynamicPricing();
+        stubProcessingFee();
 
         List<RecommendedProductDTO> results = service.getBestMatches(
                 LOW_CIBIL_SEP, new BigDecimal("3000000"), "HL");
@@ -126,7 +127,7 @@ class LoanRecommendationServiceTest {
     void highCibilPassesAllGates() {
         when(loanProductRepository.findByLoanTypeAndActive("HL", true))
                 .thenReturn(List.of(sbiHl, lntLap, hdfcPrime));
-        stubDynamicPricing();
+        stubProcessingFee();
 
         List<RecommendedProductDTO> results = service.getBestMatches(
                 HIGH_CIBIL_SALARIED, new BigDecimal("10000000"), "HL");
@@ -143,7 +144,7 @@ class LoanRecommendationServiceTest {
     void amountBelowMinFiltersProduct() {
         when(loanProductRepository.findByLoanTypeAndActive("HL", true))
                 .thenReturn(List.of(sbiHl, lntLap, hdfcPrime));
-        stubDynamicPricing();
+        stubProcessingFee();
 
         List<RecommendedProductDTO> results = service.getBestMatches(
                 HIGH_CIBIL_SALARIED, new BigDecimal("4000000"), "HL");
@@ -160,8 +161,6 @@ class LoanRecommendationServiceTest {
         when(loanProductRepository.findByLoanTypeAndActive("HL", true))
                 .thenReturn(List.of(sbiHl, lntLap, hdfcPrime));
 
-        // No stubbing needed — all products filtered before hydrate stage
-
         List<RecommendedProductDTO> results = service.getBestMatches(
                 HIGH_CIBIL_SALARIED, new BigDecimal("600000000"), "HL");
 
@@ -174,24 +173,15 @@ class LoanRecommendationServiceTest {
     // ═════════════════════════════════════════════════════════════════════════
 
     @Test
-    @DisplayName("3.1 — Products ranked by ROI ascending (cheapest first)")
+    @DisplayName("3.1 — Products ranked by static ROI ascending (cheapest first)")
     void rankedByRoiAscending() {
         when(loanProductRepository.findByLoanTypeAndActive("HL", true))
                 .thenReturn(List.of(sbiHl, lntLap, hdfcPrime));
 
         BigDecimal amount = new BigDecimal("10000000");
+        stubProcessingFee();
 
-        // Wire distinct ROIs: HDFC=7.50, LNT=8.25, SBI=9.50
-        when(computationEngine.resolveInterestRate(eq(hdfcPrime), anyInt(), anyString(), eq(amount)))
-                .thenReturn(new BigDecimal("7.50"));
-        when(computationEngine.resolveInterestRate(eq(lntLap), anyInt(), anyString(), eq(amount)))
-                .thenReturn(new BigDecimal("8.25"));
-        when(computationEngine.resolveInterestRate(eq(sbiHl), anyInt(), anyString(), eq(amount)))
-                .thenReturn(new BigDecimal("9.50"));
-
-        when(computationEngine.resolveProcessingFee(any(), eq(amount)))
-                .thenReturn(new BigDecimal("15000.00"));
-
+        // Products have static ROIs: HDFC=7.95, LNT=8.50, SBI=9.25
         List<RecommendedProductDTO> results = service.getBestMatches(
                 HIGH_CIBIL_SALARIED, amount, "HL");
 
@@ -204,20 +194,33 @@ class LoanRecommendationServiceTest {
     @Test
     @DisplayName("3.2 — Equal ROI → ties broken by PF ascending")
     void equalRoiTieBrokenByPf() {
+        // Set both products to the same ROI
+        sbiHl = LoanProduct.builder()
+                .id(1L).productCode("SBI-HL-001").productName("SBI Home Loan Standard")
+                .loanType("HL").lenderId(100L).lenderName("State Bank of India")
+                .interestType("FLOATING").minCibil(650).maxCibil(900)
+                .roi(new BigDecimal("8.5000"))
+                .processingFee(new BigDecimal("0.0050"))
+                .minTenureMonths(12).maxTenureMonths(360)
+                .minLoanAmount(new BigDecimal("1000000"))
+                .maxLoanAmount(new BigDecimal("50000000"))
+                .active(true).build();
+
         when(loanProductRepository.findByLoanTypeAndActive("HL", true))
                 .thenReturn(List.of(sbiHl, lntLap));
 
         BigDecimal amount = new BigDecimal("10000000");
-
-        // Same ROI for both
-        when(computationEngine.resolveInterestRate(any(), anyInt(), anyString(), eq(amount)))
-                .thenReturn(new BigDecimal("8.50"));
 
         // Different PF: SBI=₹25K, LNT=₹10K → LNT should rank first
         when(computationEngine.resolveProcessingFee(eq(sbiHl), eq(amount)))
                 .thenReturn(new BigDecimal("25000.00"));
         when(computationEngine.resolveProcessingFee(eq(lntLap), eq(amount)))
                 .thenReturn(new BigDecimal("10000.00"));
+        when(computationEngine.resolveRoi(any(), any(), any()))
+                .thenAnswer(inv -> {
+                    LoanProduct p = inv.getArgument(0);
+                    return p.getRoi();
+                });
 
         List<RecommendedProductDTO> results = service.getBestMatches(
                 HIGH_CIBIL_SALARIED, amount, "HL");
@@ -239,10 +242,13 @@ class LoanRecommendationServiceTest {
 
         BigDecimal amount = new BigDecimal("3000000");
 
-        when(computationEngine.resolveInterestRate(eq(sbiHl), eq(810), eq("SALARIED"), eq(amount)))
-                .thenReturn(new BigDecimal("8.75"));
         when(computationEngine.resolveProcessingFee(eq(sbiHl), eq(amount)))
                 .thenReturn(new BigDecimal("15000.00"));
+        when(computationEngine.resolveRoi(any(), any(), any()))
+                .thenAnswer(inv -> {
+                    LoanProduct p = inv.getArgument(0);
+                    return p.getRoi();
+                });
 
         List<RecommendedProductDTO> results = service.getBestMatches(
                 HIGH_CIBIL_SALARIED, amount, "HL");
@@ -256,7 +262,7 @@ class LoanRecommendationServiceTest {
                 () -> assertEquals("State Bank of India", dto.bankName()),
                 () -> assertEquals("SBI Home Loan Standard", dto.productName()),
                 () -> assertEquals("HL", dto.loanType()),
-                () -> assertEquals(new BigDecimal("8.75"), dto.dynamicRoi()),
+                () -> assertEquals(new BigDecimal("9.2500"), dto.dynamicRoi()),
                 () -> assertEquals(new BigDecimal("15000.00"), dto.dynamicPf()),
                 () -> assertEquals(new BigDecimal("1000000"), dto.minLoanAmount()),
                 () -> assertEquals(new BigDecimal("50000000"), dto.maxLoanAmount())
@@ -313,7 +319,7 @@ class LoanRecommendationServiceTest {
     void loanTypeNormalized() {
         when(loanProductRepository.findByLoanTypeAndActive("HL", true))
                 .thenReturn(List.of(sbiHl));
-        stubDynamicPricing();
+        stubProcessingFee();
 
         // Pass lowercase — should be normalized internally
         List<RecommendedProductDTO> results = service.getBestMatches(
@@ -326,11 +332,14 @@ class LoanRecommendationServiceTest {
     // HELPERS
     // ─────────────────────────────────────────────────────────────────────────
 
-    /** Stubs engine with static ROI/PF for tests that don't need specific values. */
-    private void stubDynamicPricing() {
-        when(computationEngine.resolveInterestRate(any(), anyInt(), anyString(), any()))
-                .thenReturn(new BigDecimal("9.00"));
+    /** Stubs engine with static PF for tests that don't need specific fee values. */
+    private void stubProcessingFee() {
         when(computationEngine.resolveProcessingFee(any(), any()))
                 .thenReturn(new BigDecimal("10000.00"));
+        when(computationEngine.resolveRoi(any(), any(), any()))
+                .thenAnswer(inv -> {
+                    LoanProduct p = inv.getArgument(0);
+                    return p.getRoi();
+                });
     }
 }

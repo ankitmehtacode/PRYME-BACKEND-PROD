@@ -4,6 +4,8 @@ package com.pryme.Backend.eligibility.repository;
 
 import com.pryme.Backend.eligibility.entity.EligibilityCondition;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,4 +17,6 @@ public interface EligibilityConditionRepository extends JpaRepository<Eligibilit
     Optional<EligibilityCondition> findByProductCode(String productCode);
 
     List<EligibilityCondition> findByProductIdAndActive(Long productId, boolean active);
+
+    Page<EligibilityCondition> findByActive(boolean active, Pageable pageable);
 }

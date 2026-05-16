@@ -33,14 +33,19 @@ public class EligibilityAdminController {
 
     private final EligibilityConditionRepository repository;
 
-    @Operation(summary = "List all eligibility engine rules")
+    @Operation(summary = "List eligibility engine rules (defaults to active-only)")
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'EMPLOYEE')")
     public ResponseEntity<Page<EligibilityCondition>> getAll(
+            @RequestParam(value = "active", required = false) Boolean active,
             @PageableDefault(size = 100, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
     ) {
+        if (active != null) {
+            return ResponseEntity.ok(repository.findByActive(active, pageable));
+        }
         return ResponseEntity.ok(repository.findAll(pageable));
     }
+
 
     @Operation(summary = "Get a single rule by ID")
     @GetMapping("/{id}")

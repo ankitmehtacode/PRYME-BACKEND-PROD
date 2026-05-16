@@ -47,9 +47,9 @@ public class AdminController {
     }
 
     // ==========================================
-    // 1. MASTER DASHBOARD TELEMETRY (PAGINATED)
+    // 1. MASTER DASHBOARD TELEMETRY (PAGINATED + RBAC-SCOPED)
     // ==========================================
-    @Operation(summary = "One-line description of this endpoint")
+    @Operation(summary = "List applications — EMPLOYEE sees only assigned, ADMIN sees all")
     @GetMapping
     public ResponseEntity<Page<ApplicationResponse>> getAllApplications(
             // 🧠 ELASTIC MEMORY PROTECTION: Defaults to 20 items per page to prevent RAM spikes.
@@ -58,6 +58,20 @@ public class AdminController {
             Authentication authentication
     ) {
         UUID adminId = extractAdminId(authentication);
+
+        // 🧠 RBAC SCOPING: EMPLOYEE users see ONLY their assigned applications.
+        // ADMIN/SUPER_ADMIN see the full Master Application Matrix.
+        boolean isEmployee = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_EMPLOYEE"));
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+
+        if (isEmployee && !isAdmin) {
+            log.info("Audit Trail: Employee {} viewing assigned applications only. Page: {}, Size: {}",
+                    adminId, pageable.getPageNumber(), pageable.getPageSize());
+            return ResponseEntity.ok(applicationService.listAssignedApplications(adminId, pageable));
+        }
+
         log.info("Audit Trail: Admin/Underwriter {} requested the Master Application Matrix. Page: {}, Size: {}",
                 adminId, pageable.getPageNumber(), pageable.getPageSize());
 

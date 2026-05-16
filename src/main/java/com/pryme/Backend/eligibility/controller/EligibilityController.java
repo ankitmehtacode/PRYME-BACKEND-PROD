@@ -27,14 +27,11 @@ public class EligibilityController {
     @Operation(summary = "One-line description of this endpoint")
     @PostMapping("/evaluate")
     public ResponseEntity<List<EligibilityResult>> evaluate(@RequestBody @Valid EligibilityRequest request) {
+        log.info("Eligibility evaluate request: loanType={}, empType={}, cibil={}, loanAmt={}",
+                request.loanType(), request.employmentType(), request.cibilScore(), request.loanAmount());
         List<EligibilityResult> results = eligibilityEngineService.evaluate(request);
-        if (results.isEmpty()) {
-            return ResponseEntity.status(501).body(null); // Return 501 if no results
-        }
-        boolean allIneligible = results.stream().allMatch(result -> !result.isEligible());
-        if (allIneligible) {
-            return ResponseEntity.ok(results);
-        }
+        // Always return 200 — the frontend inspects results to distinguish
+        // eligible offers from rejections with reasons.
         return ResponseEntity.ok(results);
     }
 
@@ -51,14 +48,11 @@ public class EligibilityController {
     @Operation(summary = "One-line description of this endpoint")
     @PostMapping("/lnt-lap/best-match")
     public ResponseEntity<List<EligibilityResult>> bestMatch(@RequestBody @Valid EligibilityRequest request) {
+        log.info("Eligibility best-match request: loanType={}, empType={}, cibil={}, loanAmt={}",
+                request.loanType(), request.employmentType(), request.cibilScore(), request.loanAmount());
         List<EligibilityResult> results = eligibilityEngineService.evaluate(request);
-        if (results.isEmpty()) {
-            return ResponseEntity.status(501).body(null); // Return 501 if no results
-        }
-        boolean allIneligible = results.stream().allMatch(result -> !result.isEligible());
-        if (allIneligible) {
-            return ResponseEntity.ok(results);
-        }
+        // Always return 200 — the frontend inspects results to distinguish
+        // eligible offers from rejections with reasons.
         return ResponseEntity.ok(results);
     }
 }

@@ -4,6 +4,7 @@ package com.pryme.Backend.eligibility.service;
 
 import com.pryme.Backend.common.entity.PolicyFieldDefinition;
 import com.pryme.Backend.common.repository.PolicyFieldDefinitionRepository;
+import com.pryme.Backend.eligibility.dto.ApplicantProfile;
 import com.pryme.Backend.eligibility.dto.EligibilityRequest;
 import com.pryme.Backend.eligibility.dto.EligibilityResult;
 import com.pryme.Backend.eligibility.dto.PreflightRequest;
@@ -82,6 +83,26 @@ public class EligibilityEngineService {
             Map.entry("LAND", "LAND")
     );
 
+    // ── LOAN TYPE NORMALIZATION ──────────────────────────────────────────────
+    // Frontend sends full names (HOME_LOAN, LOAN_AGAINST_PROPERTY).
+    // V19 DB stores short codes (HL, LAP, BL, PL).
+    private static final Map<String, String> LOAN_TYPE_NORMALIZATION = Map.of(
+            "HOME_LOAN", "HL",
+            "LOAN_AGAINST_PROPERTY", "LAP",
+            "BUSINESS_LOAN", "BL",
+            "PERSONAL_LOAN", "PL",
+            "CREDIT_CARD", "CC"
+    );
+
+    // ── EMPLOYMENT TYPE NORMALIZATION ────────────────────────────────────────
+    // Frontend sends SALARIED, SELF_EMPLOYED, PROFESSIONAL.
+    // V19 DB stores Salaried, SEP/SENP.
+    private static final Map<String, String> EMPLOYMENT_TYPE_NORMALIZATION = Map.of(
+            "SELF_EMPLOYED", "SEP/SENP",
+            "PROFESSIONAL", "SEP/SENP",
+            "SALARIED", "Salaried"
+    );
+
     /**
      * Resolve a frontend property sub-type to its bank-policy category.
      * Falls back to the input itself if no mapping exists (forward-compatible).
@@ -89,6 +110,24 @@ public class EligibilityEngineService {
     private static String resolvePropertyCategory(String propertyType) {
         if (propertyType == null) return "RESIDENTIAL";
         return PROPERTY_SUBTYPE_TO_CATEGORY.getOrDefault(propertyType.toUpperCase(), propertyType.toUpperCase());
+    }
+
+    /**
+     * Resolve a frontend loanType to its DB short code.
+     * Falls back to the input itself if no mapping exists (forward-compatible).
+     */
+    private static String normalizeLoanType(String loanType) {
+        if (loanType == null) return "HL";
+        return LOAN_TYPE_NORMALIZATION.getOrDefault(loanType.toUpperCase(), loanType.toUpperCase());
+    }
+
+    /**
+     * Resolve a frontend employmentType to its DB value.
+     * Falls back to the input itself if no mapping exists (forward-compatible).
+     */
+    private static String normalizeEmploymentType(String empType) {
+        if (empType == null) return null;
+        return EMPLOYMENT_TYPE_NORMALIZATION.getOrDefault(empType.toUpperCase(), empType);
     }
 
     public List<EligibilityResult> evaluate(EligibilityRequest request) {
@@ -124,20 +163,28 @@ public class EligibilityEngineService {
         }
 
         // ── STEP 2: Load candidate products by CIBIL band ────────────────────
-        var candidates = loanProductRepository
+        final String normalizedLoanType = normalizeLoanType(request.loanType());
+        log.info("🔍 STEP 2: loanType='{}' → normalized='{}', cibil={}",
+                request.loanType(), normalizedLoanType, request.cibilScore());
+
+        var allCibilMatches = loanProductRepository
                 .findByMinCibilLessThanEqualAndMaxCibilGreaterThanEqual(
-                        request.cibilScore(), request.cibilScore())
-                .stream()
-                // FIX BUG-B: lenderId is Long — no .getId() call
-                // FIX BUG-C: loanType is String — no .name() call
+                        request.cibilScore(), request.cibilScore());
+        log.info("   CIBIL band returned {} products (before loanType/lender filter)", allCibilMatches.size());
+
+        var candidates = allCibilMatches.stream()
                 .filter(p -> (request.lenderId() == null || p.getLenderId().equals(request.lenderId()))
-                        && p.getLoanType().equalsIgnoreCase(request.loanType())
+                        && p.getLoanType().equalsIgnoreCase(normalizedLoanType)
                         && p.isActive())
                 .toList();
+        log.info("   After loanType='{}' + active filter: {} candidates", normalizedLoanType, candidates.size());
 
         if (candidates.isEmpty()) {
+            log.warn("❌ STEP 2 FAILED: No candidates after filter. loanType='{}' → normalized='{}', cibil={}, lenderId={}",
+                    request.loanType(), normalizedLoanType, request.cibilScore(), request.lenderId());
             return List.of(EligibilityResult.rejected(
-                    List.of("No matching products for CIBIL " + request.cibilScore()),
+                    List.of(String.format("No matching products for CIBIL %d and loanType %s",
+                            request.cibilScore(), normalizedLoanType)),
                     "No active loan products found for this lender and loan type"
             ));
         }
@@ -198,9 +245,12 @@ public class EligibilityEngineService {
         // type (SALARIED, SELF_EMPLOYED, PROFESSIONAL). A SALARIED applicant
         // should only be evaluated against SALARIED conditions. Conditions with
         // null employment_type are universal.
-        String requestEmpType = request.employmentType() != null
-                ? request.employmentType().toUpperCase()
-                : null;
+        //
+        // NORMALIZATION: Frontend sends SELF_EMPLOYED/PROFESSIONAL → DB stores SEP/SENP.
+        final String normalizedEmpType = normalizeEmploymentType(
+                request.employmentType() != null ? request.employmentType() : null);
+        log.info("   STEP 3: empType='{}' → normalized='{}', surrogate='{}', product={}",
+                request.employmentType(), normalizedEmpType, applicantProgram, product.getProductCode());
 
         var conditions = allConditions.stream()
                 .filter(c -> c.getSurrogate() == null
@@ -209,19 +259,21 @@ public class EligibilityEngineService {
                             && c.getSurrogate().equalsIgnoreCase(applicantProgram)))
                 .filter(c -> c.getEmploymentType() == null
                         || c.getEmploymentType().isBlank()
-                        || (requestEmpType != null
-                            && c.getEmploymentType().equalsIgnoreCase(requestEmpType)))
+                        || (normalizedEmpType != null
+                            && c.getEmploymentType().equalsIgnoreCase(normalizedEmpType)))
                 .toList();
 
         // If no conditions match the applicant's employment type + surrogate,
         // this product doesn't serve this applicant profile at all.
         if (conditions.isEmpty()) {
-            log.info("⏭️ Product {} has no conditions for empType={}, surrogate={}. Skipping.",
-                    product.getProductCode(), requestEmpType, applicantProgram);
+            log.warn("⏭️ Product {} has no conditions for empType='{}' (normalized='{}'), surrogate='{}'. Skipping. DB conditions had empTypes: {}",
+                    product.getProductCode(), request.employmentType(), normalizedEmpType, applicantProgram,
+                    allConditions.stream().map(EligibilityCondition::getEmploymentType).distinct().toList());
             return EligibilityResult.ineligible(
                     product.getProductCode(),
                     product.getProductName(),
-                    List.of(String.format("No eligibility lane for empType=%s, surrogate=%s", requestEmpType, applicantProgram)),
+                    List.of(String.format("No eligibility lane for empType=%s (normalized=%s), surrogate=%s",
+                            request.employmentType(), normalizedEmpType, applicantProgram)),
                     "No matching condition lane for applicant profile"
             );
         }
@@ -289,8 +341,8 @@ public class EligibilityEngineService {
                 boolean propertyAllowed = Arrays.stream(allowedRaw.split("[,;]"))
                         .map(String::trim)
                         .filter(s -> !s.isEmpty())
-                        .anyMatch(allowed -> allowed.equals(resolvedPropertyCategory)
-                                || allowed.equals(rawPropertySubType));
+                        .anyMatch(allowed -> allowed.equalsIgnoreCase(resolvedPropertyCategory)
+                                || allowed.equalsIgnoreCase(rawPropertySubType));
                 if (!propertyAllowed) {
                     reasonsForThisCondition.add(String.format("PROPERTY_NOT_ALLOWED: subType=%s, resolved=%s, allowList='%s' (condition=%d, surrogate=%s)",
                             rawPropertySubType, resolvedPropertyCategory, c.getPropertyType(), c.getId(), c.getSurrogate()));
@@ -356,21 +408,15 @@ public class EligibilityEngineService {
             );
         }
 
-        // c. Resolve effective FOIR — use the MATCHED condition's values, evaluating SpEL if present
-        final BigDecimal effectiveFoir = financialComputationEngine.resolveFoir(
-                matchedCondition,
-                request.cibilScore(),
-                request.employmentType(),
-                request.loanAmount(),
-                product.getMaxEmiNmiRatio());
+        // c. Resolve effective FOIR from matched condition (static field)
+        final BigDecimal effectiveFoir = matchedCondition.getFoirMax() != null
+                ? matchedCondition.getFoirMax()
+                : (product.getMaxEmiNmiRatio() != null ? product.getMaxEmiNmiRatio() : DEFAULT_FOIR);
 
-        // ── WIRED: Resolve effective LTV — from matched condition, evaluating SpEL if present
-        final BigDecimal effectiveLtv = financialComputationEngine.resolveLtv(
-                matchedCondition,
-                request.cibilScore(),
-                request.employmentType(),
-                request.loanAmount(),
-                product.getLtv());
+        // ── Resolve effective LTV from matched condition (static field)
+        final BigDecimal effectiveLtv = matchedCondition.getLtvAllowed() != null
+                ? matchedCondition.getLtvAllowed()
+                : (product.getLtv() != null ? product.getLtv() : BigDecimal.ZERO);
 
         // d. Resolve surrogate income (monthly, BigDecimal precision)
         var computedIncome = surrogateIncomeResolver.resolve(request.incomeComputationInput());
@@ -398,21 +444,14 @@ public class EligibilityEngineService {
             );
         }
 
-        // ── WIRED: Dynamic ROI via FinancialComputationEngine ────────────────
-        //    Evaluates roiComputationLogic SpEL (#cibil, #empType, #loanAmount).
-        //    Falls back to product.getRoi() when SpEL is null/blank.
-        final BigDecimal effectiveRoi = financialComputationEngine.resolveInterestRate(
-                product,
-                request.cibilScore(),
-                request.employmentType(),
-                request.loanAmount());
+        // ── ROI: Resolve dynamically via FinancialComputationEngine ────────────
+        ApplicantProfile applicantProfile = new ApplicantProfile(request.cibilScore(), normalizedEmpType, computedIncome);
+        final BigDecimal effectiveRoi = financialComputationEngine.resolveRoi(product, applicantProfile, request.loanAmount());
 
-        log.debug("Dynamic ROI resolved: product={} cibil={} empType={} staticRoi={} → effectiveRoi={}",
-                product.getProductCode(), request.cibilScore(), request.employmentType(),
-                product.getRoi(), effectiveRoi);
+        log.debug("ROI resolved: product={} computedRoi={}",
+                product.getProductCode(), effectiveRoi);
 
         // e. Calculate proposed EMI using closed-form PMT formula
-        //    NOW USES effectiveRoi instead of static product.getRoi()
         var proposedEmi = calculateProposedEmiWithRate(request.loanAmount(), effectiveRoi, request.requestedTenureMonths());
 
         // f. FOIR check
@@ -438,9 +477,7 @@ public class EligibilityEngineService {
                 .min(request.propertyValue().multiply(effectiveLtv, MathContext.DECIMAL128))
                 .min(maxEligibleAmount);
 
-        // ── WIRED: Dynamic Processing Fee via FinancialComputationEngine ─────
-        //    Evaluates pfComputationLogic SpEL (#loanAmount).
-        //    Falls back to product.processingFee × loanAmount, then ZERO.
+        // ── Processing Fee: static percentage × loan amount ──────────────────
         final BigDecimal processingFee = financialComputationEngine.resolveProcessingFee(
                 product, finalLoanAmount);
 

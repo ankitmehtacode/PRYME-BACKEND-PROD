@@ -9,8 +9,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import com.pryme.Backend.iam.UserRepository;
 import com.pryme.Backend.iam.User;
 import com.pryme.Backend.iam.Role;
@@ -60,17 +64,36 @@ public class LeadService {
         return result;
     }
 
+    /**
+     * 🧠 RBAC-SCOPED LEAD RETRIEVAL WITH BATCH NAME RESOLUTION:
+     * - EMPLOYEE: sees only leads assigned to them
+     * - ADMIN/SUPER_ADMIN: sees the full pipeline
+     * 
+     * Assignee names are resolved in ONE batch query (N+1 prevention).
+     */
     @Transactional(readOnly = true)
     public Page<LeadResponse> getLeads(Pageable pageable) {
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+
+        Page<Lead> leadPage;
         if (auth != null && auth.isAuthenticated()) {
             boolean isEmployee = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_EMPLOYEE"));
-            if (isEmployee) {
+            boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+
+            if (isEmployee && !isAdmin) {
                 User caller = userRepository.findByEmail(auth.getName()).orElseThrow(() -> new NotFoundException("Caller not found"));
-                return leadRepository.findByAssignedTo(caller.getId(), pageable).map(LeadResponse::from);
+                leadPage = leadRepository.findByAssignedTo(caller.getId(), pageable);
+            } else {
+                leadPage = leadRepository.findAll(pageable);
             }
+        } else {
+            leadPage = leadRepository.findAll(pageable);
         }
-        return leadRepository.findAll(pageable).map(LeadResponse::from);
+
+        // 🧠 BATCH NAME RESOLUTION: One query to resolve all assignee names instead of N+1
+        Map<UUID, String> assigneeNameMap = resolveAssigneeNames(leadPage.getContent());
+
+        return leadPage.map(lead -> LeadResponse.from(lead, assigneeNameMap.get(lead.getAssignedTo())));
     }
 
     @Transactional
@@ -78,6 +101,7 @@ public class LeadService {
         Lead lead = leadRepository.findById(leadId)
                 .orElseThrow(() -> new NotFoundException("Lead not found with ID: " + leadId));
 
+        String assigneeName = null;
         if (assigneeId == null) {
             lead.setAssignedTo(null);
         } else {
@@ -88,9 +112,28 @@ public class LeadService {
                 throw new ConflictException("Cannot assign leads to standard users. Must be a team member.");
             }
             lead.setAssignedTo(assigneeId);
+            assigneeName = assignee.getFullName();
         }
 
-        return LeadResponse.from(leadRepository.save(lead));
+        return LeadResponse.from(leadRepository.save(lead), assigneeName);
+    }
+
+    /**
+     * 🧠 N+1 PREVENTION ENGINE: Collects all unique assignee UUIDs from a page of leads,
+     * fetches them in a single SELECT ... WHERE id IN (...) query, and builds a lookup map.
+     */
+    private Map<UUID, String> resolveAssigneeNames(List<Lead> leads) {
+        Set<UUID> assigneeIds = leads.stream()
+                .map(Lead::getAssignedTo)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+
+        if (assigneeIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return userRepository.findAllById(assigneeIds).stream()
+                .collect(Collectors.toMap(User::getId, User::getFullName));
     }
 
     private LeadResponse saveLead(LeadSubmitRequest request, String loanType, String idempotencyKey) {

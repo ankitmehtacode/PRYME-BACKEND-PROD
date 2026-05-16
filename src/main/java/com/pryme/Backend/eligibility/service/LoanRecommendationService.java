@@ -169,19 +169,14 @@ public class LoanRecommendationService {
 
     /**
      * Maps a LoanProduct + ApplicantProfile → RecommendedProductDTO
-     * by resolving the applicant-specific ROI and Processing Fee
-     * through the FinancialComputationEngine's SpEL pipeline.
+     * by resolving the applicant-specific Processing Fee through the
+     * FinancialComputationEngine and using the product's static ROI.
      */
     private RecommendedProductDTO hydrate(LoanProduct product,
                                            ApplicantProfile profile,
                                            BigDecimal requestedAmount) {
 
-        BigDecimal dynamicRoi = computationEngine.resolveInterestRate(
-                product,
-                profile.cibil(),
-                profile.empType(),
-                requestedAmount
-        );
+        BigDecimal dynamicRoi = computationEngine.resolveRoi(product, profile, requestedAmount);
 
         BigDecimal dynamicPf = computationEngine.resolveProcessingFee(
                 product,

@@ -7,6 +7,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import com.pryme.Backend.iam.dto.TeamMemberOption;
+
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -17,6 +19,24 @@ import java.util.UUID;
 public class UserAdminController {
 
     private final UserRepository userRepository;
+    private final SessionManager sessionManager;
+
+    // ==========================================
+    // 🧠 TEAM MEMBER DROPDOWN ENGINE
+    // Returns ONLY internal staff for the lead-assignment dropdown.
+    // Structurally prevents customer data from leaking into the selector.
+    // ==========================================
+    @Operation(summary = "Get team members for lead assignment dropdown")
+    @GetMapping("/team-members")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<List<TeamMemberOption>> getTeamMembers() {
+        List<TeamMemberOption> members = userRepository
+                .findByRoleIn(List.of(Role.SUPER_ADMIN, Role.ADMIN, Role.EMPLOYEE))
+                .stream()
+                .map(TeamMemberOption::from)
+                .toList();
+        return ResponseEntity.ok(members);
+    }
 
     @Operation(summary = "Get all users for Admin Dashboard")
     @GetMapping
@@ -99,6 +119,13 @@ public class UserAdminController {
 
         targetUser.elevateRole(newRole);
         userRepository.save(targetUser);
+
+        // 🧠 CRITICAL SESSION INVALIDATION: After a role change, the user's active sessions
+        // still hold the OLD role in the Spring Security context (cached by SessionManager).
+        // If we don't invalidate them, the demoted user keeps admin access until their
+        // session naturally expires. This flushes ALL sessions and pushes SESSION_TERMINATED
+        // via the SSE Kill Switch to force immediate re-authentication with the new role.
+        sessionManager.revokeAllUserSessions(targetUser.getId());
 
         return ResponseEntity.ok(UserAdminResponse.from(targetUser));
     }

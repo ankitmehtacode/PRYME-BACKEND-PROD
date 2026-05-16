@@ -203,7 +203,11 @@ public class ApplicationService {
         LoanApplication application = applicationRepository.findByApplicationId(applicationId)
                 .orElseThrow(() -> new NotFoundException("Application Matrix not found"));
 
-        validateVersion(application.getVersion(), request.version());
+        // 🧠 ENGINEERING DECISION: No version validation for assignment.
+        // Assignment is a last-write-wins operation — unlike state transitions
+        // (DRAFT→APPROVED) where version conflicts signal dangerous data races,
+        // reassigning a lead is idempotent. Hibernate's @Version on the entity
+        // still provides DB-level optimistic locking as a safety net.
 
         UUID empId;
         try {

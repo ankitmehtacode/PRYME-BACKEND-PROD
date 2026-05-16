@@ -4,6 +4,12 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * 🧠 ENRICHED LEAD DTO:
+ * Now includes assigneeName alongside assignedTo UUID so the frontend
+ * can render "Assigned to: John Doe" in the CRM pipeline without
+ * requiring a second lookup call.
+ */
 public record LeadResponse(
         UUID id,
         String userName,
@@ -13,9 +19,26 @@ public record LeadResponse(
         String status,
         String offerId,
         LocalDateTime createdAt,
-        UUID assignedTo
+        UUID assignedTo,
+        String assigneeName
 ) {
+    /**
+     * Factory for simple mapping (no assignee name resolution).
+     * Defaults to "UNASSIGNED" when no assignee is set.
+     */
     public static LeadResponse from(Lead lead) {
+        return from(lead, null);
+    }
+
+    /**
+     * Factory with explicit assignee name resolution.
+     * Used by LeadService after batch-fetching assignee names.
+     */
+    public static LeadResponse from(Lead lead, String resolvedAssigneeName) {
+        String displayName = lead.getAssignedTo() == null
+                ? "UNASSIGNED"
+                : (resolvedAssigneeName != null ? resolvedAssigneeName : "Unknown");
+
         return new LeadResponse(
                 lead.getId(),
                 lead.getUserName(),
@@ -25,7 +48,8 @@ public record LeadResponse(
                 lead.getStatus().name(),
                 lead.getOfferId(),
                 lead.getCreatedAt(),
-                lead.getAssignedTo()
+                lead.getAssignedTo(),
+                displayName
         );
     }
 }
