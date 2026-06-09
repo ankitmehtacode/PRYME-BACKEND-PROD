@@ -20,7 +20,8 @@ public record LeadResponse(
         String offerId,
         LocalDateTime createdAt,
         UUID assignedTo,
-        String assigneeName
+        String assigneeName,
+        String metadata
 ) {
     /**
      * Factory for simple mapping (no assignee name resolution).
@@ -49,7 +50,8 @@ public record LeadResponse(
                 lead.getOfferId(),
                 lead.getCreatedAt(),
                 lead.getAssignedTo(),
-                displayName
+                displayName,
+                lead.getMetadata()
         );
     }
 }

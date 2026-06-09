@@ -8,6 +8,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import com.pryme.Backend.iam.dto.TeamMemberOption;
+import com.pryme.Backend.crm.LoanApplicationRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -20,6 +22,8 @@ public class UserAdminController {
 
     private final UserRepository userRepository;
     private final SessionManager sessionManager;
+    private final SessionRepository sessionRepository;
+    private final LoanApplicationRepository loanApplicationRepository;
 
     // ==========================================
     // 🧠 TEAM MEMBER DROPDOWN ENGINE
@@ -128,5 +132,47 @@ public class UserAdminController {
         sessionManager.revokeAllUserSessions(targetUser.getId());
 
         return ResponseEntity.ok(UserAdminResponse.from(targetUser));
+    }
+
+    @Operation(summary = "Delete a team member")
+    @DeleteMapping("/{userId}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @Transactional
+    public ResponseEntity<?> deleteUser(
+            @PathVariable UUID userId,
+            Authentication authentication
+    ) {
+        User targetUser = userRepository.findById(userId).orElse(null);
+        if (targetUser == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // Safety guard: prevent self-deletion lockout
+        String callerEmail = authentication.getName();
+        if (targetUser.getEmail().equalsIgnoreCase(callerEmail)) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Cannot delete your own account."));
+        }
+
+        // Safety guard: prevent ADMIN from deleting a SUPER_ADMIN
+        boolean isCallerSuperAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+
+        if (targetUser.getRole() == Role.SUPER_ADMIN && !isCallerSuperAdmin) {
+            return ResponseEntity.status(403).body(Map.of("message", "Only a Super Admin can delete a Super Admin."));
+        }
+
+        // 🧠 Revoke all active sessions (SSE notification + deactivation)
+        sessionManager.revokeAllUserSessions(userId);
+
+        // 🧠 Physically purge session records for this user (to prevent foreign key violations on user deletion)
+        sessionRepository.deleteAll(sessionRepository.findByUserId(userId));
+
+        // 🧠 Disassociate assignee from all applications to prevent foreign key violation on assignee_id
+        loanApplicationRepository.clearAssigneeByAssigneeId(userId);
+
+        // 🧠 Physically delete the user
+        userRepository.delete(targetUser);
+
+        return ResponseEntity.ok(Map.of("message", "User and all active sessions successfully deleted."));
     }
 }

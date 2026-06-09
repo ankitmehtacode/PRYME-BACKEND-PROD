@@ -103,7 +103,7 @@ public class DocumentVaultController {
     }
 
     // ==========================================
-    // 🧠 4. ZERO-TRUST BINARY STREAMING GATEWAY (NEW)
+    // 🧠 4. ZERO-TRUST BINARY STREAMING GATEWAY
     // ==========================================
     @Operation(summary = "Secure Document Download Gateway")
     @GetMapping("/documents/{documentId}/download")
@@ -119,20 +119,75 @@ public class DocumentVaultController {
         // 2. Fetch the metadata to correctly set HTTP Headers
         DocumentRecord metadata = vaultService.getDocumentMetadata(documentId);
 
-        // 3. Failproof S3 Redirect
+        // 3. STATUS GUARD & SELF-HEALING:
+        //    For historical documents uploaded before the confirm-upload webhook was introduced,
+        //    they might be stuck in AWAITING_UPLOAD status even if the file exists in S3.
+        //    We check S3. If it exists, we self-heal the DB record. If not, we block the download.
+        boolean s3ExistenceVerified = false;
+        if (metadata.getStatus() == DocumentRecord.DocumentStatus.AWAITING_UPLOAD) {
+            String s3Key = metadata.getS3ObjectKey();
+            if (s3Key != null && !s3Key.isBlank() && s3PresignedUrlService.objectExists(s3Key)) {
+                log.info("🏥 Self-Healing: Document {} exists in S3 key '{}' but status was AWAITING_UPLOAD. Transitioning to UPLOADED.", documentId, s3Key);
+                // Controller already verified S3 existence — use lightweight transition to avoid redundant HeadObject
+                vaultService.transitionToUploaded(documentId);
+                metadata = vaultService.getDocumentMetadata(documentId);
+                s3ExistenceVerified = true; // Skip redundant probe in step 4
+            } else {
+                log.warn("Download blocked: Document {} is still AWAITING_UPLOAD and does not exist in S3.", documentId);
+                return ResponseEntity.status(org.springframework.http.HttpStatus.CONFLICT)
+                        .body(java.util.Map.of(
+                                "error", "DOCUMENT_NOT_UPLOADED",
+                                "message", "This document is still awaiting upload. Please upload the file first."
+                        ));
+            }
+        }
+
+        // 4. Failproof S3 Redirect with existence verification
         if (metadata.getS3ObjectKey() != null && metadata.getS3ObjectKey().contains("/")) {
+            // 🧠 EXISTENCE PROBE: Only call HeadObject if we haven't already verified in step 3.
+            // On the self-healing path, the guard already confirmed the object exists — no redundant call.
+            if (!s3ExistenceVerified && !s3PresignedUrlService.objectExists(metadata.getS3ObjectKey())) {
+                log.error("🚨 S3 object missing for Document {} at key '{}'. Possible upload failure.", documentId, metadata.getS3ObjectKey());
+                return ResponseEntity.status(org.springframework.http.HttpStatus.NOT_FOUND)
+                        .body(java.util.Map.of(
+                                "error", "S3_OBJECT_MISSING",
+                                "message", "The document file could not be found in the secure vault. It may need to be re-uploaded."
+                        ));
+            }
+
             S3PresignedUrlService.PresignedUrlResponse response = s3PresignedUrlService.generateDownloadUrl(metadata.getS3ObjectKey());
             return ResponseEntity.ok(java.util.Map.of("url", response.uploadUrl()));
         }
 
-        // 4. Initiate the Byte-Stream (Local Fallback)
+        // 5. Initiate the Byte-Stream (Local Fallback)
         Resource resource = vaultService.loadDocumentAsResource(documentId);
 
-        // 5. Pipe directly to HTTP Response
+        // 6. Pipe directly to HTTP Response
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(metadata.getContentType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + metadata.getOriginalFilename() + "\"")
                 .body(resource);
+    }
+
+    // ==========================================
+    // 🧠 5. CLOSED-LOOP UPLOAD CONFIRMATION
+    // ==========================================
+    @Operation(summary = "Confirm a document upload after S3 PUT succeeds")
+    @PostMapping("/documents/{documentId}/confirm-upload")
+    public ResponseEntity<java.util.Map<String, String>> confirmUpload(
+            @PathVariable UUID documentId,
+            Authentication authentication) {
+
+        extractUserId(authentication); // Mandatory Security Check
+
+        log.info("Vault Gateway: Upload confirmation requested for Document {}", documentId);
+
+        vaultService.confirmUpload(documentId);
+
+        return ResponseEntity.ok(java.util.Map.of(
+                "status", "CONFIRMED",
+                "message", "Document upload verified and confirmed."
+        ));
     }
 
     @Operation(summary = "Securely deletes a document")

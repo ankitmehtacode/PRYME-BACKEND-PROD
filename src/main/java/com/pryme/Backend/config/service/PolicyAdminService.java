@@ -113,8 +113,8 @@ public class PolicyAdminService {
             
             // Legacy Mocks compatibility mappings
             case "foirAllowed": return product.getMaxEmiNmiRatio();
-            case "minBusinessVintageYears": return 3; // Mock fallback
-            case "itrRequiredYears": return 2; // Mock fallback
+            case "minBusinessVintageYears": return product.getGstRequiredMonths() != null ? product.getGstRequiredMonths() / 12 : 3;
+            case "itrRequiredYears": return product.getItrRequirementYears() != null ? product.getItrRequirementYears() : 2;
             default: return null;
         }
     }

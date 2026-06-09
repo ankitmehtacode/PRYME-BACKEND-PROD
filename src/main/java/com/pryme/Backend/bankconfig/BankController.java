@@ -40,7 +40,7 @@ public class BankController {
     @PatchMapping("/{id}/visibility")
     public ResponseEntity<BankResponse> toggleVisibility(@PathVariable UUID id,
             @RequestBody Map<String, Boolean> payload) {
-        boolean active = Boolean.TRUE.equals(payload.get("active"));
+        boolean active = Boolean.TRUE.equals(payload.get("active")) || Boolean.TRUE.equals(payload.get("isActive"));
         return ResponseEntity.ok(bankService.toggleVisibility(id, active));
     }
 

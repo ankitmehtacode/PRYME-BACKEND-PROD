@@ -24,6 +24,8 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -170,6 +172,119 @@ class DocumentVaultServiceTest {
         when(loanApplicationRepository.findByApplicationId("PRY-1001")).thenReturn(Optional.of(application));
 
         assertThrows(ForbiddenException.class, () -> service.getApplicationDocuments("PRY-1001"));
+    }
+
+    @Test
+    void confirmUploadSuccess() {
+        UUID userId = UUID.randomUUID();
+        setUserAuth(userId, "ROLE_USER");
+        UUID documentId = UUID.randomUUID();
+
+        LoanApplication application = LoanApplication.builder()
+                .applicationId("PRY-1001")
+                .applicant(User.builder().id(userId).role(Role.USER).build())
+                .build();
+
+        DocumentRecord doc = new DocumentRecord();
+        doc.setId(documentId);
+        doc.setLoanApplication(application);
+        doc.setS3ObjectKey("PRY-1001/doc");
+        doc.setStatus(DocumentRecord.DocumentStatus.AWAITING_UPLOAD);
+
+        when(documentRecordRepository.findById(documentId)).thenReturn(Optional.of(doc));
+        when(loanApplicationRepository.findByApplicationId("PRY-1001")).thenReturn(Optional.of(application));
+        when(s3PresignedUrlService.objectExists("PRY-1001/doc")).thenReturn(true);
+
+        assertDoesNotThrow(() -> service.confirmUpload(documentId));
+        assertEquals(DocumentRecord.DocumentStatus.UPLOADED, doc.getStatus());
+        assertNotNull(doc.getUploadedAt());
+    }
+
+    @Test
+    void confirmUploadThrowsNotFoundException() {
+        UUID documentId = UUID.randomUUID();
+        when(documentRecordRepository.findById(documentId)).thenReturn(Optional.empty());
+
+        assertThrows(com.pryme.Backend.common.NotFoundException.class, () -> service.confirmUpload(documentId));
+    }
+
+    @Test
+    void confirmUploadThrowsIllegalStateExceptionWhenObjectMissing() {
+        UUID userId = UUID.randomUUID();
+        setUserAuth(userId, "ROLE_USER");
+        UUID documentId = UUID.randomUUID();
+
+        LoanApplication application = LoanApplication.builder()
+                .applicationId("PRY-1001")
+                .applicant(User.builder().id(userId).role(Role.USER).build())
+                .build();
+
+        DocumentRecord doc = new DocumentRecord();
+        doc.setId(documentId);
+        doc.setLoanApplication(application);
+        doc.setS3ObjectKey("PRY-1001/doc");
+        doc.setStatus(DocumentRecord.DocumentStatus.AWAITING_UPLOAD);
+
+        when(documentRecordRepository.findById(documentId)).thenReturn(Optional.of(doc));
+        when(loanApplicationRepository.findByApplicationId("PRY-1001")).thenReturn(Optional.of(application));
+        when(s3PresignedUrlService.objectExists("PRY-1001/doc")).thenReturn(false);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> service.confirmUpload(documentId));
+        assertTrue(ex.getMessage().contains("was not found"));
+    }
+
+    @Test
+    void confirmUploadIdempotentNoOpWhenAlreadyUploaded() {
+        UUID documentId = UUID.randomUUID();
+
+        DocumentRecord doc = new DocumentRecord();
+        doc.setId(documentId);
+        doc.setStatus(DocumentRecord.DocumentStatus.UPLOADED);
+
+        when(documentRecordRepository.findById(documentId)).thenReturn(Optional.of(doc));
+
+        assertDoesNotThrow(() -> service.confirmUpload(documentId));
+        assertEquals(DocumentRecord.DocumentStatus.UPLOADED, doc.getStatus());
+    }
+
+    @Test
+    void transitionToUploadedSuccess() {
+        UUID documentId = UUID.randomUUID();
+
+        DocumentRecord doc = new DocumentRecord();
+        doc.setId(documentId);
+        doc.setStatus(DocumentRecord.DocumentStatus.AWAITING_UPLOAD);
+
+        when(documentRecordRepository.findById(documentId)).thenReturn(Optional.of(doc));
+
+        assertDoesNotThrow(() -> service.transitionToUploaded(documentId));
+        assertEquals(DocumentRecord.DocumentStatus.UPLOADED, doc.getStatus());
+        assertNotNull(doc.getUploadedAt());
+        // Verify NO S3 interaction — the whole point of this method
+        verify(s3PresignedUrlService, never()).objectExists(any());
+    }
+
+    @Test
+    void transitionToUploadedIdempotent() {
+        UUID documentId = UUID.randomUUID();
+
+        DocumentRecord doc = new DocumentRecord();
+        doc.setId(documentId);
+        doc.setStatus(DocumentRecord.DocumentStatus.UPLOADED);
+
+        when(documentRecordRepository.findById(documentId)).thenReturn(Optional.of(doc));
+
+        assertDoesNotThrow(() -> service.transitionToUploaded(documentId));
+        // Should NOT re-save since already uploaded
+        verify(documentRecordRepository, never()).save(any());
+    }
+
+    @Test
+    void transitionToUploadedThrowsNotFound() {
+        UUID documentId = UUID.randomUUID();
+        when(documentRecordRepository.findById(documentId)).thenReturn(Optional.empty());
+
+        assertThrows(com.pryme.Backend.common.NotFoundException.class, () -> service.transitionToUploaded(documentId));
     }
 
     private static void setUserAuth(UUID userId, String role) {

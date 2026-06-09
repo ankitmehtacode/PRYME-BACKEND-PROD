@@ -81,7 +81,10 @@ public class LeadService {
             boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SUPER_ADMIN"));
 
             if (isEmployee && !isAdmin) {
-                User caller = userRepository.findByEmail(auth.getName()).orElseThrow(() -> new NotFoundException("Caller not found"));
+                java.util.UUID callerId = auth.getPrincipal() instanceof java.util.UUID ?
+                        (java.util.UUID) auth.getPrincipal() :
+                        java.util.UUID.fromString(auth.getPrincipal().toString());
+                User caller = userRepository.findById(callerId).orElseThrow(() -> new NotFoundException("Caller not found"));
                 leadPage = leadRepository.findByAssignedTo(caller.getId(), pageable);
             } else {
                 leadPage = leadRepository.findAll(pageable);
@@ -93,7 +96,10 @@ public class LeadService {
         // 🧠 BATCH NAME RESOLUTION: One query to resolve all assignee names instead of N+1
         Map<UUID, String> assigneeNameMap = resolveAssigneeNames(leadPage.getContent());
 
-        return leadPage.map(lead -> LeadResponse.from(lead, assigneeNameMap.get(lead.getAssignedTo())));
+        return leadPage.map(lead -> LeadResponse.from(
+                lead,
+                lead.getAssignedTo() == null ? null : assigneeNameMap.get(lead.getAssignedTo())
+        ));
     }
 
     @Transactional
@@ -129,7 +135,7 @@ public class LeadService {
                 .collect(Collectors.toSet());
 
         if (assigneeIds.isEmpty()) {
-            return Map.of();
+            return new java.util.HashMap<>();
         }
 
         return userRepository.findAllById(assigneeIds).stream()

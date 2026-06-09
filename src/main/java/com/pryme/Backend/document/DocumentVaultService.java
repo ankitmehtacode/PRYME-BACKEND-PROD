@@ -247,6 +247,78 @@ public class DocumentVaultService {
         documentRecordRepository.save(documentRecord);
     }
 
+    /**
+     * 🧠 CLOSED-LOOP UPLOAD CONFIRMATION
+     *
+     * Called by the frontend after a successful S3 PUT. This is the safety net
+     * that replaces the unreliable SNS webhook path.
+     *
+     * Steps:
+     *   1. Load the DocumentRecord by its UUID (the DB primary key, NOT the S3 key)
+     *   2. Verify the caller owns the document (RBAC)
+     *   3. Verify the S3 object ACTUALLY EXISTS via HeadObject
+     *   4. Only then transition status from AWAITING_UPLOAD → UPLOADED
+     *
+     * If the object doesn't exist in S3, we do NOT mark it as uploaded — we throw
+     * an error so the frontend can surface a retry prompt.
+     */
+    @Transactional
+    public void confirmUpload(UUID documentId) {
+        DocumentRecord documentRecord = documentRecordRepository.findById(documentId)
+                .orElseThrow(() -> new NotFoundException("Document not found."));
+
+        // Guard: Only AWAITING_UPLOAD documents can be confirmed
+        if (documentRecord.getStatus() == DocumentRecord.DocumentStatus.UPLOADED) {
+            log.info("Vault Gateway: Document {} already confirmed as UPLOADED. Idempotent no-op.", documentId);
+            return; // Idempotent — safe to call multiple times
+        }
+
+        // RBAC: Verify the caller has access to this document's application
+        if (documentRecord.getLoanApplication() != null) {
+            getAuthorizedApplication(documentRecord.getLoanApplication().getApplicationId());
+        }
+
+        // CRITICAL: Verify the S3 object actually exists before marking as uploaded.
+        // This prevents phantom records where the frontend claimed success but S3 doesn't have the file.
+        String s3Key = documentRecord.getS3ObjectKey();
+        if (s3Key == null || s3Key.isBlank()) {
+            throw new IllegalStateException("Document record has no S3 object key. Upload may not have been initiated.");
+        }
+
+        if (!s3PresignedUrlService.objectExists(s3Key)) {
+            log.warn("🚨 Upload confirmation failed: S3 object does NOT exist at key '{}'. Document {} will remain AWAITING_UPLOAD.", s3Key, documentId);
+            throw new IllegalStateException("Upload verification failed. The file was not found in the secure vault. Please re-upload.");
+        }
+
+        documentRecord.setStatus(DocumentRecord.DocumentStatus.UPLOADED);
+        documentRecord.setUploadedAt(Instant.now());
+        documentRecordRepository.save(documentRecord);
+
+        log.info("✅ Vault Gateway: Document {} confirmed as UPLOADED. S3 key '{}' verified.", documentId, s3Key);
+    }
+
+    /**
+     * Lightweight status transition — ONLY for use by the controller's self-healing guard
+     * which has ALREADY verified S3 object existence via HeadObject.
+     * Skips the S3 verification to avoid redundant API calls.
+     * For normal frontend upload confirmation, use {@link #confirmUpload(UUID)}.
+     */
+    @Transactional
+    public void transitionToUploaded(UUID documentId) {
+        DocumentRecord documentRecord = documentRecordRepository.findById(documentId)
+                .orElseThrow(() -> new NotFoundException("Document not found."));
+
+        if (documentRecord.getStatus() == DocumentRecord.DocumentStatus.UPLOADED) {
+            return; // Idempotent
+        }
+
+        documentRecord.setStatus(DocumentRecord.DocumentStatus.UPLOADED);
+        documentRecord.setUploadedAt(Instant.now());
+        documentRecordRepository.save(documentRecord);
+
+        log.info("🏥 Self-Heal: Document {} transitioned to UPLOADED (S3 pre-verified by caller).", documentId);
+    }
+
     @Transactional
     public void deleteDocument(String applicationId, String docType) {
         String safeApplicationId = sanitizeApplicationId(applicationId);

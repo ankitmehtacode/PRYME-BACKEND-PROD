@@ -126,6 +126,44 @@ public class S3PresignedUrlService {
         }
     }
 
+    /**
+     * 🧠 EXISTENCE PROBE: Lightweight HeadObject check to verify an S3 key exists
+     * before generating presigned download URLs. Prevents serving dead links.
+     *
+     * Returns true if the object exists, false if it doesn't (NoSuchKey / 404).
+     * Throws on genuine infrastructure errors (network, IAM, etc.) — we never
+     * silently swallow real failures.
+     *
+     * In dummy/local mode, always returns true to keep dev workflows unblocked.
+     */
+    public boolean objectExists(String objectKey) {
+        if ("dummy_bucket".equals(awsS3Properties.bucket())) {
+            return true; // Dev mode — assume everything exists
+        }
+
+        try (software.amazon.awssdk.services.s3.S3Client s3Client = software.amazon.awssdk.services.s3.S3Client.builder()
+                .region(Region.of(awsS3Properties.region() != null && !awsS3Properties.region().isBlank() ? awsS3Properties.region() : "ap-south-1"))
+                .build()) {
+
+            s3Client.headObject(b -> b.bucket(awsS3Properties.bucket()).key(objectKey));
+            return true;
+
+        } catch (software.amazon.awssdk.services.s3.model.NoSuchKeyException e) {
+            return false;
+        } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
+            if (e.statusCode() == 404) {
+                return false;
+            }
+            // 403 can mean the key doesn't exist (S3 returns 403 instead of 404
+            // when the caller lacks s3:ListBucket). Treat as "does not exist" 
+            // rather than crashing — the presigned GET will fail anyway.
+            if (e.statusCode() == 403) {
+                return false;
+            }
+            throw new RuntimeException("S3 HeadObject probe failed for key: " + objectKey, e);
+        }
+    }
+
     public record PresignedUrlResponse(String uploadUrl, String documentId, Instant expiresAt) {
     }
 

@@ -4,6 +4,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -49,4 +52,8 @@ public interface LoanApplicationRepository extends JpaRepository<LoanApplication
 
     // New method added
     Optional<LoanApplication> findByApplicantIdAndStatus(UUID applicantId, ApplicationStatus status);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE LoanApplication l SET l.assignee = null WHERE l.assignee.id = :assigneeId")
+    void clearAssigneeByAssigneeId(@Param("assigneeId") UUID assigneeId);
 }

@@ -89,6 +89,15 @@ public class GlobalExceptionHandler {
                 .body(new ApiError("VERSION_CONFLICT", "Record changed by another user. Refresh and retry."));
     }
 
+    @ExceptionHandler(org.springframework.transaction.TransactionSystemException.class)
+    public ResponseEntity<ApiError> handleTransactionSystemException(org.springframework.transaction.TransactionSystemException ex) {
+        log.error("Transaction system failure: ", ex);
+        Throwable rootCause = ex.getRootCause();
+        String message = rootCause != null ? rootCause.getMessage() : ex.getMessage();
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiError("TRANSACTION_ERROR", "Transaction failed: " + message));
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)

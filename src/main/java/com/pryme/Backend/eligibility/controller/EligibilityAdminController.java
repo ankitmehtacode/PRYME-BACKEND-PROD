@@ -1,7 +1,10 @@
 package com.pryme.Backend.eligibility.controller;
 
+import com.pryme.Backend.eligibility.dto.PolicySnapshotDTO;
 import com.pryme.Backend.eligibility.entity.EligibilityCondition;
 import com.pryme.Backend.eligibility.repository.EligibilityConditionRepository;
+import com.pryme.Backend.loanproduct.entity.LoanProduct;
+import com.pryme.Backend.loanproduct.repository.LoanProductRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +35,7 @@ import java.util.Map;
 public class EligibilityAdminController {
 
     private final EligibilityConditionRepository repository;
+    private final LoanProductRepository loanProductRepository;
 
     @Operation(summary = "List eligibility engine rules (defaults to active-only)")
     @GetMapping
@@ -64,6 +68,10 @@ public class EligibilityAdminController {
             Authentication auth
     ) {
         rule.setId(null); // Force new entity
+        if (rule.getBankName() == null || rule.getBankName().isBlank()) {
+            loanProductRepository.findByProductCode(rule.getProductCode())
+                    .ifPresent(product -> rule.setBankName(product.getLenderName()));
+        }
         EligibilityCondition saved = repository.save(rule);
         log.info("🧠 ENGINE RULE CREATED [id={}] [productCode={}] by [{}]",
                 saved.getId(), saved.getProductCode(), auth.getName());
@@ -83,10 +91,102 @@ public class EligibilityAdminController {
                     // Preserve immutable audit fields
                     incoming.setId(existing.getId());
                     incoming.setCreatedAt(existing.getCreatedAt());
+                    if (incoming.getBankName() == null || incoming.getBankName().isBlank()) {
+                        loanProductRepository.findByProductCode(incoming.getProductCode())
+                                .ifPresent(product -> incoming.setBankName(product.getLenderName()));
+                    }
                     EligibilityCondition saved = repository.save(incoming);
                     log.info("🧠 ENGINE RULE UPDATED [id={}] [productCode={}] by [{}]",
                             saved.getId(), saved.getProductCode(), auth.getName());
                     return ResponseEntity.ok(saved);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @Operation(summary = "Get a policy snapshot merging eligibility rules and loan product details")
+    @GetMapping("/{id}/snapshot")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'EMPLOYEE')")
+    public ResponseEntity<PolicySnapshotDTO> getSnapshot(@PathVariable Long id) {
+        return repository.findById(id)
+                .map(rule -> {
+                    LoanProduct product = loanProductRepository.findByProductCode(rule.getProductCode())
+                            .orElse(null);
+                    
+                    PolicySnapshotDTO snapshot = new PolicySnapshotDTO(
+                            rule.getId(),
+                            rule.getProductId(),
+                            rule.getProductCode(),
+                            rule.getEmploymentType(),
+                            rule.getSurrogate(),
+                            rule.getMinAge(),
+                            rule.getMaxAge(),
+                            rule.getMinIncome(),
+                            rule.getIncomeType(),
+                            rule.getWorkExpYears(),
+                            rule.getBusinessAgeYears(),
+                            rule.getCibilMin(),
+                            rule.getFoirMax(),
+                            rule.getLtvAllowed(),
+                            rule.getBankName() != null && !rule.getBankName().isBlank() ? rule.getBankName() : (product != null ? product.getLenderName() : null),
+                            rule.getLoanType(),
+                            rule.getItrRequiredYears(),
+                            rule.getDeviationFormulae(),
+                            rule.getConditions(),
+                            rule.getEmiNotObligated(),
+                            rule.getPropertyType(),
+                            rule.getNegativeProperty(),
+                            rule.getNegativeEmployerType(),
+                            rule.getNegativeSalaryMode(),
+                            rule.getMarginByOccupation(),
+                            rule.getProvidentFundMandatory(),
+                            rule.getCityTier(),
+                            rule.getProfileRestrictions(),
+                            rule.getNotes(),
+                            rule.isActive(),
+                            
+                            product != null ? product.getProductName() : null,
+                            product != null ? product.getLenderName() : null,
+                            product != null ? product.getInterestType() : null,
+                            product != null ? product.getRoi() : null,
+                            product != null ? product.getProcessingFee() : null,
+                            product != null ? product.getPrepaymentCharges() : null,
+                            product != null ? product.getForeclosureCharges() : null,
+                            product != null ? product.getLoginFees() : null,
+                            product != null ? product.getLegalTechnicalCharges() : null,
+                            product != null ? product.getOtherExpense() : null,
+                            product != null ? product.getInsuranceCharges() : null,
+                            product != null ? product.getStampDuties() : null,
+                            product != null ? product.getMinTenureMonths() : null,
+                            product != null ? product.getMaxTenureMonths() : null,
+                            product != null ? product.getMinLoanAmount() : null,
+                            product != null ? product.getMaxLoanAmount() : null,
+                            product != null ? product.getMinCibil() : null,
+                            product != null ? product.getMaxCibil() : null,
+                            product != null ? product.getKycRequirement() : null,
+                            product != null ? product.getIncomeProof() : null,
+                            product != null ? product.getBankStatementMonths() : null,
+                            product != null ? product.getItrRequirementYears() : null,
+                            product != null ? product.getSalarySlipMonths() : null,
+                            product != null ? product.getGstRequiredMonths() : null,
+                            product != null ? product.getResidenceProfile() : null,
+                            product != null ? product.getAdditionalDocs() : null,
+                            product != null ? product.getMaxEmiNmiRatio() : null,
+                            product != null ? product.getLtv() : null,
+                            product != null ? product.getObligationTreatment() : null,
+                            product != null ? product.getDpdAllowed() : null,
+                            product != null ? product.getWriteOffAllowed() : null,
+                            product != null ? product.getSettlementAllowed() : null,
+                            product != null ? product.getRiskCategory() : null,
+                            product != null ? product.getOccupation() : null,
+                            product != null ? product.getEmployerType() : null,
+                            product != null ? product.getNatureOfBusiness() : null,
+                            product != null ? product.getIndustry() : null,
+                            product != null ? product.getPincodeRestrictions() : null,
+                            product != null ? product.getCampaignName() : null,
+                            product != null ? product.getOfferType() : null,
+                            product != null ? product.getOfferDetails() : null
+                    );
+                    return ResponseEntity.ok(snapshot);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
