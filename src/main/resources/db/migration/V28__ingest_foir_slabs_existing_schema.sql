@@ -70,7 +70,7 @@ BEGIN
     END LOOP;
         FOR rec IN SELECT id, product_code, lender_name, loan_type FROM loan_products WHERE product_code LIKE 'ICICI-HL%' LOOP
         INSERT INTO eligibility_conditions (product_id, product_code, employment_type, surrogate, min_income, foir_max, min_age, max_age, cibil_min, property_type, bank_name, loan_type, is_active)
-        SELECT rec.id, rec.product_code, emp, 'NIP', 200000, 0.6500, 21, 65, 650, 'RESIDENTIAL, COMMERCIAL, PLOT', rec.lender_name, rec.loan_type, true
+        SELECT rec.id, rec.product_code, emp, 'NIP', 200000, 0.9500, 21, 65, 650, 'RESIDENTIAL, COMMERCIAL, PLOT', rec.lender_name, rec.loan_type, true
         FROM unnest(ARRAY['SENP', 'SEP_SENP']) AS emp;
     END LOOP;
         FOR rec IN SELECT id, product_code, lender_name, loan_type FROM loan_products WHERE product_code LIKE 'ICICI-HL%' LOOP
@@ -365,7 +365,7 @@ BEGIN
     END LOOP;
         FOR rec IN SELECT id, product_code, lender_name, loan_type FROM loan_products WHERE product_code LIKE 'ICICI-LAP%' LOOP
         INSERT INTO eligibility_conditions (product_id, product_code, employment_type, surrogate, min_income, foir_max, min_age, max_age, cibil_min, property_type, bank_name, loan_type, is_active)
-        SELECT rec.id, rec.product_code, emp, 'NIP', 200000, 0.6500, 21, 65, 650, 'RESIDENTIAL, COMMERCIAL, PLOT', rec.lender_name, rec.loan_type, true
+        SELECT rec.id, rec.product_code, emp, 'NIP', 200000, 0.9500, 21, 65, 650, 'RESIDENTIAL, COMMERCIAL, PLOT', rec.lender_name, rec.loan_type, true
         FROM unnest(ARRAY['SENP', 'SEP_SENP']) AS emp;
     END LOOP;
         FOR rec IN SELECT id, product_code, lender_name, loan_type FROM loan_products WHERE product_code LIKE 'ICICI-LAP%' LOOP
