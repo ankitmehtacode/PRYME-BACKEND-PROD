@@ -102,8 +102,21 @@ public class FinancialComputationEngine {
             }
 
             // Check Employment Type
-            if (row.getEmploymentType() != null && !row.getEmploymentType().equalsIgnoreCase(empType)) {
-                continue;
+            String rowEmpType = row.getEmploymentType();
+            if (rowEmpType != null) {
+                boolean match = false;
+                if (rowEmpType.equalsIgnoreCase("SALARIED_SEP")) {
+                    match = empType.equalsIgnoreCase("Salaried") || empType.equalsIgnoreCase("SEP/SENP");
+                } else if (rowEmpType.equalsIgnoreCase("SEP_SENP") 
+                        || rowEmpType.equalsIgnoreCase("SENP") 
+                        || rowEmpType.equalsIgnoreCase("SENP (Industry Margin)")) {
+                    match = empType.equalsIgnoreCase("SEP/SENP");
+                } else {
+                    match = rowEmpType.equalsIgnoreCase(empType);
+                }
+                if (!match) {
+                    continue;
+                }
             }
 
             // Check Loan Amount

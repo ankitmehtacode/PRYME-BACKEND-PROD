@@ -43,7 +43,7 @@ for cibil, expected_roi in [(800, 0.0925), (710, 0.0975), (660, 0.1050)]:
         response = urllib.request.urlopen(req, context=ctx)
         data = json.loads(response.read().decode('utf-8'))
         
-        offer = next((item for item in data if item.get("productCode") == "BAJAJ-NP-HL"), None)
+        offer = next((item for item in data if item.get("productCode") == "BAJAJ-HL-0001"), None)
         
         if offer:
             if offer.get("eligible"):
