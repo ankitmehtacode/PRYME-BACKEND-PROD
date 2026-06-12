@@ -2,7 +2,9 @@ package com.pryme.Backend.eligibility.service;
 
 import com.pryme.Backend.eligibility.dto.ApplicantProfile;
 import com.pryme.Backend.loanproduct.entity.LoanProduct;
+import com.pryme.Backend.loanproduct.entity.ProductPfMatrix;
 import com.pryme.Backend.loanproduct.entity.ProductRoiMatrix;
+import com.pryme.Backend.loanproduct.repository.ProductPfMatrixRepository;
 import com.pryme.Backend.loanproduct.repository.ProductRoiMatrixRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,18 +16,13 @@ import java.util.List;
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * 🧠 FINANCIAL COMPUTATION ENGINE — STATIC FEE RESOLVER
+ * 🧠 FINANCIAL COMPUTATION ENGINE — DYNAMIC RESOLVER
  * ═══════════════════════════════════════════════════════════════════════════════
  *
- * Resolves processing fees at runtime using the product's static processingFee
- * percentage field. Dynamic SpEL-based computation (ROI, PF, LTV, FOIR) has been
- * removed — real production data will be seeded with the appropriate static values.
+ * Resolves processing fees and interest rates (ROI) at runtime using product-specific matrices.
+ * Fallback to base product parameters.
  *
- * Fallback chain:
- *   1. processingFee (static %)   → loanAmount × staticRate
- *   2. BigDecimal.ZERO            → no fee
- *
- * @since 2026-04-30
+ * @since 2026-06-12
  */
 @Service
 @Slf4j
@@ -33,6 +30,7 @@ import java.util.List;
 public class FinancialComputationEngine {
 
     private final ProductRoiMatrixRepository roiMatrixRepository;
+    private final ProductPfMatrixRepository pfMatrixRepository;
 
     /** Scale for all INR fee outputs. */
     private static final int FEE_SCALE = 2;
@@ -42,29 +40,97 @@ public class FinancialComputationEngine {
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Resolves the absolute processing fee (in ₹) for a given product and loan amount.
+     * Resolves the absolute processing fee (in ₹) for a given product, loan amount, and employment type.
      *
-     * @param product    the LoanProduct entity (must not be null)
-     * @param loanAmount the applicant's requested loan amount (must be > 0)
-     * @return           absolute processing fee as BigDecimal, scale=2, never null
+     * @param product        the LoanProduct entity (must not be null)
+     * @param loanAmount     the applicant's requested loan amount (must be > 0)
+     * @param employmentType the applicant's employment type (e.g. 'Salaried', 'SEP/SENP')
+     * @return               absolute processing fee as BigDecimal, scale=2, never null
      * @throws IllegalArgumentException if loanAmount is null or non-positive
      */
-    public BigDecimal resolveProcessingFee(LoanProduct product, BigDecimal loanAmount) {
+    public BigDecimal resolveProcessingFee(LoanProduct product, BigDecimal loanAmount, String employmentType) {
         if (loanAmount == null || loanAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException(
                     "loanAmount must be a positive value; received: " + loanAmount);
         }
 
-        // Static percentage: loanAmount × staticRate
+        if (product.getId() != null && employmentType != null) {
+            List<ProductPfMatrix> matrixRows = pfMatrixRepository.findByProductId(product.getId());
+            if (matrixRows != null && !matrixRows.isEmpty()) {
+                for (ProductPfMatrix row : matrixRows) {
+                    // 1. Check Employment Type
+                    String rowEmpType = row.getEmploymentType();
+                    if (rowEmpType != null) {
+                        boolean match = false;
+                        if (rowEmpType.equalsIgnoreCase("SALARIED_SEP")) {
+                            match = employmentType.equalsIgnoreCase("Salaried") || employmentType.equalsIgnoreCase("SEP/SENP");
+                        } else if (rowEmpType.equalsIgnoreCase("SEP_SENP") 
+                                || rowEmpType.equalsIgnoreCase("SENP") 
+                                || rowEmpType.equalsIgnoreCase("SEP")
+                                || rowEmpType.equalsIgnoreCase("SENP (Industry Margin)")) {
+                            match = employmentType.equalsIgnoreCase("SEP/SENP");
+                        } else {
+                            match = rowEmpType.equalsIgnoreCase(employmentType);
+                        }
+                        if (!match) {
+                            continue;
+                        }
+                    }
+
+                    // 2. Check Loan Amount Slabs
+                    if (row.getMinLoanAmount() != null && loanAmount.compareTo(row.getMinLoanAmount()) < 0) {
+                        continue;
+                    }
+                    if (row.getMaxLoanAmount() != null && loanAmount.compareTo(row.getMaxLoanAmount()) > 0) {
+                        continue;
+                    }
+
+                    // Found matching slab!
+                    BigDecimal baseFee;
+                    if (row.isFlat()) {
+                        baseFee = row.getFeeValue();
+                    } else {
+                        baseFee = loanAmount.multiply(row.getFeeValue());
+                    }
+
+                    // Apply Min/Max Fee limits
+                    if (row.getMinFee() != null && baseFee.compareTo(row.getMinFee()) < 0) {
+                        baseFee = row.getMinFee();
+                    }
+                    if (row.getMaxFee() != null && baseFee.compareTo(row.getMaxFee()) > 0) {
+                        baseFee = row.getMaxFee();
+                    }
+
+                    // Apply Tax Rate (total = baseFee * (1 + taxRate))
+                    BigDecimal taxRate = row.getTaxRate() != null ? row.getTaxRate() : new BigDecimal("0.1800");
+                    BigDecimal multiplier = BigDecimal.ONE.add(taxRate);
+                    BigDecimal totalFee = baseFee.multiply(multiplier);
+
+                    log.debug("Dynamic PF resolved: product={} loanAmount={} baseFee={} taxRate={} → totalFee={}",
+                            product.getProductCode(), loanAmount, baseFee, taxRate, totalFee);
+
+                    return totalFee.setScale(FEE_SCALE, RoundingMode.HALF_UP);
+                }
+            }
+        }
+
+        // Fallback to static percentage: loanAmount × staticRate (tax-exclusive)
         if (product.getProcessingFee() != null) {
             return loanAmount.multiply(product.getProcessingFee())
                     .setScale(FEE_SCALE, RoundingMode.HALF_UP);
         }
 
         // No fee configured
-        log.debug("No static fee for product={}. Returning ZERO.",
+        log.debug("No static/dynamic fee for product={}. Returning ZERO.",
                 product.getProductCode());
         return BigDecimal.ZERO;
+    }
+
+    /**
+     * Overloaded method for backward-compatibility. Bypasses dynamic matrix and uses static base processing fee.
+     */
+    public BigDecimal resolveProcessingFee(LoanProduct product, BigDecimal loanAmount) {
+        return resolveProcessingFee(product, loanAmount, null);
     }
 
     /**

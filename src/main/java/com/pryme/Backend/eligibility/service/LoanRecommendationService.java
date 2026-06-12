@@ -180,7 +180,8 @@ public class LoanRecommendationService {
 
         BigDecimal dynamicPf = computationEngine.resolveProcessingFee(
                 product,
-                requestedAmount
+                requestedAmount,
+                profile.empType()
         );
 
         return new RecommendedProductDTO(

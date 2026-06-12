@@ -212,9 +212,9 @@ class LoanRecommendationServiceTest {
         BigDecimal amount = new BigDecimal("10000000");
 
         // Different PF: SBI=₹25K, LNT=₹10K → LNT should rank first
-        when(computationEngine.resolveProcessingFee(eq(sbiHl), eq(amount)))
+        when(computationEngine.resolveProcessingFee(eq(sbiHl), eq(amount), anyString()))
                 .thenReturn(new BigDecimal("25000.00"));
-        when(computationEngine.resolveProcessingFee(eq(lntLap), eq(amount)))
+        when(computationEngine.resolveProcessingFee(eq(lntLap), eq(amount), anyString()))
                 .thenReturn(new BigDecimal("10000.00"));
         when(computationEngine.resolveRoi(any(), any(), any()))
                 .thenAnswer(inv -> {
@@ -242,7 +242,7 @@ class LoanRecommendationServiceTest {
 
         BigDecimal amount = new BigDecimal("3000000");
 
-        when(computationEngine.resolveProcessingFee(eq(sbiHl), eq(amount)))
+        when(computationEngine.resolveProcessingFee(eq(sbiHl), eq(amount), anyString()))
                 .thenReturn(new BigDecimal("15000.00"));
         when(computationEngine.resolveRoi(any(), any(), any()))
                 .thenAnswer(inv -> {
@@ -334,7 +334,7 @@ class LoanRecommendationServiceTest {
 
     /** Stubs engine with static PF for tests that don't need specific fee values. */
     private void stubProcessingFee() {
-        when(computationEngine.resolveProcessingFee(any(), any()))
+        when(computationEngine.resolveProcessingFee(any(), any(), any()))
                 .thenReturn(new BigDecimal("10000.00"));
         when(computationEngine.resolveRoi(any(), any(), any()))
                 .thenAnswer(inv -> {

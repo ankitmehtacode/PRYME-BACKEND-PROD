@@ -1,5 +1,5 @@
 -- ==============================================================================
--- V28: Populate Default FOIR and LTV for Eligibility Conditions (Post-V27)
+-- V30: Populate Default FOIR and LTV for Eligibility Conditions (Post-V27)
 -- ==============================================================================
 -- The V27 ingestion script re-seeded the eligibility_conditions table but did
 -- not populate ltv_allowed and foir_max, leaving them NULL.

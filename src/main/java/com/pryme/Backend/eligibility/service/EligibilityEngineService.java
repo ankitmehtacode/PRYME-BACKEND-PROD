@@ -492,9 +492,9 @@ public class EligibilityEngineService {
                 .min(request.propertyValue().multiply(effectiveLtv, MathContext.DECIMAL128))
                 .min(maxEligibleAmount);
 
-        // ── Processing Fee: static percentage × loan amount ──────────────────
+        // ── Processing Fee: dynamic resolution ──────────────────────────────
         final BigDecimal processingFee = financialComputationEngine.resolveProcessingFee(
-                product, finalLoanAmount);
+                product, finalLoanAmount, normalizedEmpType);
 
         log.debug("Processing fee resolved: product={} loanAmount={} → fee={}",
                 product.getProductCode(), finalLoanAmount, processingFee);
