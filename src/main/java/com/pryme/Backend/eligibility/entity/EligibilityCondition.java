@@ -83,10 +83,22 @@ public class EligibilityCondition {
     private String conditions;
 
     @Column(name = "emi_not_obligated")
-    private Boolean emiNotObligated;
+    private String emiNotObligated;
 
     @Column(name = "property_type", columnDefinition = "text")
     private String propertyType;
+
+    @Column(name = "vintage", length = 50)
+    private String vintage;
+
+    @Column(name = "bank_statement_requirement")
+    private String bankStatementRequirement;
+
+    @Column(name = "salary_slip_requirement")
+    private String salarySlipRequirement;
+
+    @Column(name = "gst_return_requirement")
+    private String gstReturnRequirement;
 
     @Column(name = "negative_property", columnDefinition = "text")
     private String negativeProperty;

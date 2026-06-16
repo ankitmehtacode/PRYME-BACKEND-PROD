@@ -37,7 +37,7 @@ public class User implements java.io.Serializable {
     // Added updatable = false. Hibernate will now physically refuse to generate
     // an UPDATE statement for the email column, mathematically guaranteeing your logic.
     @NaturalId
-    @Column(nullable = false, unique = true, length = 150, updatable = false)
+    @Column(nullable = false, unique = true, length = 150)
     private String email;
 
     // 🧠 DEFENSE-IN-DEPTH: @JsonIgnore ensures BCrypt hash NEVER leaks

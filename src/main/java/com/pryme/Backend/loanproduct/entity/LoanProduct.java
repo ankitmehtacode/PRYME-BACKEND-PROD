@@ -57,26 +57,29 @@ public class LoanProduct {
     private BigDecimal processingFee;
 
 
-    @Column(name = "prepayment_charges", precision = 6, scale = 4)
-    private BigDecimal prepaymentCharges;
+    @Column(name = "prepayment_charges")
+    private String prepaymentCharges;
 
-    @Column(name = "foreclosure_charges", precision = 6, scale = 4)
-    private BigDecimal foreclosureCharges;
+    @Column(name = "foreclosure_charges")
+    private String foreclosureCharges;
 
     @Column(name = "login_fees", precision = 12, scale = 2)
     private BigDecimal loginFees;
 
-    @Column(name = "legal_technical_charges", precision = 12, scale = 2)
-    private BigDecimal legalTechnicalCharges;
+    @Column(name = "legal_technical_charges")
+    private String legalTechnicalCharges;
 
-    @Column(name = "other_expense", precision = 12, scale = 2)
-    private BigDecimal otherExpense;
+    @Column(name = "other_expense")
+    private String otherExpense;
 
     @Column(name = "insurance_charges")
     private String insuranceCharges;
 
-    @Column(name = "stamp_duties", precision = 12, scale = 2)
-    private BigDecimal stampDuties;
+    @Column(name = "stamp_duties")
+    private String stampDuties;
+
+    @Column(name = "admin_fee")
+    private String adminFee;
 
     // ── Tenure (months) ────────────────────────────────────────────────────
     @Column(name = "min_tenure_months", nullable = false)

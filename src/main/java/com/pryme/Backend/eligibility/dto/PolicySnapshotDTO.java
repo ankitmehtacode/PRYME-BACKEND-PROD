@@ -18,7 +18,7 @@ public record PolicySnapshotDTO(
     String bankName, String loanType,
     Integer itrRequiredYears,
     String deviationFormulae, String conditions,
-    Boolean emiNotObligated,
+    String emiNotObligated,
     String propertyType, String negativeProperty,
     String negativeEmployerType, String negativeSalaryMode,
     String marginByOccupation,
@@ -28,14 +28,21 @@ public record PolicySnapshotDTO(
     String notes,
     boolean active,
     
+    // New EligibilityCondition fields
+    String vintage,
+    String bankStatementRequirement,
+    String salarySlipRequirement,
+    String gstReturnRequirement,
+    
     // ── Linked LoanProduct fields (resolved by productCode) ──
     String productName,
     String lenderName,
     String interestType,
     BigDecimal roi, BigDecimal processingFee,
-    BigDecimal prepaymentCharges, BigDecimal foreclosureCharges,
-    BigDecimal loginFees, BigDecimal legalTechnicalCharges,
-    BigDecimal otherExpense, String insuranceCharges, BigDecimal stampDuties,
+    String prepaymentCharges, String foreclosureCharges,
+    BigDecimal loginFees, String legalTechnicalCharges,
+    String otherExpense, String insuranceCharges, String stampDuties,
+    String adminFee,
     Integer minTenureMonths, Integer maxTenureMonths,
     BigDecimal minLoanAmount, BigDecimal maxLoanAmount,
     Integer minCibil, Integer maxCibil,

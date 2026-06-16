@@ -27,6 +27,14 @@ public record RecommendedProductDTO(
         String loanType,
         BigDecimal dynamicRoi,
         BigDecimal dynamicPf,
+        BigDecimal dynamicLoginFee,
         BigDecimal minLoanAmount,
-        BigDecimal maxLoanAmount
+        BigDecimal maxLoanAmount,
+        String adminFee,
+        String insuranceCharges,
+        String legalTechnicalCharges,
+        String otherExpense,
+        String stampDuty,
+        String prepaymentCharges,
+        String foreclosureCharges
 ) {}

@@ -275,7 +275,11 @@ public class ApplicationService {
                 .changedAt(Instant.now())
                 .build());
 
-        return ApplicationResponse.from(applicationRepository.save(application));
+        try {
+            return ApplicationResponse.from(applicationRepository.saveAndFlush(application));
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            throw new ConflictException("Update failed. An applicant user with this email address already exists.");
+        }
     }
 
     // ==========================================

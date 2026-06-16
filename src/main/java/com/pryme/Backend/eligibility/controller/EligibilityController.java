@@ -30,9 +30,12 @@ public class EligibilityController {
         log.info("Eligibility evaluate request: loanType={}, empType={}, cibil={}, loanAmt={}",
                 request.loanType(), request.employmentType(), request.cibilScore(), request.loanAmount());
         List<EligibilityResult> results = eligibilityEngineService.evaluate(request);
+        List<EligibilityResult> publicResults = results.stream()
+                .map(EligibilityResult::toPublicResult)
+                .toList();
         // Always return 200 — the frontend inspects results to distinguish
         // eligible offers from rejections with reasons.
-        return ResponseEntity.ok(results);
+        return ResponseEntity.ok(publicResults);
     }
 
     @Operation(summary = "One-line description of this endpoint")
@@ -51,8 +54,11 @@ public class EligibilityController {
         log.info("Eligibility best-match request: loanType={}, empType={}, cibil={}, loanAmt={}",
                 request.loanType(), request.employmentType(), request.cibilScore(), request.loanAmount());
         List<EligibilityResult> results = eligibilityEngineService.evaluate(request);
+        List<EligibilityResult> publicResults = results.stream()
+                .map(EligibilityResult::toPublicResult)
+                .toList();
         // Always return 200 — the frontend inspects results to distinguish
         // eligible offers from rejections with reasons.
-        return ResponseEntity.ok(results);
+        return ResponseEntity.ok(publicResults);
     }
 }

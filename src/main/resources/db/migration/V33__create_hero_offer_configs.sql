@@ -1,0 +1,12 @@
+CREATE TABLE hero_offer_configs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tag VARCHAR(100) NOT NULL,
+    bank VARCHAR(100) NOT NULL,
+    logo_type VARCHAR(50),
+    title VARCHAR(255) NOT NULL,
+    highlights VARCHAR(500) NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    order_index INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

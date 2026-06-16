@@ -216,6 +216,8 @@ class LoanRecommendationServiceTest {
                 .thenReturn(new BigDecimal("25000.00"));
         when(computationEngine.resolveProcessingFee(eq(lntLap), eq(amount), anyString()))
                 .thenReturn(new BigDecimal("10000.00"));
+        when(computationEngine.resolveLoginFee(any(), any(), any()))
+                .thenReturn(new BigDecimal("1000.00"));
         when(computationEngine.resolveRoi(any(), any(), any()))
                 .thenAnswer(inv -> {
                     LoanProduct p = inv.getArgument(0);
@@ -244,6 +246,8 @@ class LoanRecommendationServiceTest {
 
         when(computationEngine.resolveProcessingFee(eq(sbiHl), eq(amount), anyString()))
                 .thenReturn(new BigDecimal("15000.00"));
+        when(computationEngine.resolveLoginFee(eq(sbiHl), eq(amount), anyString()))
+                .thenReturn(new BigDecimal("1000.00"));
         when(computationEngine.resolveRoi(any(), any(), any()))
                 .thenAnswer(inv -> {
                     LoanProduct p = inv.getArgument(0);
@@ -264,6 +268,7 @@ class LoanRecommendationServiceTest {
                 () -> assertEquals("HL", dto.loanType()),
                 () -> assertEquals(new BigDecimal("9.2500"), dto.dynamicRoi()),
                 () -> assertEquals(new BigDecimal("15000.00"), dto.dynamicPf()),
+                () -> assertEquals(new BigDecimal("1000.00"), dto.dynamicLoginFee()),
                 () -> assertEquals(new BigDecimal("1000000"), dto.minLoanAmount()),
                 () -> assertEquals(new BigDecimal("50000000"), dto.maxLoanAmount())
         );
@@ -336,6 +341,8 @@ class LoanRecommendationServiceTest {
     private void stubProcessingFee() {
         when(computationEngine.resolveProcessingFee(any(), any(), any()))
                 .thenReturn(new BigDecimal("10000.00"));
+        when(computationEngine.resolveLoginFee(any(), any(), any()))
+                .thenReturn(new BigDecimal("1000.00"));
         when(computationEngine.resolveRoi(any(), any(), any()))
                 .thenAnswer(inv -> {
                     LoanProduct p = inv.getArgument(0);

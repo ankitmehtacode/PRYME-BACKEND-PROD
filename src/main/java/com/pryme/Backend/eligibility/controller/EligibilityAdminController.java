@@ -144,6 +144,11 @@ public class EligibilityAdminController {
                             rule.getNotes(),
                             rule.isActive(),
                             
+                            rule.getVintage(),
+                            rule.getBankStatementRequirement(),
+                            rule.getSalarySlipRequirement(),
+                            rule.getGstReturnRequirement(),
+                            
                             product != null ? product.getProductName() : null,
                             product != null ? product.getLenderName() : null,
                             product != null ? product.getInterestType() : null,
@@ -156,6 +161,7 @@ public class EligibilityAdminController {
                             product != null ? product.getOtherExpense() : null,
                             product != null ? product.getInsuranceCharges() : null,
                             product != null ? product.getStampDuties() : null,
+                            product != null ? product.getAdminFee() : null,
                             product != null ? product.getMinTenureMonths() : null,
                             product != null ? product.getMaxTenureMonths() : null,
                             product != null ? product.getMinLoanAmount() : null,

@@ -7,6 +7,7 @@ import com.pryme.Backend.common.repository.PolicyFieldDefinitionRepository;
 import com.pryme.Backend.eligibility.dto.ApplicantProfile;
 import com.pryme.Backend.eligibility.dto.EligibilityRequest;
 import com.pryme.Backend.eligibility.dto.EligibilityResult;
+import com.pryme.Backend.eligibility.dto.IncomeComputationInput;
 import com.pryme.Backend.eligibility.dto.PreflightRequest;
 import com.pryme.Backend.eligibility.entity.EligibilityCondition;
 import com.pryme.Backend.eligibility.exception.SurrogatePolicyNotFoundException;
@@ -42,6 +43,7 @@ public class EligibilityEngineService {
     private final SpelExpressionCacheService spelExpressionCacheService;
     private final SimpleEvaluationContext simpleSandboxEvaluationContext;
     private final FinancialComputationEngine financialComputationEngine;
+    private final LowLtvSurrogateService lowLtvSurrogateService;
 
     private static final BigDecimal DEFAULT_FOIR = new BigDecimal("0.65");
 
@@ -59,6 +61,9 @@ public class EligibilityEngineService {
             Map.entry("ROW_HOUSE", "RESIDENTIAL"),
             Map.entry("PENTHOUSE", "RESIDENTIAL"),
             Map.entry("RESIDENTIAL", "RESIDENTIAL"),
+            Map.entry("READY BUILT PROPERTY", "RESIDENTIAL"),
+            Map.entry("READY_BUILT_PROPERTY", "RESIDENTIAL"),
+            Map.entry("READY BUILT", "RESIDENTIAL"),
             // Commercial sub-types
             Map.entry("HOSPITAL", "COMMERCIAL"),
             Map.entry("HOSTEL", "COMMERCIAL"),
@@ -80,8 +85,7 @@ public class EligibilityEngineService {
             Map.entry("INDUSTRIAL", "INDUSTRIAL"),
             // Land / Plot (mapped to itself — negative property deny-list handles these)
             Map.entry("PLOT", "PLOT"),
-            Map.entry("LAND", "LAND")
-    );
+            Map.entry("LAND", "LAND"));
 
     // ── LOAN TYPE NORMALIZATION ──────────────────────────────────────────────
     // Frontend sends full names (HOME_LOAN, LOAN_AGAINST_PROPERTY).
@@ -91,8 +95,7 @@ public class EligibilityEngineService {
             "LOAN_AGAINST_PROPERTY", "LAP",
             "BUSINESS_LOAN", "BL",
             "PERSONAL_LOAN", "PL",
-            "CREDIT_CARD", "CC"
-    );
+            "CREDIT_CARD", "CC");
 
     // ── EMPLOYMENT TYPE NORMALIZATION ────────────────────────────────────────
     // Frontend sends SALARIED, SELF_EMPLOYED, PROFESSIONAL.
@@ -100,15 +103,15 @@ public class EligibilityEngineService {
     private static final Map<String, String> EMPLOYMENT_TYPE_NORMALIZATION = Map.of(
             "SELF_EMPLOYED", "SEP/SENP",
             "PROFESSIONAL", "SEP/SENP",
-            "SALARIED", "Salaried"
-    );
+            "SALARIED", "Salaried");
 
     /**
      * Resolve a frontend property sub-type to its bank-policy category.
      * Falls back to the input itself if no mapping exists (forward-compatible).
      */
     private static String resolvePropertyCategory(String propertyType) {
-        if (propertyType == null) return "RESIDENTIAL";
+        if (propertyType == null)
+            return "RESIDENTIAL";
         return PROPERTY_SUBTYPE_TO_CATEGORY.getOrDefault(propertyType.toUpperCase(), propertyType.toUpperCase());
     }
 
@@ -117,7 +120,8 @@ public class EligibilityEngineService {
      * Falls back to the input itself if no mapping exists (forward-compatible).
      */
     private static String normalizeLoanType(String loanType) {
-        if (loanType == null) return "HL";
+        if (loanType == null)
+            return "HL";
         return LOAN_TYPE_NORMALIZATION.getOrDefault(loanType.toUpperCase(), loanType.toUpperCase());
     }
 
@@ -126,8 +130,28 @@ public class EligibilityEngineService {
      * Falls back to the input itself if no mapping exists (forward-compatible).
      */
     private static String normalizeEmploymentType(String empType) {
-        if (empType == null) return null;
+        if (empType == null)
+            return null;
         return EMPLOYMENT_TYPE_NORMALIZATION.getOrDefault(empType.toUpperCase(), empType);
+    }
+
+    private static boolean matchEmploymentType(String rowEmpType, String applicantEmpType) {
+        if (rowEmpType == null || rowEmpType.isBlank()) {
+            return true;
+        }
+        if (applicantEmpType == null) {
+            return false;
+        }
+        if (rowEmpType.equalsIgnoreCase("SALARIED_SEP")) {
+            return applicantEmpType.equalsIgnoreCase("Salaried") || applicantEmpType.equalsIgnoreCase("SEP/SENP");
+        } else if (rowEmpType.equalsIgnoreCase("SEP_SENP")
+                || rowEmpType.equalsIgnoreCase("SENP")
+                || rowEmpType.equalsIgnoreCase("SEP")
+                || rowEmpType.equalsIgnoreCase("SENP (Industry Margin)")) {
+            return applicantEmpType.equalsIgnoreCase("SEP/SENP");
+        } else {
+            return rowEmpType.equalsIgnoreCase(applicantEmpType);
+        }
     }
 
     public List<EligibilityResult> evaluate(EligibilityRequest request) {
@@ -141,8 +165,7 @@ public class EligibilityEngineService {
             // FIX BUG-A: record accessor is violations(), not getViolations()
             return List.of(EligibilityResult.rejected(
                     preflightResult.violations(),
-                    "Pre-flight gate failed"
-            ));
+                    "Pre-flight gate failed"));
         }
 
         // ── STEP 1.5: GEO-FENCE — Indore-only operations ─────────────────────
@@ -156,9 +179,9 @@ public class EligibilityEngineService {
             if (!isIndore) {
                 log.info("🚫 GEO-FENCE: pinCode={} is outside Indore. Rejecting.", pin);
                 return List.of(EligibilityResult.rejected(
-                        List.of(String.format("Service area restricted: PIN %s is outside Indore (452xxx/453xxx)", pin)),
-                        "PRYME currently operates only in Indore"
-                ));
+                        List.of(String.format("Service area restricted: PIN %s is outside Indore (452xxx/453xxx)",
+                                pin)),
+                        "PRYME currently operates only in Indore"));
             }
         }
 
@@ -176,13 +199,17 @@ public class EligibilityEngineService {
                 .filter(p -> (request.lenderId() == null || p.getLenderId().equals(request.lenderId()))
                         && p.getLoanType().equalsIgnoreCase(normalizedLoanType)
                         && p.isActive())
+                // Filter out products designed for a different employment profile
+                .filter(p -> isProductAllowedForEmploymentType(p.getProductCode(), p.getLenderName(),
+                        request.employmentType()))
                 // ── LOAN AMOUNT RANGE GATE ──────────────────────────────────
                 // Products define min_loan_amount / max_loan_amount boundaries.
                 // A ₹25L request must NOT surface a product with min ₹35L.
                 // This was the root cause of "same products always appear".
                 .filter(p -> {
                     BigDecimal reqAmt = request.loanAmount();
-                    if (reqAmt == null || reqAmt.compareTo(BigDecimal.ZERO) <= 0) return true; // No amount → don't filter
+                    if (reqAmt == null || reqAmt.compareTo(BigDecimal.ZERO) <= 0)
+                        return true; // No amount → don't filter
                     boolean aboveMin = p.getMinLoanAmount() == null || reqAmt.compareTo(p.getMinLoanAmount()) >= 0;
                     boolean belowMax = p.getMaxLoanAmount() == null || reqAmt.compareTo(p.getMaxLoanAmount()) <= 0;
                     if (!aboveMin || !belowMax) {
@@ -192,32 +219,24 @@ public class EligibilityEngineService {
                     return aboveMin && belowMax;
                 })
                 .toList();
-        log.info("   After loanType='{}' + active + loanAmount filter: {} candidates", normalizedLoanType, candidates.size());
+        log.info("   After loanType='{}' + active + loanAmount filter: {} candidates", normalizedLoanType,
+                candidates.size());
 
         if (candidates.isEmpty()) {
-            log.warn("❌ STEP 2 FAILED: No candidates after filter. loanType='{}' → normalized='{}', cibil={}, lenderId={}",
+            log.warn(
+                    "❌ STEP 2 FAILED: No candidates after filter. loanType='{}' → normalized='{}', cibil={}, lenderId={}",
                     request.loanType(), normalizedLoanType, request.cibilScore(), request.lenderId());
             return List.of(EligibilityResult.rejected(
                     List.of(String.format("No matching products for CIBIL %d and loanType %s",
                             request.cibilScore(), normalizedLoanType)),
-                    "No active loan products found for this lender and loan type"
-            ));
+                    "No active loan products found for this lender and loan type"));
         }
 
         // ── STEP 3: Per-product evaluation ───────────────────────────────────
         var results = new ArrayList<EligibilityResult>();
 
         for (var product : candidates) {
-            try {
-                results.add(evaluateProduct(product, request));
-            } catch (SurrogatePolicyNotFoundException e) {
-                log.warn("Surrogate policy missing for product={}: {}",
-                        product.getProductCode(), e.getMessage());
-                results.add(EligibilityResult.rejected(
-                        List.of("Surrogate policy not configured for this product"),
-                        "Failed to resolve surrogate income: " + e.getMessage()
-                ));
-            }
+            results.add(evaluateProductCascaded(product, request));
         }
 
         // ── STEP 4: Sort — eligible first, then best ROI ─────────────────────
@@ -252,8 +271,8 @@ public class EligibilityEngineService {
         // not a fail gate — an NIP condition won't block a BANKING applicant.
         String applicantProgram = (request.incomeComputationInput() != null
                 && request.incomeComputationInput().programName() != null)
-                ? request.incomeComputationInput().programName().toUpperCase()
-                : null;
+                        ? request.incomeComputationInput().programName().toUpperCase()
+                        : null;
 
         // ── EMPLOYMENT TYPE FILTER ───────────────────────────────────────────
         // Each condition represents an eligibility lane for a specific employment
@@ -261,36 +280,51 @@ public class EligibilityEngineService {
         // should only be evaluated against SALARIED conditions. Conditions with
         // null employment_type are universal.
         //
-        // NORMALIZATION: Frontend sends SELF_EMPLOYED/PROFESSIONAL → DB stores SEP/SENP.
+        // NORMALIZATION: Frontend sends SELF_EMPLOYED/PROFESSIONAL → DB stores
+        // SEP/SENP.
         final String normalizedEmpType = normalizeEmploymentType(
                 request.employmentType() != null ? request.employmentType() : null);
         log.info("   STEP 3: empType='{}' → normalized='{}', surrogate='{}', product={}",
                 request.employmentType(), normalizedEmpType, applicantProgram, product.getProductCode());
 
+        // d. Resolve surrogate income (monthly, BigDecimal precision)
+        final BigDecimal computedIncome = surrogateIncomeResolver.resolve(request.incomeComputationInput());
+
+        // Uses the best available income figure: computed surrogate income
+        // first, then declared grossMonthlyIncome if present.
+        BigDecimal incomeForFloorCheck = computedIncome;
+        if ((incomeForFloorCheck == null || incomeForFloorCheck.compareTo(BigDecimal.ZERO) <= 0)
+                && request.grossMonthlyIncome() != null) {
+            incomeForFloorCheck = request.grossMonthlyIncome();
+        }
+        final BigDecimal effectiveIncome = incomeForFloorCheck;
+
         var conditions = allConditions.stream()
                 .filter(c -> c.getSurrogate() == null
                         || c.getSurrogate().isBlank()
                         || (applicantProgram != null
-                            && c.getSurrogate().equalsIgnoreCase(applicantProgram)))
-                .filter(c -> c.getEmploymentType() == null
-                        || c.getEmploymentType().isBlank()
-                        || (normalizedEmpType != null
-                            && c.getEmploymentType().equalsIgnoreCase(normalizedEmpType)))
+                                && c.getSurrogate().equalsIgnoreCase(applicantProgram)))
+                .filter(c -> matchEmploymentType(c.getEmploymentType(), normalizedEmpType))
+                .sorted((c1, c2) -> {
+                    BigDecimal min1 = c1.getMinIncome() != null ? c1.getMinIncome() : BigDecimal.ZERO;
+                    BigDecimal min2 = c2.getMinIncome() != null ? c2.getMinIncome() : BigDecimal.ZERO;
+                    return min2.compareTo(min1); // Descending order to match highest bracket first
+                })
                 .toList();
 
         // If no conditions match the applicant's employment type + surrogate,
         // this product doesn't serve this applicant profile at all.
         if (conditions.isEmpty()) {
-            log.warn("⏭️ Product {} has no conditions for empType='{}' (normalized='{}'), surrogate='{}'. Skipping. DB conditions had empTypes: {}",
+            log.warn(
+                    "⏭️ Product {} has no conditions for empType='{}' (normalized='{}'), surrogate='{}'. Skipping. DB conditions had empTypes: {}",
                     product.getProductCode(), request.employmentType(), normalizedEmpType, applicantProgram,
                     allConditions.stream().map(EligibilityCondition::getEmploymentType).distinct().toList());
             return EligibilityResult.ineligible(
                     product.getProductCode(),
-                    product.getProductName(),
+                    product.getLenderName(),
                     List.of(String.format("No eligibility lane for empType=%s (normalized=%s), surrogate=%s",
                             request.employmentType(), normalizedEmpType, applicantProgram)),
-                    "No matching condition lane for applicant profile"
-            );
+                    "No matching condition lane for applicant profile");
         }
 
         // ── BUILD APPLICANT PAYLOAD for SpEL rules ───────────────────────────
@@ -312,20 +346,21 @@ public class EligibilityEngineService {
         // DB stores categories (RESIDENTIAL, COMMERCIAL, INDUSTRIAL).
         // Resolve the sub-type to its parent category for allow-list matching.
         final String resolvedPropertyCategory = resolvePropertyCategory(request.propertyType());
-        final String rawPropertySubType = request.propertyType() != null ? request.propertyType().toUpperCase() : "RESIDENTIAL";
+        final String rawPropertySubType = request.propertyType() != null ? request.propertyType().toUpperCase()
+                : "RESIDENTIAL";
         applicantPayload.put("propertyCategory", resolvedPropertyCategory);
 
         // b. Condition checks: age, business vintage, work experience, property,
-        //    city, CIBIL floor, ITR requirement + SpEL rules
+        // city, CIBIL floor, ITR requirement + SpEL rules
         //
-        //    🧠 CORRECT SEMANTICS: Each condition is an independent eligibility LANE.
-        //    The product is eligible if AT LEAST ONE condition passes all checks.
-        //    Example: HDFC Home Loan has 4 conditions:
-        //      - Salaried NIP (workExp >= 1, FOIR 75%, LTV 65%)
-        //      - Self-Employed NIP (bizAge >= 3, FOIR 95%, LTV 45%)
-        //      - Self-Employed BANKING (bizAge >= 3, FOIR 55%, LTV 85%)
-        //      - Self-Employed GST (bizAge >= 2, FOIR 75%, LTV 65%)
-        //    A SALARIED applicant need only pass the first one.
+        // 🧠 CORRECT SEMANTICS: Each condition is an independent eligibility LANE.
+        // The product is eligible if AT LEAST ONE condition passes all checks.
+        // Example: HDFC Home Loan has 4 conditions:
+        // - Salaried NIP (workExp >= 1, FOIR 75%, LTV 65%)
+        // - Self-Employed NIP (bizAge >= 3, FOIR 95%, LTV 45%)
+        // - Self-Employed BANKING (bizAge >= 3, FOIR 55%, LTV 85%)
+        // - Self-Employed GST (bizAge >= 2, FOIR 75%, LTV 65%)
+        // A SALARIED applicant need only pass the first one.
         EligibilityCondition matchedCondition = null;
         List<String> allRejectionReasons = new ArrayList<>();
 
@@ -334,20 +369,25 @@ public class EligibilityEngineService {
 
             // ── Standard numeric/range checks ────────
             if (c.getMinAge() != null && request.applicantAge() < c.getMinAge()) {
-                reasonsForThisCondition.add(String.format("AGE_TOO_LOW: applicantAge=%d < minAge=%d (condition=%d, surrogate=%s)",
-                        request.applicantAge(), c.getMinAge(), c.getId(), c.getSurrogate()));
+                reasonsForThisCondition
+                        .add(String.format("AGE_TOO_LOW: applicantAge=%d < minAge=%d (condition=%d, surrogate=%s)",
+                                request.applicantAge(), c.getMinAge(), c.getId(), c.getSurrogate()));
             }
-            if (c.getMaxAge() != null && request.applicantAge() > c.getMaxAge()) {
-                reasonsForThisCondition.add(String.format("AGE_TOO_HIGH: applicantAge=%d > maxAge=%d (condition=%d, surrogate=%s)",
-                        request.applicantAge(), c.getMaxAge(), c.getId(), c.getSurrogate()));
+            double ageAtMaturity = request.applicantAge() + (request.requestedTenureMonths() / 12.0);
+            if (c.getMaxAge() != null && ageAtMaturity > c.getMaxAge()) {
+                reasonsForThisCondition
+                        .add(String.format("AGE_TOO_HIGH: ageAtMaturity=%.2f > maxAge=%d (condition=%d, surrogate=%s)",
+                                ageAtMaturity, c.getMaxAge(), c.getId(), c.getSurrogate()));
             }
             if (c.getBusinessAgeYears() != null && request.businessAgeYears() < c.getBusinessAgeYears()) {
-                reasonsForThisCondition.add(String.format("BIZ_VINTAGE_LOW: businessAge=%d < required=%d (condition=%d, surrogate=%s)",
-                        request.businessAgeYears(), c.getBusinessAgeYears(), c.getId(), c.getSurrogate()));
+                reasonsForThisCondition
+                        .add(String.format("BIZ_VINTAGE_LOW: businessAge=%d < required=%d (condition=%d, surrogate=%s)",
+                                request.businessAgeYears(), c.getBusinessAgeYears(), c.getId(), c.getSurrogate()));
             }
             if (c.getWorkExpYears() != null && request.workExpYears() < c.getWorkExpYears()) {
-                reasonsForThisCondition.add(String.format("WORK_EXP_LOW: workExp=%d < required=%d (condition=%d, surrogate=%s)",
-                        request.workExpYears(), c.getWorkExpYears(), c.getId(), c.getSurrogate()));
+                reasonsForThisCondition
+                        .add(String.format("WORK_EXP_LOW: workExp=%d < required=%d (condition=%d, surrogate=%s)",
+                                request.workExpYears(), c.getWorkExpYears(), c.getId(), c.getSurrogate()));
             }
 
             // ── PROPERTY TYPE ALLOW-LIST CHECK ────────
@@ -359,14 +399,17 @@ public class EligibilityEngineService {
                         .anyMatch(allowed -> allowed.equalsIgnoreCase(resolvedPropertyCategory)
                                 || allowed.equalsIgnoreCase(rawPropertySubType));
                 if (!propertyAllowed) {
-                    reasonsForThisCondition.add(String.format("PROPERTY_NOT_ALLOWED: subType=%s, resolved=%s, allowList='%s' (condition=%d, surrogate=%s)",
-                            rawPropertySubType, resolvedPropertyCategory, c.getPropertyType(), c.getId(), c.getSurrogate()));
+                    reasonsForThisCondition.add(String.format(
+                            "PROPERTY_NOT_ALLOWED: subType=%s, resolved=%s, allowList='%s' (condition=%d, surrogate=%s)",
+                            rawPropertySubType, resolvedPropertyCategory, c.getPropertyType(), c.getId(),
+                            c.getSurrogate()));
                 }
             }
 
             if (c.getCityTier() != null && !c.getCityTier().equalsIgnoreCase(request.cityTier())) {
-                reasonsForThisCondition.add(String.format("CITY_TIER_MISMATCH: requested=%s, required=%s (condition=%d)",
-                        request.cityTier(), c.getCityTier(), c.getId()));
+                reasonsForThisCondition
+                        .add(String.format("CITY_TIER_MISMATCH: requested=%s, required=%s (condition=%d)",
+                                request.cityTier(), c.getCityTier(), c.getId()));
             }
             if (c.getCibilMin() != null && request.cibilScore() < c.getCibilMin()) {
                 reasonsForThisCondition.add(String.format("CIBIL_TOO_LOW: score=%d < conditionMin=%d (condition=%d)",
@@ -379,14 +422,38 @@ public class EligibilityEngineService {
                         request.itrYearsAvailable(), c.getItrRequiredYears(), c.getId()));
             }
 
+            if (c.getMinIncome() != null) {
+                if (effectiveIncome == null) {
+                    reasonsForThisCondition.add(String.format("INCOME_FLOOR_FAILED: income is null, required=%s (condition=%d)",
+                            c.getMinIncome(), c.getId()));
+                } else {
+                    BigDecimal minIncLimit = c.getMinIncome();
+                    boolean floorMatched;
+                    java.math.BigInteger intVal = minIncLimit.setScale(0, RoundingMode.DOWN).toBigInteger();
+                    String intStr = intVal.toString();
+                    if (intStr.endsWith("1") && minIncLimit.compareTo(BigDecimal.ONE) > 0) {
+                        BigDecimal boundary = new BigDecimal(intVal.subtract(java.math.BigInteger.ONE));
+                        floorMatched = effectiveIncome.compareTo(boundary) > 0;
+                    } else {
+                        floorMatched = effectiveIncome.compareTo(minIncLimit) >= 0;
+                    }
+                    if (!floorMatched) {
+                        reasonsForThisCondition.add(String.format("INCOME_FLOOR_FAILED: income=%s < required=%s (condition=%d, surrogate=%s)",
+                                effectiveIncome, minIncLimit, c.getId(), c.getSurrogate()));
+                    }
+                }
+            }
+
             // ── SpEL / deny-list / memo rules ────────
             if (!smartEvaluate(c.getProfileRestrictions(), applicantPayload, "employmentType")) {
-                reasonsForThisCondition.add(String.format("PROFILE_RESTRICTED: empType=%s hit deny-list (condition=%d, surrogate=%s)",
-                        request.employmentType(), c.getId(), c.getSurrogate()));
+                reasonsForThisCondition
+                        .add(String.format("PROFILE_RESTRICTED: empType=%s hit deny-list (condition=%d, surrogate=%s)",
+                                request.employmentType(), c.getId(), c.getSurrogate()));
             }
             if (!smartEvaluatePropertyDenyList(c.getNegativeProperty(), rawPropertySubType, resolvedPropertyCategory)) {
-                reasonsForThisCondition.add(String.format("NEGATIVE_PROPERTY: subType=%s, category=%s denied by '%s' (condition=%d)",
-                        rawPropertySubType, resolvedPropertyCategory, c.getNegativeProperty(), c.getId()));
+                reasonsForThisCondition
+                        .add(String.format("NEGATIVE_PROPERTY: subType=%s, category=%s denied by '%s' (condition=%d)",
+                                rawPropertySubType, resolvedPropertyCategory, c.getNegativeProperty(), c.getId()));
             }
             if (!smartEvaluate(c.getConditions(), applicantPayload, null)) {
                 reasonsForThisCondition.add(String.format("CONDITION_RULE_FAILED: rule='%s' (condition=%d)",
@@ -411,73 +478,62 @@ public class EligibilityEngineService {
 
         // If no condition passed, the product is ineligible
         if (matchedCondition == null) {
-            log.warn("❌ Product {} REJECTED for applicant [cibil={}, empType={}, propType={}, age={}]. All {} condition lanes failed. Reasons: {}",
+            log.warn(
+                    "❌ Product {} REJECTED for applicant [cibil={}, empType={}, propType={}, age={}]. All {} condition lanes failed. Reasons: {}",
                     product.getProductCode(), request.cibilScore(), request.employmentType(),
                     request.propertyType(), request.applicantAge(), conditions.size(), allRejectionReasons);
 
             return EligibilityResult.ineligible(
                     product.getProductCode(),
-                    product.getProductName(),
+                    product.getLenderName(),
                     allRejectionReasons,
-                    "Applicant profile does not satisfy any eligibility lane"
-            );
+                    "Applicant profile does not satisfy any eligibility lane");
         }
-
-        // c. Resolve effective FOIR from matched condition (static field)
-        final BigDecimal effectiveFoir = matchedCondition.getFoirMax() != null
-                ? matchedCondition.getFoirMax()
-                : (product.getMaxEmiNmiRatio() != null ? product.getMaxEmiNmiRatio() : DEFAULT_FOIR);
 
         // ── Resolve effective LTV from matched condition (static field)
         final BigDecimal effectiveLtv = matchedCondition.getLtvAllowed() != null
                 ? matchedCondition.getLtvAllowed()
                 : (product.getLtv() != null ? product.getLtv() : BigDecimal.ZERO);
 
-        // d. Resolve surrogate income (monthly, BigDecimal precision)
-        var computedIncome = surrogateIncomeResolver.resolve(request.incomeComputationInput());
+        // c. Resolve effective FOIR from matched condition (static field)
+        BigDecimal foirMaxVal = matchedCondition.getFoirMax();
+        if (foirMaxVal == null) {
+            if ("ICICI Bank".equalsIgnoreCase(product.getLenderName())
+                    && "NIP".equalsIgnoreCase(matchedCondition.getSurrogate())
+                    && ("SENP".equalsIgnoreCase(matchedCondition.getEmploymentType())
+                            || "SEP_SENP".equalsIgnoreCase(matchedCondition.getEmploymentType())
+                            || "SEP".equalsIgnoreCase(matchedCondition.getEmploymentType()))) {
+                foirMaxVal = new BigDecimal("1.40").subtract(effectiveLtv);
+                log.info("Dynamic ICICI FOIR resolved: 1.40 - LTV ({}) = {}", effectiveLtv, foirMaxVal);
+            } else {
+                foirMaxVal = (product.getMaxEmiNmiRatio() != null ? product.getMaxEmiNmiRatio() : DEFAULT_FOIR);
+            }
+        }
+        final BigDecimal effectiveFoir = foirMaxVal;
 
-        // ── WIRED: minIncome check — enforced against computed income.
-        //    Uses the best available income figure: computed surrogate income
-        //    first, then declared grossMonthlyIncome if present.
-        BigDecimal incomeForFloorCheck = computedIncome;
-        if ((incomeForFloorCheck == null || incomeForFloorCheck.compareTo(BigDecimal.ZERO) <= 0)
-                && request.grossMonthlyIncome() != null) {
-            incomeForFloorCheck = request.grossMonthlyIncome();
-        }
-        final BigDecimal effectiveIncome = incomeForFloorCheck;
-        boolean incomeFloorFailed = matchedCondition.getMinIncome() != null
-                && effectiveIncome != null
-                && effectiveIncome.compareTo(matchedCondition.getMinIncome()) < 0;
-        if (incomeFloorFailed) {
-            log.warn("❌ Product {} INCOME_FLOOR_FAILED: income={}, required={} (condition={})",
-                    product.getProductCode(), effectiveIncome, matchedCondition.getMinIncome(), matchedCondition.getId());
-            return EligibilityResult.ineligible(
-                    product.getProductCode(),
-                    product.getProductName(),
-                    List.of(String.format("Computed income ₹%s below minimum ₹%s", effectiveIncome, matchedCondition.getMinIncome())),
-                    "Applicant's resolved monthly income is below the product's minimum income requirement"
-            );
-        }
+        // d. Resolve surrogate income (monthly, BigDecimal precision) - already computed before loop
 
         // ── ROI: Resolve dynamically via FinancialComputationEngine ────────────
-        ApplicantProfile applicantProfile = new ApplicantProfile(request.cibilScore(), normalizedEmpType, computedIncome);
-        final BigDecimal effectiveRoi = financialComputationEngine.resolveRoi(product, applicantProfile, request.loanAmount());
+        ApplicantProfile applicantProfile = new ApplicantProfile(request.cibilScore(), normalizedEmpType,
+                computedIncome);
+        final BigDecimal effectiveRoi = financialComputationEngine.resolveRoi(product, applicantProfile,
+                request.loanAmount());
 
         log.debug("ROI resolved: product={} computedRoi={}",
                 product.getProductCode(), effectiveRoi);
 
         // e. Calculate proposed EMI using closed-form PMT formula
-        var proposedEmi = calculateProposedEmiWithRate(request.loanAmount(), effectiveRoi, request.requestedTenureMonths());
+        var proposedEmi = calculateProposedEmiWithRate(request.loanAmount(), effectiveRoi,
+                request.requestedTenureMonths());
 
         // f. FOIR check
         if (!checkFoir(request.existingEmiTotal(), proposedEmi, computedIncome, effectiveFoir)) {
             return EligibilityResult.ineligible(
                     product.getProductCode(),
-                    product.getProductName(),
+                    product.getLenderName(),
                     List.of(String.format("FOIR exceeded: effective limit is %.0f%%",
                             effectiveFoir.multiply(BigDecimal.valueOf(100)))),
-                    "Total EMI obligations exceed the program FOIR limit"
-            );
+                    "Total EMI obligations exceed the program FOIR limit");
         }
 
         // g. Maximum eligible loan amount (income × FOIR − existing EMI)
@@ -499,11 +555,19 @@ public class EligibilityEngineService {
         log.debug("Processing fee resolved: product={} loanAmount={} → fee={}",
                 product.getProductCode(), finalLoanAmount, processingFee);
 
-        // i. Build eligible result — now carries effectiveRoi, effectiveLtv, and processingFee
+        // ── Login Fee: dynamic resolution ───────────────────────────────────
+        final BigDecimal loginFee = financialComputationEngine.resolveLoginFee(
+                product, finalLoanAmount, normalizedEmpType);
+
+        log.debug("Login fee resolved: product={} loanAmount={} → fee={}",
+                product.getProductCode(), finalLoanAmount, loginFee);
+
+        // i. Build eligible result — now carries effectiveRoi, effectiveLtv,
+        // processingFee, and loginFee
         return new EligibilityResult(
                 true,
                 product.getProductCode(),
-                product.getProductName(),
+                product.getLenderName(),
                 null,
                 computedIncome,
                 effectiveFoir,
@@ -515,8 +579,33 @@ public class EligibilityEngineService {
                 ltvDeviated,
                 List.of(),
                 "Eligible",
-                processingFee
-        );
+                processingFee,
+                loginFee,
+
+                // Fee Structure
+                product.getAdminFee(),
+                product.getInsuranceCharges(),
+                product.getLegalTechnicalCharges(),
+                product.getOtherExpense(),
+                product.getStampDuties(),
+                product.getPrepaymentCharges(),
+                product.getForeclosureCharges(),
+
+                // Eligibility Details
+                matchedCondition.getVintage(),
+                matchedCondition.getNegativeProperty(),
+                matchedCondition.getNegativeEmployerType(),
+                matchedCondition.getNegativeSalaryMode(),
+                matchedCondition.getMarginByOccupation(),
+                matchedCondition.getDeviationFormulae(),
+                matchedCondition.getConditions(),
+                matchedCondition.getEmiNotObligated(),
+                matchedCondition.getBankStatementRequirement(),
+                matchedCondition.getSalarySlipRequirement(),
+                matchedCondition.getGstReturnRequirement(),
+                matchedCondition.getProvidentFundMandatory(),
+                matchedCondition.getItrRequiredYears(),
+                matchedCondition.getProfileRestrictions());
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -562,7 +651,7 @@ public class EligibilityEngineService {
     // FIX BUG-G: guard against zero/null computedIncome → ArithmeticException
     // ─────────────────────────────────────────────────────────────────────────
     private boolean checkFoir(BigDecimal existingEmiTotal, BigDecimal proposedEmi,
-                              BigDecimal computedIncome, BigDecimal effectiveFoir) {
+            BigDecimal computedIncome, BigDecimal effectiveFoir) {
         if (computedIncome == null || computedIncome.compareTo(BigDecimal.ZERO) <= 0) {
             log.warn("checkFoir: computedIncome is zero or null — treating as FOIR failed");
             return false;
@@ -574,11 +663,11 @@ public class EligibilityEngineService {
 
     // ─────────────────────────────────────────────────────────────────────────
     // FIX BUG-H: .max(ZERO) prevents negative max eligible amount when
-    //            existing EMI already exceeds income × FOIR.
+    // existing EMI already exceeds income × FOIR.
     // ─────────────────────────────────────────────────────────────────────────
     private BigDecimal calculateMaxEligibleAmount(BigDecimal computedIncome,
-                                                  BigDecimal existingEmiTotal,
-                                                  BigDecimal effectiveFoir) {
+            BigDecimal existingEmiTotal,
+            BigDecimal effectiveFoir) {
         BigDecimal maxAllowedEmi = computedIncome.multiply(effectiveFoir, MathContext.DECIMAL128);
         return maxAllowedEmi.subtract(safe(existingEmiTotal)).max(BigDecimal.ZERO);
     }
@@ -594,14 +683,15 @@ public class EligibilityEngineService {
         } catch (EvaluationException e) {
             log.error("SpEL evaluation failed for ruleId={} expression='{}'", ruleId, expressionString, e);
             throw new GeneralPolicyPreflightService.PolicyRuleValidationException(
-                    "Rule evaluation error for expression: " + expressionString + " -> " + e.getMessage()
-            );
+                    "Rule evaluation error for expression: " + expressionString + " -> " + e.getMessage());
         }
     }
 
     /**
-     * "200 IQ" Smart Evaluator: Handles SpEL expressions, implicit SpEL, text deny-lists, and pure text memos.
-     * Returns TRUE if the rule PASSES or is just a MEMO. Returns FALSE if the rule FAILS.
+     * "200 IQ" Smart Evaluator: Handles SpEL expressions, implicit SpEL, text
+     * deny-lists, and pure text memos.
+     * Returns TRUE if the rule PASSES or is just a MEMO. Returns FALSE if the rule
+     * FAILS.
      */
     private boolean smartEvaluate(String ruleText, Map<String, Object> payload, String targetField) {
         if (ruleText == null || ruleText.isBlank()) {
@@ -618,19 +708,22 @@ public class EligibilityEngineService {
                 Boolean result = expr.getValue(simpleSandboxEvaluationContext, payload, Boolean.class);
                 return Boolean.TRUE.equals(result);
             } catch (Exception e) {
-                log.error("Explicit SpEL execution failed for rule '{}'. Rejecting. Error: {}", ruleText, e.getMessage());
+                log.error("Explicit SpEL execution failed for rule '{}'. Rejecting. Error: {}", ruleText,
+                        e.getMessage());
                 return false; // Explicit SpEL failure blocks the loan for safety
             }
         }
 
         // 2. Implicit SpEL (contains #, ==, >, <)
-        if (trimmed.contains("#") && (trimmed.contains("==") || trimmed.contains(">") || trimmed.contains("<") || trimmed.contains("!="))) {
+        if (trimmed.contains("#") && (trimmed.contains("==") || trimmed.contains(">") || trimmed.contains("<")
+                || trimmed.contains("!="))) {
             try {
                 var expr = spelExpressionCacheService.getOrCompile(trimmed);
                 Boolean result = expr.getValue(simpleSandboxEvaluationContext, payload, Boolean.class);
                 return Boolean.TRUE.equals(result);
             } catch (Exception e) {
-                log.trace("Implicit SpEL parsing failed for '{}', falling back to memo/list evaluation. Error: {}", ruleText, e.getMessage());
+                log.trace("Implicit SpEL parsing failed for '{}', falling back to memo/list evaluation. Error: {}",
+                        ruleText, e.getMessage());
                 // Fall down to treat as list or memo
             }
         }
@@ -643,7 +736,7 @@ public class EligibilityEngineService {
                         .map(String::trim)
                         .filter(s -> !s.isEmpty())
                         .anyMatch(denyItem -> denyItem.equalsIgnoreCase(targetValue));
-                
+
                 if (matchesDenyList) {
                     return false; // Failed deny list
                 }
@@ -653,7 +746,7 @@ public class EligibilityEngineService {
 
         // 4. Fallback (Internal Memo / English text)
         log.trace("Treating rule '{}' as an internal memo (not evaluated).", ruleText);
-        return true; 
+        return true;
     }
 
     /**
@@ -675,8 +768,7 @@ public class EligibilityEngineService {
         boolean matchesDenyList = Arrays.stream(trimmed.split("[,;]"))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
-                .anyMatch(denyItem ->
-                        denyItem.equalsIgnoreCase(rawSubType) ||
+                .anyMatch(denyItem -> denyItem.equalsIgnoreCase(rawSubType) ||
                         denyItem.equalsIgnoreCase(resolvedCategory));
 
         if (matchesDenyList) {
@@ -685,5 +777,358 @@ public class EligibilityEngineService {
             return false; // Denied
         }
         return true; // Passed
+    }
+
+    private EligibilityResult evaluateProductCascaded(LoanProduct product, EligibilityRequest request) {
+        EligibilityRequest nipRequest = new EligibilityRequest(
+                request.lenderId(),
+                request.loanType(),
+                request.cibilScore(),
+                request.applicantAge(),
+                request.employmentType(),
+                request.propertyType(),
+                request.cityTier(),
+                request.loanAmount(),
+                request.propertyValue(),
+                request.requestedTenureMonths(),
+                request.monthlyIncome(),
+                request.existingEmiTotal(),
+                request.businessAgeYears(),
+                request.workExpYears(),
+                getIncomeInputForProgram(request, "NIP"),
+                request.idempotencyKey(),
+                request.itrYearsAvailable(),
+                request.grossMonthlyIncome(),
+                request.pinCode(),
+                request.propertyCategory(),
+                request.businessPropertyCategory());
+
+        EligibilityResult nipResult = null;
+        try {
+            nipResult = evaluateProduct(product, nipRequest);
+        } catch (Exception e) {
+            log.warn("NIP evaluation failed for product={}: {}", product.getProductCode(), e.getMessage());
+        }
+
+        if (nipResult != null && nipResult.isEligible()
+                && nipResult.maxEligibleAmount().compareTo(request.loanAmount()) >= 0) {
+            log.info("🎯 NIP satisfied requested amount for product={}", product.getProductCode());
+            return nipResult;
+        }
+
+        EligibilityResult surrogateResult = null;
+        String requestedProgram = (request.incomeComputationInput() != null)
+                ? request.incomeComputationInput().programName()
+                : null;
+        if (requestedProgram != null && !"NIP".equalsIgnoreCase(requestedProgram)) {
+            try {
+                surrogateResult = evaluateProduct(product, request);
+            } catch (Exception e) {
+                log.warn("Surrogate program '{}' evaluation failed for product={}: {}",
+                        requestedProgram, product.getProductCode(), e.getMessage());
+            }
+
+            if (surrogateResult != null && surrogateResult.isEligible()
+                    && surrogateResult.maxEligibleAmount().compareTo(request.loanAmount()) >= 0) {
+                log.info("🎯 Surrogate program '{}' satisfied requested amount for product={}",
+                        requestedProgram, product.getProductCode());
+                return surrogateResult;
+            }
+        }
+
+        EligibilityResult lowLtvResult = null;
+        try {
+            lowLtvResult = evaluateProductLowLtv(product, request);
+        } catch (Exception e) {
+            log.error("Low LTV evaluation failed for product={}: {}", product.getProductCode(), e.getMessage(), e);
+        }
+
+        if (lowLtvResult != null && lowLtvResult.isEligible()) {
+            log.info("🎯 Low LTV surrogate satisfied for product={}", product.getProductCode());
+            return lowLtvResult;
+        }
+
+        return selectBestFallback(nipResult, surrogateResult, lowLtvResult);
+    }
+
+    private IncomeComputationInput getIncomeInputForProgram(EligibilityRequest request, String programName) {
+        if (request.incomeComputationInput() != null
+                && programName.equalsIgnoreCase(request.incomeComputationInput().programName())) {
+            return request.incomeComputationInput();
+        }
+        if ("NIP".equalsIgnoreCase(programName)) {
+            BigDecimal monthly = request.monthlyIncome();
+            if ((monthly == null || monthly.compareTo(BigDecimal.ZERO) <= 0) && request.grossMonthlyIncome() != null) {
+                monthly = request.grossMonthlyIncome();
+            }
+            BigDecimal pat = (monthly != null) ? monthly.multiply(new BigDecimal("12")) : BigDecimal.ZERO;
+            return new IncomeComputationInput(
+                    "NIP",
+                    pat,
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO,
+                    List.of(),
+                    BigDecimal.ZERO,
+                    "",
+                    BigDecimal.ZERO,
+                    "",
+                    "", // lenderName — not needed for NIP
+                    "" // loanType — not needed for NIP
+            );
+        }
+        return request.incomeComputationInput();
+    }
+
+    private EligibilityResult selectBestFallback(EligibilityResult nip, EligibilityResult surrogate,
+            EligibilityResult lowLtv) {
+        List<EligibilityResult> list = new ArrayList<>();
+        if (nip != null)
+            list.add(nip);
+        if (surrogate != null)
+            list.add(surrogate);
+        if (lowLtv != null)
+            list.add(lowLtv);
+
+        if (list.isEmpty()) {
+            return EligibilityResult.rejected(List.of("Eligibility computation failed for all cascade programs"),
+                    "All programs in cascade failed");
+        }
+
+        return list.stream()
+                .max(Comparator.comparing(EligibilityResult::isEligible)
+                        .thenComparing(EligibilityResult::maxEligibleAmount)
+                        .thenComparing(r -> -r.rejectionReasons().size()))
+                .orElse(nip != null ? nip : (surrogate != null ? surrogate : lowLtv));
+    }
+
+    private EligibilityResult evaluateProductLowLtv(LoanProduct product, EligibilityRequest request) {
+        var allConditions = eligibilityConditionRepository.findByProductId(product.getId());
+
+        final String normalizedEmpType = normalizeEmploymentType(
+                request.employmentType() != null ? request.employmentType() : null);
+
+        var conditions = allConditions.stream()
+                .filter(c -> c.getSurrogate() == null
+                        || c.getSurrogate().isBlank()
+                        || c.getSurrogate().equalsIgnoreCase("NIP"))
+                .filter(c -> matchEmploymentType(c.getEmploymentType(), normalizedEmpType))
+                .toList();
+
+        if (conditions.isEmpty()) {
+            return EligibilityResult.ineligible(
+                    product.getProductCode(),
+                    product.getLenderName(),
+                    List.of(String.format("No eligibility lane for Low LTV: empType=%s (normalized=%s)",
+                            request.employmentType(), normalizedEmpType)),
+                    "No matching condition lane for applicant profile");
+        }
+
+        Map<String, Object> applicantPayload = new HashMap<>();
+        applicantPayload.put("cibilScore", request.cibilScore());
+        applicantPayload.put("loanAmount", request.loanAmount());
+        applicantPayload.put("propertyValue", request.propertyValue());
+        applicantPayload.put("existingEmiTotal", request.existingEmiTotal());
+        applicantPayload.put("requestedTenureMonths", request.requestedTenureMonths());
+        applicantPayload.put("applicantAge", request.applicantAge());
+        applicantPayload.put("cityTier", request.cityTier());
+        applicantPayload.put("propertyType", request.propertyType());
+        applicantPayload.put("businessAgeYears", request.businessAgeYears());
+        applicantPayload.put("workExpYears", request.workExpYears());
+        applicantPayload.put("employmentType", request.employmentType());
+
+        final String resolvedPropertyCategory = resolvePropertyCategory(request.propertyType());
+        final String rawPropertySubType = request.propertyType() != null ? request.propertyType().toUpperCase()
+                : "RESIDENTIAL";
+        applicantPayload.put("propertyCategory", resolvedPropertyCategory);
+
+        EligibilityCondition matchedCondition = null;
+        List<String> allRejectionReasons = new ArrayList<>();
+
+        for (var c : conditions) {
+            List<String> reasonsForThisCondition = new ArrayList<>();
+
+            if (c.getMinAge() != null && request.applicantAge() < c.getMinAge()) {
+                reasonsForThisCondition.add(String.format("AGE_TOO_LOW: applicantAge=%d < minAge=%d",
+                        request.applicantAge(), c.getMinAge()));
+            }
+            double ageAtMaturity = request.applicantAge() + (request.requestedTenureMonths() / 12.0);
+            if (c.getMaxAge() != null && ageAtMaturity > c.getMaxAge()) {
+                reasonsForThisCondition.add(String.format("AGE_TOO_HIGH: ageAtMaturity=%.2f > maxAge=%d",
+                        ageAtMaturity, c.getMaxAge()));
+            }
+            if (c.getBusinessAgeYears() != null && request.businessAgeYears() < c.getBusinessAgeYears()) {
+                reasonsForThisCondition.add(String.format("BIZ_VINTAGE_LOW: businessAge=%d < required=%d",
+                        request.businessAgeYears(), c.getBusinessAgeYears()));
+            }
+            if (c.getWorkExpYears() != null && request.workExpYears() < c.getWorkExpYears()) {
+                reasonsForThisCondition.add(String.format("WORK_EXP_LOW: workExp=%d < required=%d",
+                        request.workExpYears(), c.getWorkExpYears()));
+            }
+
+            if (c.getPropertyType() != null) {
+                String allowedRaw = c.getPropertyType().toUpperCase();
+                boolean propertyAllowed = Arrays.stream(allowedRaw.split("[,;]"))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .anyMatch(allowed -> allowed.equalsIgnoreCase(resolvedPropertyCategory)
+                                || allowed.equalsIgnoreCase(rawPropertySubType));
+                if (!propertyAllowed) {
+                    reasonsForThisCondition.add(String.format("PROPERTY_NOT_ALLOWED: subType=%s, resolved=%s",
+                            rawPropertySubType, resolvedPropertyCategory));
+                }
+            }
+
+            if (c.getCityTier() != null && !c.getCityTier().equalsIgnoreCase(request.cityTier())) {
+                reasonsForThisCondition.add(String.format("CITY_TIER_MISMATCH: requested=%s, required=%s",
+                        request.cityTier(), c.getCityTier()));
+            }
+            if (c.getCibilMin() != null && request.cibilScore() < c.getCibilMin()) {
+                reasonsForThisCondition.add(
+                        String.format("CIBIL_TOO_LOW: score=%d < required=%d", request.cibilScore(), c.getCibilMin()));
+            }
+
+            if (!smartEvaluate(c.getProfileRestrictions(), applicantPayload, "employmentType")) {
+                reasonsForThisCondition.add(String.format("PROFILE_RESTRICTED: empType=%s", request.employmentType()));
+            }
+            if (!smartEvaluatePropertyDenyList(c.getNegativeProperty(), rawPropertySubType, resolvedPropertyCategory)) {
+                reasonsForThisCondition.add(String.format("NEGATIVE_PROPERTY: subType=%s", rawPropertySubType));
+            }
+            if (!smartEvaluate(c.getConditions(), applicantPayload, null)) {
+                reasonsForThisCondition.add("CONDITION_RULE_FAILED");
+            }
+            if (!smartEvaluate(c.getDeviationFormulae(), applicantPayload, null)) {
+                reasonsForThisCondition.add("DEVIATION_RULE_FAILED");
+            }
+
+            if (reasonsForThisCondition.isEmpty()) {
+                matchedCondition = c;
+                break;
+            }
+            allRejectionReasons.addAll(reasonsForThisCondition);
+        }
+
+        if (matchedCondition == null) {
+            return EligibilityResult.ineligible(
+                    product.getProductCode(),
+                    product.getLenderName(),
+                    allRejectionReasons,
+                    "Applicant profile does not satisfy standard checks under Low LTV");
+        }
+
+        BigDecimal effectiveLtv = null;
+        if ("HL".equalsIgnoreCase(product.getLoanType())) {
+            effectiveLtv = lowLtvSurrogateService.getHlLtv(request.propertyType(), request.loanAmount());
+        } else if ("LAP".equalsIgnoreCase(product.getLoanType())) {
+            String propertyKey = lowLtvSurrogateService.resolvePropertyKey(
+                    request.propertyType(),
+                    request.propertyCategory(),
+                    request.businessPropertyCategory());
+            effectiveLtv = lowLtvSurrogateService.getLapLtv(product.getLenderName(), propertyKey);
+        }
+
+        if (effectiveLtv == null) {
+            return EligibilityResult.ineligible(
+                    product.getProductCode(),
+                    product.getLenderName(),
+                    List.of("Property type not allowed under Low LTV Surrogate for this lender"),
+                    "Ltv matrix returned negative or empty allowed Ltv");
+        }
+
+        ApplicantProfile applicantProfile = new ApplicantProfile(request.cibilScore(), normalizedEmpType,
+                BigDecimal.ZERO);
+        final BigDecimal effectiveRoi = financialComputationEngine.resolveRoi(product, applicantProfile,
+                request.loanAmount());
+
+        var proposedEmi = calculateProposedEmiWithRate(request.loanAmount(), effectiveRoi,
+                request.requestedTenureMonths());
+
+        BigDecimal ltvCap = request.propertyValue().multiply(effectiveLtv, MathContext.DECIMAL128);
+        BigDecimal finalLoanAmount = request.loanAmount().min(ltvCap);
+
+        final BigDecimal processingFee = financialComputationEngine.resolveProcessingFee(
+                product, finalLoanAmount, normalizedEmpType);
+        final BigDecimal loginFee = financialComputationEngine.resolveLoginFee(
+                product, finalLoanAmount, normalizedEmpType);
+
+        return new EligibilityResult(
+                true,
+                product.getProductCode(),
+                product.getLenderName(),
+                "LOW_LTV",
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                proposedEmi,
+                finalLoanAmount,
+                effectiveRoi,
+                request.requestedTenureMonths(),
+                effectiveLtv,
+                false,
+                List.of(),
+                "Eligible (Low LTV Surrogate)",
+                processingFee,
+                loginFee,
+
+                product.getAdminFee(),
+                product.getInsuranceCharges(),
+                product.getLegalTechnicalCharges(),
+                product.getOtherExpense(),
+                product.getStampDuties(),
+                product.getPrepaymentCharges(),
+                product.getForeclosureCharges(),
+
+                matchedCondition.getVintage(),
+                matchedCondition.getNegativeProperty(),
+                matchedCondition.getNegativeEmployerType(),
+                matchedCondition.getNegativeSalaryMode(),
+                matchedCondition.getMarginByOccupation(),
+                matchedCondition.getDeviationFormulae(),
+                matchedCondition.getConditions(),
+                matchedCondition.getEmiNotObligated(),
+                matchedCondition.getBankStatementRequirement(),
+                matchedCondition.getSalarySlipRequirement(),
+                matchedCondition.getGstReturnRequirement(),
+                matchedCondition.getProvidentFundMandatory(),
+                matchedCondition.getItrRequiredYears(),
+                matchedCondition.getProfileRestrictions());
+    }
+
+    private boolean isProductAllowedForEmploymentType(String productCode, String lenderName, String rawEmpType) {
+        if (rawEmpType == null) {
+            return true;
+        }
+
+        String empType = rawEmpType.toUpperCase();
+        String code = productCode != null ? productCode.toUpperCase() : "";
+        String lender = lenderName != null ? lenderName.toUpperCase() : "";
+
+        if (empType.equals("SALARIED")) {
+            // Exclude products that are self-employed only
+            if (code.endsWith("-0002") || code.endsWith("-0003") || code.endsWith("-SEP") || code.endsWith("-SENP")) {
+                return false;
+            }
+        } else if (empType.equals("SELF_EMPLOYED")) {
+            // Exclude products that are salaried (or salaried/SEP)
+            if (code.endsWith("-0001") || code.endsWith("-SAL") || code.endsWith("-SALARIED")) {
+                return false;
+            }
+        } else if (empType.equals("PROFESSIONAL")) {
+            // For Bajaj and L&T, professional matches self-employed products
+            if (lender.contains("BAJAJ") || lender.contains("L&T") || code.startsWith("BAJAJ-")
+                    || code.startsWith("LT-") || code.startsWith("LT_")) {
+                if (code.endsWith("-0001") || code.endsWith("-SAL") || code.endsWith("-SALARIED")) {
+                    return false;
+                }
+            } else {
+                // For other lenders, professional matches salaried/SEP products (which is
+                // -0001)
+                if (code.endsWith("-0002") || code.endsWith("-0003") || code.endsWith("-SEP")
+                        || code.endsWith("-SENP")) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 }

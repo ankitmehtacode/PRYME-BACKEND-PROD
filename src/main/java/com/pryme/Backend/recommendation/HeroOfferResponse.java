@@ -12,6 +12,8 @@ public record HeroOfferResponse(
         String tag,
         BigDecimal roi,
         BigDecimal processingFee,
-        String loanType
+        BigDecimal loginFee,
+        String loanType,
+        String logoType
 ) {
 }

@@ -2,8 +2,10 @@ package com.pryme.Backend.eligibility.service;
 
 import com.pryme.Backend.eligibility.dto.ApplicantProfile;
 import com.pryme.Backend.loanproduct.entity.LoanProduct;
+import com.pryme.Backend.loanproduct.entity.ProductLoginFeeMatrix;
 import com.pryme.Backend.loanproduct.entity.ProductPfMatrix;
 import com.pryme.Backend.loanproduct.entity.ProductRoiMatrix;
+import com.pryme.Backend.loanproduct.repository.ProductLoginFeeMatrixRepository;
 import com.pryme.Backend.loanproduct.repository.ProductPfMatrixRepository;
 import com.pryme.Backend.loanproduct.repository.ProductRoiMatrixRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,7 @@ public class FinancialComputationEngine {
 
     private final ProductRoiMatrixRepository roiMatrixRepository;
     private final ProductPfMatrixRepository pfMatrixRepository;
+    private final ProductLoginFeeMatrixRepository loginFeeMatrixRepository;
 
     /** Scale for all INR fee outputs. */
     private static final int FEE_SCALE = 2;
@@ -211,5 +214,78 @@ public class FinancialComputationEngine {
         // Fallback to the product's base ROI if no matrix row matched
         log.warn("No matching ROI matrix row found for product {}, falling back to base ROI: {}", product.getId(), product.getRoi());
         return product.getRoi();
+    }
+
+    /**
+     * Resolves the absolute login fee (in ₹) for a given product, loan amount, and employment type.
+     *
+     * @param product        the LoanProduct entity (must not be null)
+     * @param loanAmount     the applicant's requested loan amount (must be > 0)
+     * @param employmentType the applicant's employment type (e.g. 'Salaried', 'SEP/SENP')
+     * @return               absolute login fee as BigDecimal, scale=2, never null
+     * @throws IllegalArgumentException if loanAmount is null or non-positive
+     */
+    public BigDecimal resolveLoginFee(LoanProduct product, BigDecimal loanAmount, String employmentType) {
+        if (loanAmount == null || loanAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException(
+                    "loanAmount must be a positive value; received: " + loanAmount);
+        }
+
+        if (product.getId() != null && employmentType != null) {
+            List<ProductLoginFeeMatrix> matrixRows = loginFeeMatrixRepository.findByProductId(product.getId());
+            if (matrixRows != null && !matrixRows.isEmpty()) {
+                for (ProductLoginFeeMatrix row : matrixRows) {
+                    // 1. Check Employment Type
+                    String rowEmpType = row.getEmploymentType();
+                    if (rowEmpType != null) {
+                        boolean match = false;
+                        if (rowEmpType.equalsIgnoreCase("SALARIED_SEP")) {
+                            match = employmentType.equalsIgnoreCase("Salaried") || employmentType.equalsIgnoreCase("SEP/SENP");
+                        } else if (rowEmpType.equalsIgnoreCase("SEP_SENP") 
+                                || rowEmpType.equalsIgnoreCase("SENP") 
+                                || rowEmpType.equalsIgnoreCase("SEP")
+                                || rowEmpType.equalsIgnoreCase("SENP (Industry Margin)")) {
+                            match = employmentType.equalsIgnoreCase("SEP/SENP");
+                        } else {
+                            match = rowEmpType.equalsIgnoreCase(employmentType);
+                        }
+                        if (!match) {
+                            continue;
+                        }
+                    }
+
+                    // 2. Check Loan Amount Slabs
+                    if (row.getMinLoanAmount() != null && loanAmount.compareTo(row.getMinLoanAmount()) < 0) {
+                        continue;
+                    }
+                    if (row.getMaxLoanAmount() != null && loanAmount.compareTo(row.getMaxLoanAmount()) > 0) {
+                        continue;
+                    }
+
+                    // Found matching slab!
+                    BigDecimal fee = row.getLoginFee();
+                    log.debug("Dynamic Login Fee resolved: product={} loanAmount={} → loginFee={}",
+                            product.getProductCode(), loanAmount, fee);
+                    return fee != null ? fee.setScale(FEE_SCALE, RoundingMode.HALF_UP) : BigDecimal.ZERO;
+                }
+            }
+        }
+
+        // Fallback to static login fees in product table
+        if (product.getLoginFees() != null) {
+            return product.getLoginFees().setScale(FEE_SCALE, RoundingMode.HALF_UP);
+        }
+
+        // No fee configured
+        log.debug("No static/dynamic login fee for product={}. Returning ZERO.",
+                product.getProductCode());
+        return BigDecimal.ZERO;
+    }
+
+    /**
+     * Overloaded method for backward-compatibility. Bypasses dynamic matrix and uses static base login fee.
+     */
+    public BigDecimal resolveLoginFee(LoanProduct product, BigDecimal loanAmount) {
+        return resolveLoginFee(product, loanAmount, null);
     }
 }

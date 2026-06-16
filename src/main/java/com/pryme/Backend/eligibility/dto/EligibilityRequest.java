@@ -29,6 +29,8 @@ public record EligibilityRequest(
         // ── Optional fields — engine enforces only when non-null ──
         Integer itrYearsAvailable,           // Applicant's ITR filing years
         BigDecimal grossMonthlyIncome,       // Declared gross monthly income (for minIncome check fallback)
-        String pinCode                       // 6-digit PIN code — used for geo-fencing (Indore-only)
+        String pinCode,                      // 6-digit PIN code — used for geo-fencing (Indore-only)
+        String propertyCategory,
+        String businessPropertyCategory
 ) {
 }

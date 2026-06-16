@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.math.BigDecimal;
 import java.util.List;
 
+import com.pryme.Backend.eligibility.service.FinancialComputationEngine;
+
 @RestController
 @RequestMapping("/api/v1/public/banks")
 @RequiredArgsConstructor
@@ -23,6 +25,7 @@ import java.util.List;
 public class BankRecommendationController {
 
     private final BankRecommendationService bankRecommendationService;
+    private final FinancialComputationEngine computationEngine;
 
     @Operation(summary = "One-line description of this endpoint")
     @GetMapping("/recommendation")
@@ -32,24 +35,32 @@ public class BankRecommendationController {
     ) {
         return bankRecommendationService.recommend(salary, cibil)
                 .stream()
-                .map(product -> toResponse(product, salary, cibil, bankRecommendationService))
+                .map(product -> toResponse(product, salary, cibil))
                 .toList();
     }
 
-    private static BankRecommendationResponse toResponse(
+    private BankRecommendationResponse toResponse(
             LoanProduct product,
             BigDecimal salary,
-            Integer cibil,
-            BankRecommendationService service
+            Integer cibil
     ) {
+        BigDecimal resolvedLoginFee = computationEngine.resolveLoginFee(product, salary);
         return new BankRecommendationResponse(
                 product.getId(),
                 product.getLenderId(),
                 product.getLenderName(),
                 product.getRoi(),
                 product.getProcessingFee(),
+                resolvedLoginFee,
                 product.getLoanType(),
-                service.fitScore(product, salary, cibil)
+                bankRecommendationService.fitScore(product, salary, cibil),
+                product.getAdminFee(),
+                product.getInsuranceCharges(),
+                product.getLegalTechnicalCharges(),
+                product.getOtherExpense(),
+                product.getStampDuties(),
+                product.getPrepaymentCharges(),
+                product.getForeclosureCharges()
         );
     }
 }

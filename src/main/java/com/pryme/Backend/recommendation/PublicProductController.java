@@ -62,7 +62,8 @@ public class PublicProductController {
                 href,
                 accent,
                 best != null ? best.roi() : null,
-                best != null ? best.processingFee() : null
+                best != null ? best.processingFee() : null,
+                best != null ? best.loginFee() : null
         );
     }
 
@@ -71,7 +72,11 @@ public class PublicProductController {
         loanProductRepository.findByLoanTypeInAndActive(loanTypes, true).forEach(product ->
                 bestByType.merge(
                         product.getLoanType(),
-                        new LoanProductSnapshot(product.getRoi(), product.getProcessingFee()),
+                        new LoanProductSnapshot(
+                                product.getRoi(),
+                                product.getProcessingFee(),
+                                product.getLoginFees() != null ? product.getLoginFees() : BigDecimal.ZERO
+                        ),
                         this::preferLowerRoi
                 )
         );
@@ -84,5 +89,5 @@ public class PublicProductController {
         return Comparator.<BigDecimal>naturalOrder().compare(leftRoi, rightRoi) <= 0 ? left : right;
     }
 
-    private record LoanProductSnapshot(BigDecimal roi, BigDecimal processingFee) {}
+    private record LoanProductSnapshot(BigDecimal roi, BigDecimal processingFee, BigDecimal loginFee) {}
 }

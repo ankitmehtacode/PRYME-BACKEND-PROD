@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -23,16 +24,39 @@ import java.util.Map;
 public class PublicOfferController {
 
     private final LoanProductRepository loanProductRepository;
+    private final HeroOfferConfigRepository heroOfferConfigRepository;
 
     @Operation(summary = "One-line description of this endpoint")
     @GetMapping("/hero")
     @Cacheable(cacheNames = "banks:recommendation", key = "'hero-offers'")
     @Timed(value = "pryme.api.public.hero_offers", description = "Public hero offers latency")
     public ResponseEntity<Map<String, Object>> heroOffers() {
-        List<HeroOfferResponse> offers = loanProductRepository.findTop3ByActiveTrueOrderByRoiAsc()
-                .stream()
-                .map(this::toHeroOffer)
-                .toList();
+        List<HeroOfferConfig> customConfigs = heroOfferConfigRepository.findAllByActiveTrueOrderByOrderIndexAsc();
+
+        List<HeroOfferResponse> offers;
+        if (!customConfigs.isEmpty()) {
+            offers = customConfigs.stream()
+                    .map(config -> new HeroOfferResponse(
+                            String.valueOf(config.getId()),
+                            null,
+                            null,
+                            config.getBank(),
+                            config.getTitle(),
+                            config.getHighlights(),
+                            config.getTag(),
+                            null,
+                            null,
+                            null,
+                            null,
+                            config.getLogoType()
+                    ))
+                    .toList();
+        } else {
+            offers = loanProductRepository.findTop3ByActiveTrueOrderByRoiAsc()
+                    .stream()
+                    .map(this::toHeroOffer)
+                    .toList();
+        }
 
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.maxAge(Duration.ofMinutes(5)).cachePublic())
@@ -55,7 +79,9 @@ public class PublicOfferController {
                 "LIVE BANK OFFER",
                 product.getRoi(),
                 product.getProcessingFee(),
-                displayType
+                product.getLoginFees() != null ? product.getLoginFees() : BigDecimal.ZERO,
+                displayType,
+                null
         );
     }
 }

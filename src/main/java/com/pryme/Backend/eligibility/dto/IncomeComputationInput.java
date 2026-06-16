@@ -15,10 +15,12 @@ import java.util.List;
  *   GST      : gstrTurnover12Months, businessType
  *   CashFlow : bankBalanceSamples or averageBankBalance
  *   SENP     : grossReceipts, profession (CS gets multiplier 1.5, others 2.5)
+ *   SEP      : grossReceipts, profession, lenderName, loanType (bank×profession multiplier)
+ *   CPM_SEP  : pat, depreciation, grossReceipts (cap), profession, lenderName
  */
 public record IncomeComputationInput(
 
-        // Which surrogate program to evaluate: NIP, Banking, GST, CashFlow, SENP
+        // Which surrogate program to evaluate: NIP, Banking, GST, CashFlow, SENP, SEP, CPM_SEP
         String programName,
 
         // NIP fields
@@ -34,7 +36,11 @@ public record IncomeComputationInput(
         BigDecimal gstrTurnover12Months,    // last 12-month GSTR-3B turnover
         String businessType,                // Service | Retail | Wholesale | Manufacturing
 
-        // SENP fields
+        // SENP / SEP / CPM fields
         BigDecimal grossReceipts,           // annual gross receipts
-        String profession                   // CA | CS | Doctor
+        String profession,                  // CA | CS | Doctor | BDS | BHMS | BAMS | Architect
+
+        // Context for bank-specific multiplier resolution (SEP / CPM_SEP)
+        String lenderName,                  // e.g. "L&T Finance", "Yes Bank" — needed for multiplier lookup
+        String loanType                     // HL | LAP — JIO Finance has different CA multiplier per loan type
 ) {}

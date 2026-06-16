@@ -8,7 +8,15 @@ public record BankRecommendationResponse(
         String lenderName,
         BigDecimal roi,
         BigDecimal processingFee,
+        BigDecimal loginFee,
         String loanType,
-        BigDecimal fitScore
+        BigDecimal fitScore,
+        String adminFee,
+        String insuranceCharges,
+        String legalTechnicalCharges,
+        String otherExpense,
+        String stampDuty,
+        String prepaymentCharges,
+        String foreclosureCharges
 ) {
 }

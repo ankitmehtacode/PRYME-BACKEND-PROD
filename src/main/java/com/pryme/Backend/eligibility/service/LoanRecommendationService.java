@@ -184,6 +184,12 @@ public class LoanRecommendationService {
                 profile.empType()
         );
 
+        BigDecimal dynamicLoginFee = computationEngine.resolveLoginFee(
+                product,
+                requestedAmount,
+                profile.empType()
+        );
+
         return new RecommendedProductDTO(
                 product.getId(),
                 product.getProductCode(),
@@ -192,8 +198,16 @@ public class LoanRecommendationService {
                 product.getLoanType(),
                 dynamicRoi,
                 dynamicPf,
+                dynamicLoginFee,
                 product.getMinLoanAmount(),
-                product.getMaxLoanAmount()
+                product.getMaxLoanAmount(),
+                product.getAdminFee(),
+                product.getInsuranceCharges(),
+                product.getLegalTechnicalCharges(),
+                product.getOtherExpense(),
+                product.getStampDuties(),
+                product.getPrepaymentCharges(),
+                product.getForeclosureCharges()
         );
     }
 }

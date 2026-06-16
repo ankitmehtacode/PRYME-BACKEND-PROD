@@ -3,6 +3,8 @@ package com.pryme.Backend.eligibility;
 import com.pryme.Backend.eligibility.service.FinancialComputationEngine;
 import com.pryme.Backend.loanproduct.entity.LoanProduct;
 import com.pryme.Backend.loanproduct.entity.ProductPfMatrix;
+import com.pryme.Backend.loanproduct.entity.ProductLoginFeeMatrix;
+import com.pryme.Backend.loanproduct.repository.ProductLoginFeeMatrixRepository;
 import com.pryme.Backend.loanproduct.repository.ProductPfMatrixRepository;
 import com.pryme.Backend.loanproduct.repository.ProductRoiMatrixRepository;
 import org.junit.jupiter.api.*;
@@ -40,6 +42,8 @@ class FinancialComputationEngineTest {
     private ProductRoiMatrixRepository roiMatrixRepository;
     @Mock
     private ProductPfMatrixRepository pfMatrixRepository;
+    @Mock
+    private ProductLoginFeeMatrixRepository loginFeeMatrixRepository;
 
     @InjectMocks
     private FinancialComputationEngine engine;
@@ -302,5 +306,50 @@ class FinancialComputationEngineTest {
         // Should fall back to: 5,000,000 * 0.0050 = 25,000.00 (tax-exclusive static fallback)
         assertEquals(0, new BigDecimal("25000.00").compareTo(actual),
                 "Should fall back to static fee configuration when matrix is empty");
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // SECTION 5: DYNAMIC LOGIN FEE RESOLUTION
+    // ═════════════════════════════════════════════════════════════════════════
+
+    @Test
+    @DisplayName("5.1 — Dynamic login fee matching")
+    void dynamicLoginFeeMatching() {
+        var product = LoanProduct.builder()
+                .id(10L)
+                .productCode("JIO-LAP-0001")
+                .build();
+
+        var matrixRow = ProductLoginFeeMatrix.builder()
+                .id(201L)
+                .productId(10L)
+                .employmentType("Salaried")
+                .minLoanAmount(new BigDecimal("3000000"))
+                .maxLoanAmount(new BigDecimal("500000000"))
+                .loginFee(new BigDecimal("3250.00"))
+                .build();
+
+        when(loginFeeMatrixRepository.findByProductId(10L)).thenReturn(List.of(matrixRow));
+
+        BigDecimal actual = engine.resolveLoginFee(product, new BigDecimal("10000000"), "Salaried");
+
+        assertEquals(0, new BigDecimal("3250.00").compareTo(actual),
+                "Dynamic login fee should match salaried slab");
+    }
+
+    @Test
+    @DisplayName("5.2 — Dynamic login fee fallback to static")
+    void dynamicLoginFeeFallbackToStatic() {
+        var product = LoanProduct.builder()
+                .id(11L)
+                .loginFees(new BigDecimal("1500.00"))
+                .build();
+
+        when(loginFeeMatrixRepository.findByProductId(11L)).thenReturn(List.of());
+
+        BigDecimal actual = engine.resolveLoginFee(product, new BigDecimal("5000000"), "Salaried");
+
+        assertEquals(0, new BigDecimal("1500.00").compareTo(actual),
+                "Should fall back to static product login fee");
     }
 }
