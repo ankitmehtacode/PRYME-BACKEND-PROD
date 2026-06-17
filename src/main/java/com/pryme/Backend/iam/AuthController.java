@@ -146,7 +146,8 @@ public class AuthController {
                 session.getExpiresAt(),
                 "Login successful",
                 mePayload,
-                pendingLeadId
+                pendingLeadId,
+                false
         ));
     }
 
@@ -279,6 +280,7 @@ public class AuthController {
         String normalizedEmail = email.trim().toLowerCase();
 
         // 4. Find-or-create user (JIT provisioning)
+        boolean isNew = userRepository.findByEmail(normalizedEmail).isEmpty();
         User user = userRepository.findByEmail(normalizedEmail)
                 .orElseGet(() -> {
                     User newUser = new User();
@@ -321,7 +323,8 @@ public class AuthController {
                 session.getExpiresAt(),
                 "Google authentication successful",
                 mePayload,
-                pendingLeadId
+                pendingLeadId,
+                isNew
         ));
     }
 

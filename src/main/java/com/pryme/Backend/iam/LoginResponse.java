@@ -26,5 +26,6 @@ public record LoginResponse(
         Instant expiresAt,
         String message,
         MeResponse user,
-        String pendingLeadId
+        String pendingLeadId,
+        Boolean isNewUser
 ) {}
