@@ -139,6 +139,9 @@ public class LoanApplication {
         if (this.status == ApplicationStatus.REJECTED) {
             throw new IllegalStateException("Cannot transition a permanently rejected application.");
         }
+        if (this.status == ApplicationStatus.APPROVED) {
+            throw new IllegalStateException("Cannot transition a permanently approved application.");
+        }
         this.status = newStatus;
     }
 
