@@ -95,4 +95,42 @@ class ApplicationServiceTest {
         // Ensures the DTO safely unpacked the User entity's string name
         assertThat(response.assignee()).isEqualTo("John Doe");
     }
+
+    @Test
+    void assign_clearsAssignee_whenAssigneeIdIsEmptyString() {
+        LoanApplication app = LoanApplication.builder()
+                .id(UUID.randomUUID())
+                .applicationId("PRY-4")
+                .status(ApplicationStatus.SUBMITTED)
+                .version(1L)
+                .applicant(mock(User.class))
+                .build();
+
+        when(applicationRepository.findByApplicationId("PRY-4")).thenReturn(Optional.of(app));
+        when(applicationRepository.save(app)).thenReturn(app);
+
+        ApplicationResponse response = service.assign("PRY-4", new AssignLeadRequest("", 1L), UUID.randomUUID());
+
+        assertThat(response.assignee()).isEqualTo("UNASSIGNED");
+        assertThat(app.getAssignee()).isNull();
+    }
+
+    @Test
+    void assign_clearsAssignee_whenAssigneeIdIsUnassigned() {
+        LoanApplication app = LoanApplication.builder()
+                .id(UUID.randomUUID())
+                .applicationId("PRY-5")
+                .status(ApplicationStatus.SUBMITTED)
+                .version(1L)
+                .applicant(mock(User.class))
+                .build();
+
+        when(applicationRepository.findByApplicationId("PRY-5")).thenReturn(Optional.of(app));
+        when(applicationRepository.save(app)).thenReturn(app);
+
+        ApplicationResponse response = service.assign("PRY-5", new AssignLeadRequest("UNASSIGNED", 1L), UUID.randomUUID());
+
+        assertThat(response.assignee()).isEqualTo("UNASSIGNED");
+        assertThat(app.getAssignee()).isNull();
+    }
 }

@@ -9,7 +9,7 @@ import jakarta.validation.constraints.NotBlank;
  * It remains in the contract for backward compatibility with older frontend builds.
  */
 public record AssignLeadRequest(
-        @NotBlank String assigneeId,
+        @Nullable String assigneeId,
         @Nullable Long version
 ) {
 }

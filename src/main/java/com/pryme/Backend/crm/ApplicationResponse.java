@@ -25,6 +25,7 @@ public record ApplicationResponse(
         Map<String, Object> metadata, // 🧠 FIXED: Expose application metadata for frontend hydration
 
         String assignee,
+        String assignedTo, // 🧠 NEW: Assignee UUID for frontend React Select component
         Instant createdAt, // 🧠 UPGRADED: Standardized to UTC Instant
         Long version
 ) {
@@ -44,6 +45,11 @@ public record ApplicationResponse(
                 ? app.getApplicant().getPhone()
                 : app.getApplicant().getPhoneNumber();
 
+        // 🧠 Extract Assignee UUID
+        String assignedToId = app.getAssignee() == null || app.getAssignee().getId() == null
+                ? null
+                : app.getAssignee().getId().toString();
+
         return new ApplicationResponse(
                 app.getId() != null ? app.getId().toString() : null,
                 app.getApplicationId(),
@@ -62,6 +68,7 @@ public record ApplicationResponse(
                 app.getMetadata(), // 🧠 FIXED: Re-hydrate dashboard forms correctly
 
                 assigneeName,
+                assignedToId,
                 app.getCreatedAt(),
                 app.getVersion()
         );

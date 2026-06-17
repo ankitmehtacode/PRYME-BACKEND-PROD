@@ -209,15 +209,17 @@ public class ApplicationService {
         // reassigning a lead is idempotent. Hibernate's @Version on the entity
         // still provides DB-level optimistic locking as a safety net.
 
-        UUID empId;
-        try {
-            empId = UUID.fromString(request.assigneeId().trim());
-        } catch (IllegalArgumentException ex) {
-            throw new ConflictException("Invalid assigneeId architecture.");
+        User employee = null;
+        if (request.assigneeId() != null && !request.assigneeId().trim().isEmpty() && !"UNASSIGNED".equalsIgnoreCase(request.assigneeId().trim())) {
+            UUID empId;
+            try {
+                empId = UUID.fromString(request.assigneeId().trim());
+            } catch (IllegalArgumentException ex) {
+                throw new ConflictException("Invalid assigneeId architecture.");
+            }
+            employee = userRepository.findById(empId)
+                    .orElseThrow(() -> new NotFoundException("Assignee not found in IAM system records."));
         }
-
-        User employee = userRepository.findById(empId)
-                .orElseThrow(() -> new NotFoundException("Assignee not found in IAM system records."));
 
         application.setAssignee(employee);
 
