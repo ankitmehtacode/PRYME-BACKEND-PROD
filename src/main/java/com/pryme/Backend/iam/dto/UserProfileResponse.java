@@ -12,7 +12,9 @@ public record UserProfileResponse(
         String state,
         String profilePictureUrl,
         String role,
-        Map<String, Object> metadata
+        Map<String, Object> metadata,
+        String customerId,
+        String employeeId
 ) {
     public static UserProfileResponse from(com.pryme.Backend.iam.User user) {
         return new UserProfileResponse(
@@ -24,7 +26,9 @@ public record UserProfileResponse(
                 user.getState(),
                 user.getProfilePictureUrl(),
                 user.getRole().name(),
-                user.getMetadata()
+                user.getMetadata(),
+                user.getCustomerId(),
+                user.getEmployeeId()
         );
     }
 }

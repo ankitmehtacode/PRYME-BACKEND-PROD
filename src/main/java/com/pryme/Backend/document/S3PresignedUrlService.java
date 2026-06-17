@@ -121,8 +121,15 @@ public class S3PresignedUrlService {
                 .build()) {
             
             s3Client.deleteObject(b -> b.bucket(awsS3Properties.bucket()).key(documentId));
+            org.slf4j.LoggerFactory.getLogger(S3PresignedUrlService.class)
+                .info("🗑️ Successfully deleted S3 object '{}' from bucket '{}'.", documentId, awsS3Properties.bucket());
         } catch (Exception e) {
-            throw new RuntimeException("Failed to delete document from S3 vault.", e);
+            // 🧠 SILICON VALLEY RESILIENCE: Log warning instead of failing the database transaction.
+            // AWS IAM policies in production might lack s3:DeleteObject permissions.
+            // Rolling back the transaction would block admins from cleaning up database records.
+            org.slf4j.LoggerFactory.getLogger(S3PresignedUrlService.class)
+                .warn("🚨 Failed to delete object '{}' from S3 bucket '{}'. Database record cleanup will proceed anyway. Reason: {}", 
+                      documentId, awsS3Properties.bucket(), e.getMessage());
         }
     }
 

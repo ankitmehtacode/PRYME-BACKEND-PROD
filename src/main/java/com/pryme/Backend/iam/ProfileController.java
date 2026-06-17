@@ -22,6 +22,7 @@ public class ProfileController {
 
     private final UserRepository userRepository;
     private final S3PresignedUrlService s3PresignedUrlService;
+    private final UserIdGeneratorService userIdGeneratorService;
 
     private UUID userIdFromAuth(Authentication auth) {
         if (auth == null || auth.getPrincipal() == null) {
@@ -63,6 +64,7 @@ public class ProfileController {
             user.setMetadata(existingMetadata);
         }
 
+        userIdGeneratorService.ensureUserIds(user);
         user = userRepository.save(user);
         return ResponseEntity.ok(createProfileResponse(user));
     }
@@ -83,7 +85,9 @@ public class ProfileController {
                 user.getState(),
                 profileUrl,
                 user.getRole().name(),
-                user.getMetadata()
+                user.getMetadata(),
+                user.getCustomerId(),
+                user.getEmployeeId()
         );
     }
 

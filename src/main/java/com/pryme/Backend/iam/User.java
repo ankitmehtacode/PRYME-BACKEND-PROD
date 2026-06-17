@@ -77,6 +77,14 @@ public class User implements java.io.Serializable {
     @Column(name = "phone", length = 20)
     private String phone;
 
+    @Setter
+    @Column(name = "customer_id", unique = true, length = 50)
+    private String customerId;
+
+    @Setter
+    @Column(name = "employee_id", unique = true, length = 50)
+    private String employeeId;
+
     // Replacing @ElementCollection, @CollectionTable with @JdbcTypeCode and @Column
     @Setter
     @JsonIgnore

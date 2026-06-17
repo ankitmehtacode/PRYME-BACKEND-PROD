@@ -41,13 +41,15 @@ class AuthControllerTest {
     private ObjectMapper objectMapper;
     @Mock
     private LeadRepository leadRepository;
+    @Mock
+    private UserIdGeneratorService userIdGeneratorService;
 
     private AuthController authController;
 
     @BeforeEach
     void setUp() {
         // 🧠 Core Engine Initialization (now includes SessionCookieHelper)
-        authController = new AuthController(userRepository, passwordEncoder, sessionManager, cookieHelper, objectMapper, leadRepository);
+        authController = new AuthController(userRepository, passwordEncoder, sessionManager, cookieHelper, objectMapper, leadRepository, userIdGeneratorService);
     }
 
     // ==========================================

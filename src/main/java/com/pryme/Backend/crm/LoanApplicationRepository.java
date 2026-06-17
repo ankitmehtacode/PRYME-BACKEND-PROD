@@ -53,6 +53,8 @@ public interface LoanApplicationRepository extends JpaRepository<LoanApplication
     // New method added
     Optional<LoanApplication> findByApplicantIdAndStatus(UUID applicantId, ApplicationStatus status);
 
+    List<LoanApplication> findByApplicantId(UUID applicantId);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE LoanApplication l SET l.assignee = null WHERE l.assignee.id = :assigneeId")
     void clearAssigneeByAssigneeId(@Param("assigneeId") UUID assigneeId);

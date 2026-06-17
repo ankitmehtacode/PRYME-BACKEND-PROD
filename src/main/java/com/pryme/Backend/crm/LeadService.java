@@ -124,6 +124,39 @@ public class LeadService {
         return LeadResponse.from(leadRepository.save(lead), assigneeName);
     }
 
+    @Transactional
+    public LeadResponse updateLeadStatus(UUID leadId, LeadStatus status) {
+        Lead lead = leadRepository.findById(leadId)
+                .orElseThrow(() -> new NotFoundException("Lead not found with ID: " + leadId));
+
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated()) {
+            boolean isEmployee = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_EMPLOYEE"));
+            boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+
+            if (isEmployee && !isAdmin) {
+                java.util.UUID callerId = auth.getPrincipal() instanceof java.util.UUID ?
+                        (java.util.UUID) auth.getPrincipal() :
+                        java.util.UUID.fromString(auth.getPrincipal().toString());
+                if (!callerId.equals(lead.getAssignedTo())) {
+                    throw new com.pryme.Backend.common.ForbiddenException("Security matrix violation: Cannot update leads assigned to other team members.");
+                }
+            }
+        }
+
+        lead.setStatus(status);
+        lead = leadRepository.save(lead);
+
+        String assigneeName = null;
+        if (lead.getAssignedTo() != null) {
+            assigneeName = userRepository.findById(lead.getAssignedTo())
+                    .map(User::getFullName)
+                    .orElse(null);
+        }
+
+        return LeadResponse.from(lead, assigneeName);
+    }
+
     /**
      * 🧠 N+1 PREVENTION ENGINE: Collects all unique assignee UUIDs from a page of leads,
      * fetches them in a single SELECT ... WHERE id IN (...) query, and builds a lookup map.

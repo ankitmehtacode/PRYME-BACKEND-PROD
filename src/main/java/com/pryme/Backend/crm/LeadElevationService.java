@@ -5,6 +5,7 @@ import com.pryme.Backend.common.ForbiddenException;
 import com.pryme.Backend.common.NotFoundException;
 import com.pryme.Backend.iam.User;
 import com.pryme.Backend.iam.UserRepository;
+import com.pryme.Backend.iam.UserIdGeneratorService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +35,7 @@ public class LeadElevationService {
     private final LeadRepository leadRepository;
     private final LoanApplicationRepository applicationRepository;
     private final UserRepository userRepository;
+    private final UserIdGeneratorService userIdGeneratorService;
 
     private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
@@ -133,10 +135,9 @@ public class LeadElevationService {
             userUpdated = true;
         }
         
-        if (userUpdated) {
-            applicant = userRepository.save(applicant);
-            log.info("🔄 Backfilled User {} with missing metadata from Lead {}", userId, leadId);
-        }
+        userIdGeneratorService.ensureUserIds(applicant);
+        applicant = userRepository.save(applicant);
+        log.info("🔄 Ensured custom IDs and backfilled User {} metadata from Lead {}", userId, leadId);
 
         // 6. Fuse the data into the highly-secure LoanApplication entity
         LoanApplication application = LoanApplication.builder()

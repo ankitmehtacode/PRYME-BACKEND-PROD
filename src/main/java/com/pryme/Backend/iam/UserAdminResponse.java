@@ -22,7 +22,9 @@ public record UserAdminResponse(
     String state,
     Role role,
     Instant createdAt,
-    Instant updatedAt
+    Instant updatedAt,
+    String customerId,
+    String employeeId
 ) {
     /**
      * Factory method: Entity → DTO boundary crossing.
@@ -38,7 +40,9 @@ public record UserAdminResponse(
             user.getState(),
             user.getRole(),
             user.getCreatedAt(),
-            user.getUpdatedAt()
+            user.getUpdatedAt(),
+            user.getCustomerId(),
+            user.getEmployeeId()
         );
     }
 }

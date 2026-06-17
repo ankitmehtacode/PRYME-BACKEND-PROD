@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.pryme.Backend.iam.dto.TeamMemberOption;
 import com.pryme.Backend.crm.LoanApplicationRepository;
+import com.pryme.Backend.crm.LoanApplication;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -24,6 +25,7 @@ public class UserAdminController {
     private final SessionManager sessionManager;
     private final SessionRepository sessionRepository;
     private final LoanApplicationRepository loanApplicationRepository;
+    private final UserIdGeneratorService userIdGeneratorService;
 
     // ==========================================
     // 🧠 TEAM MEMBER DROPDOWN ENGINE
@@ -122,6 +124,7 @@ public class UserAdminController {
         }
 
         targetUser.elevateRole(newRole);
+        userIdGeneratorService.ensureUserIds(targetUser);
         userRepository.save(targetUser);
 
         // 🧠 CRITICAL SESSION INVALIDATION: After a role change, the user's active sessions
@@ -169,6 +172,12 @@ public class UserAdminController {
 
         // 🧠 Disassociate assignee from all applications to prevent foreign key violation on assignee_id
         loanApplicationRepository.clearAssigneeByAssigneeId(userId);
+
+        // 🧠 Physically delete all loan applications submitted by this user as applicant to prevent foreign key violations
+        List<LoanApplication> applicantApps = loanApplicationRepository.findByApplicantId(userId);
+        if (applicantApps != null && !applicantApps.isEmpty()) {
+            loanApplicationRepository.deleteAll(applicantApps);
+        }
 
         // 🧠 Physically delete the user
         userRepository.delete(targetUser);

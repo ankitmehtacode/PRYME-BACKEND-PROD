@@ -12,8 +12,17 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+
+import com.pryme.Backend.common.ForbiddenException;
+import com.pryme.Backend.iam.UserRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import java.util.List;
 
 @ExtendWith(MockitoExtension.class)
 class LeadServiceTest {
@@ -23,6 +32,9 @@ class LeadServiceTest {
 
     @Mock
     private LeadBackupService leadBackupService;
+
+    @Mock
+    private UserRepository userRepository;
 
     @InjectMocks
     private LeadService leadService;
@@ -100,5 +112,112 @@ class LeadServiceTest {
         assertThat(response.offerId()).isEqualTo("icici-cashback");
         verify(leadRepository, times(1)).saveAndFlush(any(Lead.class));
         verify(leadBackupService).markCommitted(opId);
+    }
+
+    @Test
+    void updateLeadStatus_adminCanUpdateLeadStatus() {
+        // Setup security context as ADMIN
+        SecurityContext securityContext = mock(SecurityContext.class);
+        Authentication authentication = mock(Authentication.class);
+        doReturn(List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))).when(authentication).getAuthorities();
+        doReturn(true).when(authentication).isAuthenticated();
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+
+        UUID leadId = UUID.randomUUID();
+        Lead lead = Lead.builder()
+                .id(leadId)
+                .userName("Rahul")
+                .phone("9876543210")
+                .loanAmount(new BigDecimal("500000.00"))
+                .loanType("personal")
+                .status(LeadStatus.NEW)
+                .build();
+
+        when(leadRepository.findById(leadId)).thenReturn(Optional.of(lead));
+        when(leadRepository.save(any(Lead.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        try {
+            LeadResponse response = leadService.updateLeadStatus(leadId, LeadStatus.CONTACTED);
+            assertThat(response.status()).isEqualTo("CONTACTED");
+            verify(leadRepository).save(lead);
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void updateLeadStatus_employeeCanUpdateAssignedLead() {
+        UUID callerId = UUID.randomUUID();
+        // Setup security context as EMPLOYEE
+        SecurityContext securityContext = mock(SecurityContext.class);
+        Authentication authentication = mock(Authentication.class);
+        doReturn(List.of(new SimpleGrantedAuthority("ROLE_EMPLOYEE"))).when(authentication).getAuthorities();
+        doReturn(true).when(authentication).isAuthenticated();
+        doReturn(callerId).when(authentication).getPrincipal();
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+
+        UUID leadId = UUID.randomUUID();
+        Lead lead = Lead.builder()
+                .id(leadId)
+                .userName("Rahul")
+                .phone("9876543210")
+                .loanAmount(new BigDecimal("500000.00"))
+                .loanType("personal")
+                .status(LeadStatus.NEW)
+                .assignedTo(callerId)
+                .build();
+
+        when(leadRepository.findById(leadId)).thenReturn(Optional.of(lead));
+        when(leadRepository.save(any(Lead.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        com.pryme.Backend.iam.User caller = com.pryme.Backend.iam.User.builder()
+                .id(callerId)
+                .fullName("John Employee")
+                .build();
+        when(userRepository.findById(callerId)).thenReturn(Optional.of(caller));
+
+        try {
+            LeadResponse response = leadService.updateLeadStatus(leadId, LeadStatus.CONTACTED);
+            assertThat(response.status()).isEqualTo("CONTACTED");
+            assertThat(response.assigneeName()).isEqualTo("John Employee");
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void updateLeadStatus_employeeCannotUpdateOtherLead() {
+        UUID callerId = UUID.randomUUID();
+        UUID otherId = UUID.randomUUID();
+        // Setup security context as EMPLOYEE
+        SecurityContext securityContext = mock(SecurityContext.class);
+        Authentication authentication = mock(Authentication.class);
+        doReturn(List.of(new SimpleGrantedAuthority("ROLE_EMPLOYEE"))).when(authentication).getAuthorities();
+        doReturn(true).when(authentication).isAuthenticated();
+        doReturn(callerId).when(authentication).getPrincipal();
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+
+        UUID leadId = UUID.randomUUID();
+        Lead lead = Lead.builder()
+                .id(leadId)
+                .userName("Rahul")
+                .phone("9876543210")
+                .loanAmount(new BigDecimal("500000.00"))
+                .loanType("personal")
+                .status(LeadStatus.NEW)
+                .assignedTo(otherId)
+                .build();
+
+        when(leadRepository.findById(leadId)).thenReturn(Optional.of(lead));
+
+        try {
+            assertThatThrownBy(() -> leadService.updateLeadStatus(leadId, LeadStatus.CONTACTED))
+                    .isInstanceOf(ForbiddenException.class)
+                    .hasMessageContaining("Cannot update leads assigned to other team members");
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
     }
 }

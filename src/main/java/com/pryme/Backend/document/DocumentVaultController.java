@@ -69,9 +69,18 @@ public class DocumentVaultController {
 
     @Operation(summary = "Initiates a zero-trust S3 upload session")
     @PostMapping("/documents/initiate-upload")
-    public ResponseEntity<S3PresignedUrlService.PresignedUrlResponse> initiateUpload(@Valid @RequestBody DocumentUploadRequest request) {
+    public ResponseEntity<Map<String, Object>> initiateUpload(@Valid @RequestBody DocumentUploadRequest request) {
         DocumentRecord doc = vaultService.initiateDocumentUpload(request);
-        return ResponseEntity.ok(s3PresignedUrlService.generateUploadUrl(doc.getS3ObjectKey(), request.contentType()));
+        S3PresignedUrlService.PresignedUrlResponse presigned = s3PresignedUrlService.generateUploadUrl(doc.getS3ObjectKey(), request.contentType());
+        // 🧠 CRITICAL: Return the actual document UUID separately from the S3 key.
+        // The presigned response's 'documentId' is the S3 object key (e.g., "PRYME-XXX/uuid"),
+        // but confirm-upload needs the raw UUID. We merge both into one response.
+        return ResponseEntity.ok(Map.of(
+                "uploadUrl", presigned.uploadUrl(),
+                "documentId", doc.getId().toString(),
+                "s3ObjectKey", presigned.documentId(),
+                "expiresAt", presigned.expiresAt().toString()
+        ));
     }
 
     /**

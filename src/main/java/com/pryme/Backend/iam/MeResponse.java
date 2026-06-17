@@ -16,5 +16,7 @@ public record MeResponse(
         String role,
         String name,             // 🧠 FIX: Was 'fullName' — frontend expects 'name'
         String phone,
-        List<String> permissions  // 🧠 FIX: Added — frontend reads this for permission gating
+        List<String> permissions,  // 🧠 FIX: Added — frontend reads this for permission gating
+        String customerId,
+        String employeeId
 ) {}

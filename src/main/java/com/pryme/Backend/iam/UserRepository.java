@@ -15,4 +15,10 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      * Spring Data JPA auto-generates: SELECT * FROM users WHERE role IN (...)
      */
     List<User> findByRoleIn(List<Role> roles);
+
+    @org.springframework.data.jpa.repository.Query("SELECT u.customerId FROM User u WHERE u.customerId LIKE :pattern")
+    List<String> findCustomerIdsByPattern(String pattern);
+
+    @org.springframework.data.jpa.repository.Query("SELECT u.employeeId FROM User u WHERE u.employeeId LIKE :pattern")
+    List<String> findEmployeeIdsByPattern(String pattern);
 }

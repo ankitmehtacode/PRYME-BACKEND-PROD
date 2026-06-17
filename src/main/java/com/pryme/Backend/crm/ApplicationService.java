@@ -261,12 +261,17 @@ public class ApplicationService {
             application.setDeclaredCibilScore(request.declaredCibilScore());
 
         if (request.metadata() != null) {
-            Map<String, Object> currentMeta = application.getMetadata();
-            if (currentMeta != null) {
-                currentMeta.putAll(request.metadata());
-            } else {
-                application.setMetadata(request.metadata());
+            // Check for case-insensitive duplicate keys in the incoming map itself
+            java.util.Set<String> normalizedKeys = new java.util.HashSet<>();
+            for (String key : request.metadata().keySet()) {
+                String normalized = key.toLowerCase();
+                if (!normalizedKeys.add(normalized)) {
+                    throw new ConflictException("Duplicate field name: '" + key + "' conflicts with another field in the request.");
+                }
             }
+
+            // Replace existing metadata to support deletion and casing updates, ensuring a new Map reference is set to trigger Hibernate JSONB dirty checking.
+            application.setMetadata(new java.util.HashMap<>(request.metadata()));
         }
 
         historyRepository.save(ApplicationStatusHistory.builder()

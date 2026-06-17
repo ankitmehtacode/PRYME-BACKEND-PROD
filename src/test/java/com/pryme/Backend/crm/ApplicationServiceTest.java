@@ -133,4 +133,159 @@ class ApplicationServiceTest {
         assertThat(response.assignee()).isEqualTo("UNASSIGNED");
         assertThat(app.getAssignee()).isNull();
     }
+
+    @Test
+    void updateProfile_throwsConflict_whenMetadataHasDuplicateKeysCaseInsensitively() {
+        User applicant = User.builder()
+                .id(UUID.randomUUID())
+                .email("test@example.com")
+                .fullName("Test User")
+                .phone("1234567890")
+                .city("Test City")
+                .state("Test State")
+                .build();
+
+        LoanApplication app = LoanApplication.builder()
+                .id(UUID.randomUUID())
+                .applicationId("PRY-6")
+                .status(ApplicationStatus.SUBMITTED)
+                .applicant(applicant)
+                .version(1L)
+                .build();
+
+        when(applicationRepository.findByApplicationId("PRY-6")).thenReturn(Optional.of(app));
+
+        java.util.Map<String, Object> reqMetadata = new java.util.HashMap<>();
+        reqMetadata.put("grossSalary", 1000);
+        reqMetadata.put("GrossSalary", 2000);
+
+        UpdateApplicationProfileRequest request = new UpdateApplicationProfileRequest(
+                null, null, null, null, null, null, null, null, reqMetadata
+        );
+
+        assertThatThrownBy(() -> service.updateProfile("PRY-6", request, UUID.randomUUID()))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("Duplicate field name:");
+    }
+
+    @Test
+    void updateProfile_allowsCasingUpdates() {
+        User applicant = User.builder()
+                .id(UUID.randomUUID())
+                .email("test@example.com")
+                .fullName("Test User")
+                .phone("1234567890")
+                .city("Test City")
+                .state("Test State")
+                .build();
+
+        java.util.Map<String, Object> existingMetadata = new java.util.HashMap<>();
+        existingMetadata.put("grossSalary", 1000);
+
+        LoanApplication app = LoanApplication.builder()
+                .id(UUID.randomUUID())
+                .applicationId("PRY-7")
+                .status(ApplicationStatus.SUBMITTED)
+                .applicant(applicant)
+                .metadata(existingMetadata)
+                .version(1L)
+                .build();
+
+        when(applicationRepository.findByApplicationId("PRY-7")).thenReturn(Optional.of(app));
+        when(applicationRepository.saveAndFlush(app)).thenReturn(app);
+
+        java.util.Map<String, Object> reqMetadata = new java.util.HashMap<>();
+        reqMetadata.put("GrossSalary", 2000); // Changing casing from "grossSalary" to "GrossSalary" is now allowed!
+
+        UpdateApplicationProfileRequest request = new UpdateApplicationProfileRequest(
+                null, null, null, null, null, null, null, null, reqMetadata
+        );
+
+        ApplicationResponse response = service.updateProfile("PRY-7", request, UUID.randomUUID());
+        assertThat(response).isNotNull();
+        assertThat(app.getMetadata()).hasSize(1);
+        assertThat(app.getMetadata()).containsKey("GrossSalary");
+        assertThat(app.getMetadata().get("GrossSalary")).isEqualTo(2000);
+        assertThat(app.getMetadata()).doesNotContainKey("grossSalary");
+    }
+
+    @Test
+    void updateProfile_deletesOmittedFields() {
+        User applicant = User.builder()
+                .id(UUID.randomUUID())
+                .email("test@example.com")
+                .fullName("Test User")
+                .phone("1234567890")
+                .city("Test City")
+                .state("Test State")
+                .build();
+
+        java.util.Map<String, Object> existingMetadata = new java.util.HashMap<>();
+        existingMetadata.put("grossSalary", 1000);
+        existingMetadata.put("companyName", "PRYME");
+
+        LoanApplication app = LoanApplication.builder()
+                .id(UUID.randomUUID())
+                .applicationId("PRY-9")
+                .status(ApplicationStatus.SUBMITTED)
+                .applicant(applicant)
+                .metadata(existingMetadata)
+                .version(1L)
+                .build();
+
+        when(applicationRepository.findByApplicationId("PRY-9")).thenReturn(Optional.of(app));
+        when(applicationRepository.saveAndFlush(app)).thenReturn(app);
+
+        java.util.Map<String, Object> reqMetadata = new java.util.HashMap<>();
+        reqMetadata.put("grossSalary", 1500); // "companyName" is omitted, so it should be deleted!
+
+        UpdateApplicationProfileRequest request = new UpdateApplicationProfileRequest(
+                null, null, null, null, null, null, null, null, reqMetadata
+        );
+
+        ApplicationResponse response = service.updateProfile("PRY-9", request, UUID.randomUUID());
+        assertThat(response).isNotNull();
+        assertThat(app.getMetadata()).hasSize(1);
+        assertThat(app.getMetadata()).containsKey("grossSalary");
+        assertThat(app.getMetadata().get("grossSalary")).isEqualTo(1500);
+        assertThat(app.getMetadata()).doesNotContainKey("companyName");
+    }
+
+    @Test
+    void updateProfile_allowsMetadataUpdate_whenCasingIsExactlyTheSame() {
+        User applicant = User.builder()
+                .id(UUID.randomUUID())
+                .email("test@example.com")
+                .fullName("Test User")
+                .phone("1234567890")
+                .city("Test City")
+                .state("Test State")
+                .build();
+
+        java.util.Map<String, Object> existingMetadata = new java.util.HashMap<>();
+        existingMetadata.put("grossSalary", 1000);
+
+        LoanApplication app = LoanApplication.builder()
+                .id(UUID.randomUUID())
+                .applicationId("PRY-8")
+                .status(ApplicationStatus.SUBMITTED)
+                .applicant(applicant)
+                .metadata(existingMetadata)
+                .version(1L)
+                .build();
+
+        when(applicationRepository.findByApplicationId("PRY-8")).thenReturn(Optional.of(app));
+        when(applicationRepository.saveAndFlush(app)).thenReturn(app);
+
+        java.util.Map<String, Object> reqMetadata = new java.util.HashMap<>();
+        reqMetadata.put("grossSalary", 2000); // Exact match, allowed!
+
+        UpdateApplicationProfileRequest request = new UpdateApplicationProfileRequest(
+                null, null, null, null, null, null, null, null, reqMetadata
+        );
+
+        ApplicationResponse response = service.updateProfile("PRY-8", request, UUID.randomUUID());
+        assertThat(response).isNotNull();
+        assertThat(app.getMetadata().get("grossSalary")).isEqualTo(2000);
+    }
 }

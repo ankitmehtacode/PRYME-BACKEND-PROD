@@ -43,6 +43,7 @@ public class AuthController {
     private final SessionCookieHelper cookieHelper;
     private final ObjectMapper objectMapper;
     private final LeadRepository leadRepository;
+    private final UserIdGeneratorService userIdGeneratorService;
 
     @Value("${GOOGLE_CLIENT_ID:}")
     private String googleClientId;
@@ -53,13 +54,15 @@ public class AuthController {
 
     public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder,
                           SessionManager sessionManager, SessionCookieHelper cookieHelper,
-                          ObjectMapper objectMapper, LeadRepository leadRepository) {
+                          ObjectMapper objectMapper, LeadRepository leadRepository,
+                          UserIdGeneratorService userIdGeneratorService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.sessionManager = sessionManager;
         this.cookieHelper = cookieHelper;
         this.objectMapper = objectMapper;
         this.leadRepository = leadRepository;
+        this.userIdGeneratorService = userIdGeneratorService;
     }
 
     // ==========================================
@@ -83,6 +86,7 @@ public class AuthController {
         newUser.setEmail(normalizedEmail);
         newUser.setPasswordHash(passwordEncoder.encode(request.password().trim())); // Zero-Trust: Never store plaintext
         newUser.setRole(Role.USER); // Restrict default registration to standard Client Portal tier
+        userIdGeneratorService.ensureUserIds(newUser);
 
         // 3. Persist physically to the database
         userRepository.save(newUser);
@@ -127,7 +131,9 @@ public class AuthController {
                 user.getRole().name(),
                 user.getFullName(),
                 user.getPhone(),
-                derivePermissions(user.getRole())
+                derivePermissions(user.getRole()),
+                user.getCustomerId(),
+                user.getEmployeeId()
         );
 
         // 🧠 LEAD HANDOFF: Validate and echo the anonymous lead UUID
@@ -165,7 +171,9 @@ public class AuthController {
                 user.getRole().name(),
                 user.getFullName(),   // Maps to frontend's 'name' field
                 user.getPhone(),
-                derivePermissions(user.getRole())  // 🧠 CLOSED-LOOP: Backend dictates permissions
+                derivePermissions(user.getRole()), // 🧠 CLOSED-LOOP: Backend dictates permissions
+                user.getCustomerId(),
+                user.getEmployeeId()
         ));
     }
 
@@ -280,6 +288,7 @@ public class AuthController {
                     // They can never login via password — only via Google.
                     newUser.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString()));
                     newUser.setRole(Role.USER);
+                    userIdGeneratorService.ensureUserIds(newUser);
                     return userRepository.save(newUser);
                 });
 
@@ -297,7 +306,9 @@ public class AuthController {
                 user.getRole().name(),
                 user.getFullName(),
                 user.getPhone(),
-                derivePermissions(user.getRole())
+                derivePermissions(user.getRole()),
+                user.getCustomerId(),
+                user.getEmployeeId()
         );
 
         // 🧠 LEAD HANDOFF: Check for leadId in Google OAuth body

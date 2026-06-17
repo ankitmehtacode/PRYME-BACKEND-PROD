@@ -55,7 +55,7 @@ public class EligibilityBoundaryIntegrationTest {
                 .lenderName("ICICI Bank")
                 .interestType("FLOATING")
                 .minCibil(650).maxCibil(900)
-                .roi(new BigDecimal("9.2500"))
+                .roi(new BigDecimal("0.0925"))
                 .processingFee(new BigDecimal("0.0050"))
                 .minTenureMonths(12).maxTenureMonths(360)
                 .minLoanAmount(new BigDecimal("100000.00"))

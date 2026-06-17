@@ -84,4 +84,24 @@ public class AdminLeadController {
         }
         return ResponseEntity.ok(leadService.assignLead(leadId, assigneeId));
     }
+
+    @Operation(summary = "Update a lead's status (ADMIN/SUPER_ADMIN/EMPLOYEE)")
+    @PatchMapping("/{leadId}/status")
+    public ResponseEntity<LeadResponse> updateLeadStatus(
+            @org.springframework.web.bind.annotation.PathVariable java.util.UUID leadId,
+            @org.springframework.web.bind.annotation.RequestBody java.util.Map<String, String> body,
+            Authentication authentication
+    ) {
+        String statusStr = body.get("status");
+        if (statusStr == null || statusStr.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        LeadStatus status;
+        try {
+            status = LeadStatus.valueOf(statusStr.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(leadService.updateLeadStatus(leadId, status));
+    }
 }

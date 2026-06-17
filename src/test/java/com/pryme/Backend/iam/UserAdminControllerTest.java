@@ -1,6 +1,7 @@
 package com.pryme.Backend.iam;
 
 import com.pryme.Backend.crm.LoanApplicationRepository;
+import com.pryme.Backend.crm.LoanApplication;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,6 +31,8 @@ class UserAdminControllerTest {
     private SessionRepository sessionRepository;
     @Mock
     private LoanApplicationRepository loanApplicationRepository;
+    @Mock
+    private UserIdGeneratorService userIdGeneratorService;
 
     private UserAdminController userAdminController;
 
@@ -39,7 +42,8 @@ class UserAdminControllerTest {
                 userRepository,
                 sessionManager,
                 sessionRepository,
-                loanApplicationRepository
+                loanApplicationRepository,
+                userIdGeneratorService
         );
     }
 
@@ -55,6 +59,7 @@ class UserAdminControllerTest {
 
         when(userRepository.findById(targetId)).thenReturn(Optional.of(targetUser));
         when(sessionRepository.findByUserId(targetId)).thenReturn(Collections.emptyList());
+        when(loanApplicationRepository.findByApplicantId(targetId)).thenReturn(Collections.emptyList());
 
         var auth = new UsernamePasswordAuthenticationToken(
                 callerId,
@@ -68,6 +73,38 @@ class UserAdminControllerTest {
         verify(sessionManager).revokeAllUserSessions(targetId);
         verify(sessionRepository).deleteAll(Collections.emptyList());
         verify(loanApplicationRepository).clearAssigneeByAssigneeId(targetId);
+        verify(loanApplicationRepository).findByApplicantId(targetId);
+        verify(userRepository).delete(targetUser);
+    }
+
+    @Test
+    void deleteUser_DeletesApplicationsWhenUserIsApplicant() {
+        UUID targetId = UUID.randomUUID();
+        UUID callerId = UUID.randomUUID();
+
+        User targetUser = new User();
+        targetId = UUID.randomUUID();
+        targetUser.setId(targetId);
+        targetUser.setEmail("employee@pryme.com");
+        targetUser.setRole(Role.EMPLOYEE);
+
+        LoanApplication mockApp = new LoanApplication();
+        mockApp.setId(UUID.randomUUID());
+
+        when(userRepository.findById(targetId)).thenReturn(Optional.of(targetUser));
+        when(sessionRepository.findByUserId(targetId)).thenReturn(Collections.emptyList());
+        when(loanApplicationRepository.findByApplicantId(targetId)).thenReturn(List.of(mockApp));
+
+        var auth = new UsernamePasswordAuthenticationToken(
+                callerId,
+                "token",
+                List.of(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN"))
+        );
+
+        ResponseEntity<?> response = userAdminController.deleteUser(targetId, auth);
+
+        assertEquals(200, response.getStatusCode().value());
+        verify(loanApplicationRepository).deleteAll(List.of(mockApp));
         verify(userRepository).delete(targetUser);
     }
 

@@ -123,7 +123,7 @@ public class SecurityConfig {
                                 "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com",
                                 "font-src 'self' https://fonts.gstatic.com",
                                 "img-src 'self' data: https://images.unsplash.com https://*.amazonaws.com https://lh3.googleusercontent.com",
-                                "connect-src " + connectSrc.trim() + " https://accounts.google.com https://oauth2.googleapis.com",
+                                "connect-src " + connectSrc.trim() + " https://accounts.google.com https://oauth2.googleapis.com https://*.s3.ap-south-1.amazonaws.com https://*.s3.amazonaws.com",
                                 "frame-src https://accounts.google.com",
                                 "frame-ancestors 'self'",
                                 "object-src 'none'",

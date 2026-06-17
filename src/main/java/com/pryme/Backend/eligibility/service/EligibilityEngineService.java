@@ -293,11 +293,14 @@ public class EligibilityEngineService {
         // Uses the best available income figure: computed surrogate income
         // first, then declared grossMonthlyIncome if present.
         BigDecimal incomeForFloorCheck = computedIncome;
-        if ((incomeForFloorCheck == null || incomeForFloorCheck.compareTo(BigDecimal.ZERO) <= 0)
-                && request.grossMonthlyIncome() != null) {
-            incomeForFloorCheck = request.grossMonthlyIncome();
+        if (incomeForFloorCheck == null || incomeForFloorCheck.compareTo(BigDecimal.ZERO) <= 0) {
+            if (request.grossMonthlyIncome() != null && request.grossMonthlyIncome().compareTo(BigDecimal.ZERO) > 0) {
+                incomeForFloorCheck = request.grossMonthlyIncome();
+            } else {
+                incomeForFloorCheck = request.monthlyIncome();
+            }
         }
-        final BigDecimal effectiveIncome = incomeForFloorCheck;
+        final BigDecimal effectiveIncome = incomeForFloorCheck != null ? incomeForFloorCheck : BigDecimal.ZERO;
 
         var conditions = allConditions.stream()
                 .filter(c -> c.getSurrogate() == null
@@ -515,7 +518,7 @@ public class EligibilityEngineService {
 
         // ── ROI: Resolve dynamically via FinancialComputationEngine ────────────
         ApplicantProfile applicantProfile = new ApplicantProfile(request.cibilScore(), normalizedEmpType,
-                computedIncome);
+                effectiveIncome);
         final BigDecimal effectiveRoi = financialComputationEngine.resolveRoi(product, applicantProfile,
                 request.loanAmount());
 
@@ -527,7 +530,7 @@ public class EligibilityEngineService {
                 request.requestedTenureMonths());
 
         // f. FOIR check
-        if (!checkFoir(request.existingEmiTotal(), proposedEmi, computedIncome, effectiveFoir)) {
+        if (!checkFoir(request.existingEmiTotal(), proposedEmi, effectiveIncome, effectiveFoir)) {
             return EligibilityResult.ineligible(
                     product.getProductCode(),
                     product.getLenderName(),
@@ -538,7 +541,7 @@ public class EligibilityEngineService {
 
         // g. Maximum eligible loan amount (income × FOIR − existing EMI)
         var maxEligibleAmount = calculateMaxEligibleAmount(
-                computedIncome, request.existingEmiTotal(), effectiveFoir);
+                effectiveIncome, request.existingEmiTotal(), effectiveFoir, effectiveRoi, request.requestedTenureMonths());
 
         // h. LTV check — USES effectiveLtv (condition-level override)
         boolean ltvDeviated = request.loanAmount()
@@ -569,7 +572,7 @@ public class EligibilityEngineService {
                 product.getProductCode(),
                 product.getLenderName(),
                 null,
-                computedIncome,
+                effectiveIncome,
                 effectiveFoir,
                 proposedEmi,
                 finalLoanAmount,
@@ -666,10 +669,29 @@ public class EligibilityEngineService {
     // existing EMI already exceeds income × FOIR.
     // ─────────────────────────────────────────────────────────────────────────
     private BigDecimal calculateMaxEligibleAmount(BigDecimal computedIncome,
-            BigDecimal existingEmiTotal,
-            BigDecimal effectiveFoir) {
-        BigDecimal maxAllowedEmi = computedIncome.multiply(effectiveFoir, MathContext.DECIMAL128);
-        return maxAllowedEmi.subtract(safe(existingEmiTotal)).max(BigDecimal.ZERO);
+                                                  BigDecimal existingEmiTotal,
+                                                  BigDecimal effectiveFoir,
+                                                  BigDecimal annualRate,
+                                                  int tenureMonths) {
+        BigDecimal maxAllowedEmi = computedIncome.multiply(effectiveFoir, MathContext.DECIMAL128)
+                .subtract(safe(existingEmiTotal)).max(BigDecimal.ZERO);
+
+        int effectiveTenure = tenureMonths > 0 ? tenureMonths : 12;
+        if (maxAllowedEmi.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+        if (annualRate == null || annualRate.compareTo(BigDecimal.ZERO) == 0) {
+            return maxAllowedEmi.multiply(BigDecimal.valueOf(effectiveTenure));
+        }
+
+        MathContext mc = MathContext.DECIMAL128;
+        BigDecimal monthlyRate = annualRate.divide(BigDecimal.valueOf(12), mc);
+        BigDecimal onePlusRToN = BigDecimal.ONE.add(monthlyRate, mc).pow(effectiveTenure, mc);
+        BigDecimal numerator = monthlyRate.multiply(onePlusRToN, mc);
+        BigDecimal denominator = onePlusRToN.subtract(BigDecimal.ONE, mc);
+        BigDecimal factor = numerator.divide(denominator, mc);
+
+        return maxAllowedEmi.divide(factor, mc).setScale(2, RoundingMode.HALF_UP);
     }
 
     private static BigDecimal safe(BigDecimal v) {
