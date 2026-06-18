@@ -60,7 +60,7 @@ class AuthControllerTest {
         when(userRepository.findByEmail("newclient@pryme.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("securePass123")).thenReturn("hashed_securePass123");
 
-        SignupRequest request = new SignupRequest("New Client", "newclient@pryme.com", "securePass123");
+        SignupRequest request = new SignupRequest("New Client", "newclient@pryme.com", "securePass123", "9876543210");
         ResponseEntity<Map<String, String>> response = authController.register(request);
 
         assertEquals(200, response.getStatusCode().value());
@@ -87,7 +87,7 @@ class AuthControllerTest {
 
         when(userRepository.findByEmail("existing@pryme.com")).thenReturn(Optional.of(existingUser));
 
-        SignupRequest request = new SignupRequest("Imposter", "existing@pryme.com", "password");
+        SignupRequest request = new SignupRequest("Imposter", "existing@pryme.com", "password", null);
 
         ConflictException ex = assertThrows(
                 ConflictException.class,

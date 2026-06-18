@@ -86,6 +86,13 @@ public class AuthController {
         newUser.setEmail(normalizedEmail);
         newUser.setPasswordHash(passwordEncoder.encode(request.password().trim())); // Zero-Trust: Never store plaintext
         newUser.setRole(Role.USER); // Restrict default registration to standard Client Portal tier
+
+        // 🧠 200 IQ: Persist phone at registration — eliminates the "fill it again" friction
+        if (request.phone() != null && !request.phone().isBlank()) {
+            newUser.setPhone(request.phone().trim());
+            newUser.setPhoneNumber(request.phone().trim()); // Dual-write for legacy compatibility
+        }
+
         userIdGeneratorService.ensureUserIds(newUser);
 
         // 3. Persist physically to the database
