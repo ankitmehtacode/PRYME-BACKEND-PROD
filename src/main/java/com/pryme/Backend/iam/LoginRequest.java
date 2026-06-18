@@ -12,5 +12,10 @@ public record LoginRequest(
         @Email @NotBlank String email,
         @NotBlank String password,
         String deviceId,
-        String leadId
-) {}
+        String leadId,
+        Boolean rememberMe
+) {
+    public LoginRequest(String email, String password, String deviceId, String leadId) {
+        this(email, password, deviceId, leadId, false);
+    }
+}

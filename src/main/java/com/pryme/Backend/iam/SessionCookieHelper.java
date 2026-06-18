@@ -63,12 +63,16 @@ public class SessionCookieHelper {
      * Domain    → Explicit when configured (multi-subdomain); implicit otherwise (single-origin)
      */
     public ResponseCookie createSessionCookie(String sessionId) {
+        return createSessionCookie(sessionId, ttlSeconds);
+    }
+
+    public ResponseCookie createSessionCookie(String sessionId, long customTtl) {
         ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(cookieName, sessionId)
                 .httpOnly(true)
                 .secure(secure)
                 .sameSite(sameSite)
                 .path("/api")
-                .maxAge(Duration.ofSeconds(ttlSeconds));
+                .maxAge(Duration.ofSeconds(customTtl));
 
         if (domain != null) {
             builder.domain(domain);

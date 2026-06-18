@@ -120,6 +120,9 @@ public class AuthController {
 
         // 🧠 Configurable TTL — reads app.session.ttl-seconds from YAML (default: 3600)
         long ttl = cookieHelper.getTtlSeconds();
+        if (request.rememberMe() != null && request.rememberMe()) {
+            ttl = 30 * 24 * 60 * 60L; // 30 days remember me persistence
+        }
         SessionRecord session = sessionManager.registerSession(
                 UUID.randomUUID(), user, Instant.now().plusSeconds(ttl), request.deviceId(), "Unknown");
 
@@ -127,7 +130,7 @@ public class AuthController {
         // The browser cookie jar stores it. JavaScript physically CANNOT read it.
         // XSS payloads calling document.cookie or localStorage get nothing.
         httpResponse.addHeader(HttpHeaders.SET_COOKIE,
-                cookieHelper.createSessionCookie(session.getId().toString()).toString());
+                cookieHelper.createSessionCookie(session.getId().toString(), ttl).toString());
 
         // 🧠 160 IQ: Embed the full MeResponse so the frontend can hydrate
         // its React Query cache from the login response itself — zero dependency
