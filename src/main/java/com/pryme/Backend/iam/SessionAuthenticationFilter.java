@@ -47,7 +47,7 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
 
         // Exact-match public auth endpoints (NOT wildcard — /auth/me must NOT be skipped)
-        if (PUBLIC_AUTH_PATHS.stream().anyMatch(path::startsWith)) {
+        if (PUBLIC_AUTH_PATHS.stream().anyMatch(path::equals)) {
             return true;
         }
 

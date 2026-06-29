@@ -305,12 +305,13 @@ public class AuthController {
                 });
 
         // 5. Create session + cookie (identical to password login)
-        long ttl = cookieHelper.getTtlSeconds();
+        boolean rememberMe = Boolean.parseBoolean(body.get("rememberMe"));
+        long ttl = rememberMe ? (30 * 24 * 60 * 60L) : cookieHelper.getTtlSeconds();
         SessionRecord session = sessionManager.registerSession(
                 UUID.randomUUID(), user, Instant.now().plusSeconds(ttl), "Google-OAuth", "Google Sign-In");
 
         httpResponse.addHeader(HttpHeaders.SET_COOKIE,
-                cookieHelper.createSessionCookie(session.getId().toString()).toString());
+                cookieHelper.createSessionCookie(session.getId().toString(), ttl).toString());
 
         MeResponse mePayload = new MeResponse(
                 user.getId(),

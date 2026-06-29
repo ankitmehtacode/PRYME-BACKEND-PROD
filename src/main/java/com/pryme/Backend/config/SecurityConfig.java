@@ -167,4 +167,18 @@ public class SecurityConfig {
         public PasswordEncoder passwordEncoder() {
                 return new BCryptPasswordEncoder(12);
         }
+
+        // 🧠 SILICON VALLEY GRADE FIX: Register CorsFilter as a standalone servlet filter
+        // at highest precedence. This guarantees Access-Control-Allow-Origin headers appear
+        // on ALL responses — including 401/403 from Spring Security's authenticationEntryPoint.
+        // Without this, cross-origin EventSource (SSE) connections that fail authentication
+        // produce opaque CORS errors instead of actionable 401s the frontend can handle.
+        @Bean
+        public org.springframework.boot.web.servlet.FilterRegistrationBean<CorsFilter> corsFilterRegistration() {
+                CorsFilter filter = new CorsFilter(corsConfigurationSource());
+                org.springframework.boot.web.servlet.FilterRegistrationBean<CorsFilter> registration =
+                        new org.springframework.boot.web.servlet.FilterRegistrationBean<>(filter);
+                registration.setOrder(org.springframework.core.Ordered.HIGHEST_PRECEDENCE);
+                return registration;
+        }
 }

@@ -41,6 +41,9 @@ public class AdminOfferController {
             existing.setHighlights(updatedOffer.getHighlights());
             existing.setActive(updatedOffer.isActive());
             existing.setOrderIndex(updatedOffer.getOrderIndex());
+            existing.setBannerImageUrl(updatedOffer.getBannerImageUrl());
+            existing.setHeroImageUrl(updatedOffer.getHeroImageUrl());
+            existing.setTargetUrl(updatedOffer.getTargetUrl());
             return ResponseEntity.ok(heroOfferConfigRepository.save(existing));
         }).orElseGet(() -> ResponseEntity.notFound().build());
     }

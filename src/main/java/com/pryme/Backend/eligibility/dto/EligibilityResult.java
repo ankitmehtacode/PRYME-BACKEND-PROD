@@ -179,6 +179,12 @@ public record EligibilityResult(
         if (upper.startsWith("FOIR EXCEEDED") || upper.contains("FOIR LIMIT")) {
             return "EMI obligations exceed the maximum allowable debt-to-income ratio (FOIR).";
         }
+        if (upper.startsWith("LTV_EXCEEDED") || upper.contains("LTV EXCEEDED")) {
+            return "Requested loan amount exceeds the maximum allowed Loan-to-Value (LTV) ratio for this product.";
+        }
+        if (upper.startsWith("LOW_LTV_EXCEEDED") || upper.contains("LOW LTV EXCEEDED")) {
+            return "Requested loan amount exceeds the Low LTV surrogate limit.";
+        }
         if (upper.contains("SERVICE AREA RESTRICTED") || upper.contains("OUTSIDE INDORE")) {
             return "PRYME currently operates only in Indore (PIN 452xxx/453xxx).";
         }

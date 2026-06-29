@@ -544,11 +544,20 @@ public class EligibilityEngineService {
                 effectiveIncome, request.existingEmiTotal(), effectiveFoir, effectiveRoi, request.requestedTenureMonths());
 
         // h. LTV check — USES effectiveLtv (condition-level override)
-        boolean ltvDeviated = request.loanAmount()
-                .compareTo(request.propertyValue().multiply(effectiveLtv, MathContext.DECIMAL128)) > 0;
+        BigDecimal maxLtvAmount = request.propertyValue().multiply(effectiveLtv, MathContext.DECIMAL128);
+        boolean ltvDeviated = request.loanAmount().compareTo(maxLtvAmount) > 0;
+
+        if (ltvDeviated) {
+            return EligibilityResult.ineligible(
+                    product.getProductCode(),
+                    product.getLenderName(),
+                    List.of(String.format("LTV_EXCEEDED: requested %.2f, allowed %.2f (LTV limit: %.0f%%)",
+                            request.loanAmount(), maxLtvAmount, effectiveLtv.multiply(BigDecimal.valueOf(100)))),
+                    "Requested loan amount exceeds the maximum allowed LTV for this product");
+        }
 
         var finalLoanAmount = request.loanAmount()
-                .min(request.propertyValue().multiply(effectiveLtv, MathContext.DECIMAL128))
+                .min(maxLtvAmount)
                 .min(maxEligibleAmount);
 
         // ── Processing Fee: dynamic resolution ──────────────────────────────
@@ -1066,6 +1075,16 @@ public class EligibilityEngineService {
                 request.requestedTenureMonths());
 
         BigDecimal ltvCap = request.propertyValue().multiply(effectiveLtv, MathContext.DECIMAL128);
+        
+        if (request.loanAmount().compareTo(ltvCap) > 0) {
+            return EligibilityResult.ineligible(
+                    product.getProductCode(),
+                    product.getLenderName(),
+                    List.of(String.format("LOW_LTV_EXCEEDED: requested %.2f, allowed %.2f (LTV limit: %.0f%%)",
+                            request.loanAmount(), ltvCap, effectiveLtv.multiply(BigDecimal.valueOf(100)))),
+                    "Requested loan amount exceeds the Low LTV surrogate limit");
+        }
+        
         BigDecimal finalLoanAmount = request.loanAmount().min(ltvCap);
 
         final BigDecimal processingFee = financialComputationEngine.resolveProcessingFee(

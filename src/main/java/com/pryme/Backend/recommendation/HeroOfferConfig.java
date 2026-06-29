@@ -44,6 +44,15 @@ public class HeroOfferConfig {
     @Builder.Default
     private int orderIndex = 0;
 
+    @Column(name = "banner_image_url", length = 1024)
+    private String bannerImageUrl;
+
+    @Column(name = "hero_image_url", length = 1024)
+    private String heroImageUrl;
+
+    @Column(name = "target_url", length = 1024)
+    private String targetUrl;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

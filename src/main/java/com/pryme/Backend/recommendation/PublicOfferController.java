@@ -48,7 +48,10 @@ public class PublicOfferController {
                             null,
                             null,
                             null,
-                            config.getLogoType()
+                            config.getLogoType(),
+                            config.getBannerImageUrl(),
+                            config.getHeroImageUrl(),
+                            config.getTargetUrl()
                     ))
                     .toList();
         } else {
@@ -81,7 +84,10 @@ public class PublicOfferController {
                 product.getProcessingFee(),
                 product.getLoginFees() != null ? product.getLoginFees() : BigDecimal.ZERO,
                 displayType,
-                null
+                null,
+                null,
+                null,
+                "/apply"
         );
     }
 }

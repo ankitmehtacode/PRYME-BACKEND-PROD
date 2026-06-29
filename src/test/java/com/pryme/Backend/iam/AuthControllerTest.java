@@ -146,6 +146,59 @@ class AuthControllerTest {
     }
 
     @Test
+    void loginRejectsWrongPasswordWithUnauthorizedException() {
+        User user = new User();
+        user.setEmail("admin@pryme.com");
+        user.setPasswordHash("hashed_password");
+        
+        when(userRepository.findByEmail("admin@pryme.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("wrong_password", "hashed_password")).thenReturn(false);
+
+        HttpServletResponse mockResponse = org.mockito.Mockito.mock(HttpServletResponse.class);
+
+        UnauthorizedException ex = assertThrows(
+                UnauthorizedException.class,
+                () -> authController.login(new LoginRequest("admin@pryme.com", "wrong_password", "web", null), mockResponse)
+        );
+
+        assertEquals("Invalid email or password", ex.getMessage());
+    }
+
+    @Test
+    void loginSuccessfulLoginReturnsResponseAndSetsCookie() {
+        UUID userId = UUID.randomUUID();
+        User user = new User();
+        user.setId(userId);
+        user.setEmail("admin@pryme.com");
+        user.setFullName("Admin User");
+        user.setRole(Role.ADMIN);
+        user.setPasswordHash("hashed_password");
+
+        when(userRepository.findByEmail("admin@pryme.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("correct_password", "hashed_password")).thenReturn(true);
+        when(cookieHelper.getTtlSeconds()).thenReturn(3600L);
+        
+        UUID sessionId = UUID.randomUUID();
+        SessionRecord sessionRecord = new SessionRecord();
+        sessionRecord.setId(sessionId);
+        sessionRecord.setExpiresAt(java.time.Instant.now().plusSeconds(3600));
+
+        when(sessionManager.registerSession(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(user), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq("web"), org.mockito.ArgumentMatchers.anyString())).thenReturn(sessionRecord);
+        when(cookieHelper.createSessionCookie(sessionId.toString(), 3600L)).thenReturn(org.springframework.http.ResponseCookie.from("PRYME_SID", sessionId.toString()).build());
+
+        HttpServletResponse mockResponse = org.mockito.Mockito.mock(HttpServletResponse.class);
+
+        ResponseEntity<LoginResponse> response = authController.login(new LoginRequest("admin@pryme.com", "correct_password", "web", null), mockResponse);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        assertEquals(userId, response.getBody().id());
+        assertEquals("admin@pryme.com", response.getBody().user().email());
+        
+        verify(mockResponse).addHeader(org.mockito.ArgumentMatchers.eq(org.springframework.http.HttpHeaders.SET_COOKIE), org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
     void sessionsRejectsDifferentUserForNonAdmin() {
         UUID currentUserId = UUID.randomUUID();
         UUID otherUserId = UUID.randomUUID();
