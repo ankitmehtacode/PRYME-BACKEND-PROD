@@ -31,5 +31,8 @@ public record DecisionStep(
     List<RuleEvaluation> rules,
     
     // Formula traces
-    List<FormulaTrace> formulas
+    List<FormulaTrace> formulas,
+    
+    // Step notes/skip reason
+    String reason
 ) {}

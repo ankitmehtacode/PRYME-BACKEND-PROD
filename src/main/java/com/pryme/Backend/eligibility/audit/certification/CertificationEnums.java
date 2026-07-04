@@ -8,6 +8,7 @@ public class CertificationEnums {
         PROGRAM_SELECTION_MISMATCH,
         RULE_MISMATCH,
         ROUNDING_MISMATCH,
+        ENGINE_LOGIC_MISMATCH,
         UNKNOWN
     }
 

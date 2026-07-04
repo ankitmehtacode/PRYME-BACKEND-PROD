@@ -29,7 +29,7 @@ public class WorkbookModels {
         Integer maxAge,
         String negativeProfile,
         String vintage,
-        String itrRequired,
+        String ITRRequired,
         String providentFundMandatory,
         String negativeModeSalary,
         String bankStatement,
@@ -78,5 +78,19 @@ public class WorkbookModels {
         BigDecimal minLoanAmount,
         BigDecimal maxLoanAmount,
         BigDecimal loginFees
+    ) {}
+
+    public record HlLtvRow(
+        String propertyType, // "Ready Built Property" or "Plot"
+        BigDecimal minLoanAmount,
+        BigDecimal maxLoanAmount,
+        BigDecimal ltv
+    ) {}
+
+    public record LapLtvRow(
+        String lenderName,
+        String propertyCategory, // "Residential" or "Commercial"
+        String propertySubtype,  // "Plot", "Flat/Apartment/House", etc.
+        String ltvValue         // "Negative" or a number like "0.75"
     ) {}
 }

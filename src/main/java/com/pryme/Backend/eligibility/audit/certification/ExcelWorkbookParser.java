@@ -209,4 +209,108 @@ public class ExcelWorkbookParser {
             return null;
         }
     }
+
+    public List<WorkbookModels.HlLtvRow> parseHlLtvWorkbook(InputStream is) throws Exception {
+        List<WorkbookModels.HlLtvRow> list = new ArrayList<>();
+        try (Workbook wb = WorkbookFactory.create(is)) {
+            Sheet sheet = wb.getSheetAt(0);
+            int totalRows = sheet.getLastRowNum();
+            String currentPropertyType = null;
+            for (int r = 0; r <= totalRows; r++) {
+                Row row = sheet.getRow(r);
+                if (row == null || isRowEmpty(row)) continue;
+                
+                Cell cell0 = row.getCell(0);
+                if (cell0 != null && cell0.getCellType() == CellType.STRING) {
+                    String val = cell0.getStringCellValue().trim();
+                    if (val.equalsIgnoreCase("Ready Built Property") || val.equalsIgnoreCase("Plot")) {
+                        currentPropertyType = val;
+                        // Skip header row right below it
+                        r++;
+                        continue;
+                    }
+                }
+                
+                if (currentPropertyType != null) {
+                    BigDecimal minVal = getBigDecimalValueFromCell(row.getCell(0));
+                    BigDecimal maxVal = getBigDecimalValueFromCell(row.getCell(1));
+                    BigDecimal ltvVal = getBigDecimalValueFromCell(row.getCell(2));
+                    if (minVal != null || maxVal != null || ltvVal != null) {
+                        list.add(new WorkbookModels.HlLtvRow(currentPropertyType, minVal, maxVal, ltvVal));
+                    }
+                }
+            }
+        }
+        return list;
+    }
+
+    public List<WorkbookModels.LapLtvRow> parseLapLtvWorkbook(InputStream is) throws Exception {
+        List<WorkbookModels.LapLtvRow> list = new ArrayList<>();
+        try (Workbook wb = WorkbookFactory.create(is)) {
+            Sheet sheet = wb.getSheetAt(0);
+            Row catRow = sheet.getRow(0);
+            Row subRow = sheet.getRow(1);
+            if (catRow == null || subRow == null) return list;
+            
+            int lastCellNum = subRow.getLastCellNum();
+            String currentCat = null;
+            Map<Integer, String[]> colMap = new HashMap<>();
+            for (int c = 1; c < lastCellNum; c++) {
+                Cell catCell = catRow.getCell(c);
+                if (catCell != null && catCell.getCellType() == CellType.STRING && !catCell.getStringCellValue().isBlank()) {
+                    currentCat = catCell.getStringCellValue().trim();
+                }
+                Cell subCell = subRow.getCell(c);
+                if (subCell != null && subCell.getCellType() == CellType.STRING && !subCell.getStringCellValue().isBlank()) {
+                    colMap.put(c, new String[]{currentCat, subCell.getStringCellValue().trim()});
+                }
+            }
+            
+            int totalRows = sheet.getLastRowNum();
+            for (int r = 2; r <= totalRows; r++) {
+                Row row = sheet.getRow(r);
+                if (row == null || isRowEmpty(row)) continue;
+                Cell lenderCell = row.getCell(0);
+                if (lenderCell == null || lenderCell.getCellType() == CellType.BLANK) continue;
+                String lenderName = lenderCell.getStringCellValue().trim();
+                
+                for (int c = 1; c < lastCellNum; c++) {
+                    if (!colMap.containsKey(c)) continue;
+                    String[] catSub = colMap.get(c);
+                    Cell valCell = row.getCell(c);
+                    String ltvVal = null;
+                    if (valCell != null) {
+                        if (valCell.getCellType() == CellType.NUMERIC) {
+                            ltvVal = String.valueOf(valCell.getNumericCellValue());
+                        } else if (valCell.getCellType() == CellType.STRING) {
+                            ltvVal = valCell.getStringCellValue().trim();
+                        }
+                    }
+                    if (ltvVal != null) {
+                        list.add(new WorkbookModels.LapLtvRow(lenderName, catSub[0], catSub[1], ltvVal));
+                    }
+                }
+            }
+        }
+        return list;
+    }
+
+    private BigDecimal getBigDecimalValueFromCell(Cell cell) {
+        if (cell == null || cell.getCellType() == CellType.BLANK) return null;
+        if (cell.getCellType() == CellType.NUMERIC) {
+            return BigDecimal.valueOf(cell.getNumericCellValue());
+        }
+        if (cell.getCellType() == CellType.STRING) {
+            String val = cell.getStringCellValue().trim();
+            if (val.equalsIgnoreCase("NA") || val.equalsIgnoreCase("No Limit") || val.equalsIgnoreCase("No limit")) return null;
+            val = val.replaceAll("[^0-9.\\-]", "");
+            if (val.isEmpty()) return null;
+            try {
+                return new BigDecimal(val);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
+    }
 }
