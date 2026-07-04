@@ -19,4 +19,6 @@ public interface EligibilityConditionRepository extends JpaRepository<Eligibilit
     List<EligibilityCondition> findByProductIdAndActive(Long productId, boolean active);
 
     Page<EligibilityCondition> findByActive(boolean active, Pageable pageable);
+
+    List<EligibilityCondition> findByActive(boolean active);
 }

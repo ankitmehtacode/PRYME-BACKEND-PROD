@@ -1,5 +1,6 @@
 package com.pryme.Backend.eligibility.dto;
 
+import com.pryme.Backend.eligibility.audit.DecisionTrace;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -44,7 +45,10 @@ public record EligibilityResult(
         String gstReturnRequirement,
         Boolean providentFundMandatory,
         Integer itrRequiredYears,
-        String profileRestrictions
+        String profileRestrictions,
+
+        // Decision Trace for Auditing
+        DecisionTrace decisionTrace
 ) {
     // Backwards-compatibility bridge for existing controllers/services
     public boolean isEligible() {
@@ -59,7 +63,8 @@ public record EligibilityResult(
                 BigDecimal.ZERO, BigDecimal.ZERO, 0, BigDecimal.ZERO,
                 false, reasons, notes, BigDecimal.ZERO, BigDecimal.ZERO,
                 null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null, null, null, null, null
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                null
         );
     }
 
@@ -70,7 +75,8 @@ public record EligibilityResult(
                 BigDecimal.ZERO, BigDecimal.ZERO, 0, BigDecimal.ZERO,
                 false, reasons, notes, BigDecimal.ZERO, BigDecimal.ZERO,
                 null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null, null, null, null, null
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                null
         );
     }
 
@@ -121,11 +127,18 @@ public record EligibilityResult(
                 this.processingFee,
                 this.loginFee,
 
-                // Fee Structure nullified to prevent backtrack
-                null, null, null, null, null, null, null,
+                // Fee Structure restored for dynamic frontend display
+                this.adminFee,
+                this.insuranceCharges,
+                this.legalTechnicalCharges,
+                this.otherExpense,
+                this.stampDuty,
+                this.prepaymentCharges,
+                this.foreclosureCharges,
 
                 // Eligibility Details nullified to prevent backtrack
-                null, null, null, null, null, null, null, null, null, null, null, null, null, null
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                null // decisionTrace set to null for public response
         );
     }
 

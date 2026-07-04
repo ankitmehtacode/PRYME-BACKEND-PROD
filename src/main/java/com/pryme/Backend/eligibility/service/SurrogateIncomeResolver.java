@@ -53,6 +53,10 @@ public class SurrogateIncomeResolver {
     // Key format: "lender:profession" → multiplier (currently Yes Bank only)
     private static final Map<String, BigDecimal> CPM_MULTIPLIERS = new HashMap<>();
 
+    // ─── GST LENDER SPECIFIC MARGIN MATRIX ───────────────────────────────────
+    // Key format: "lender:businessType" or "lender:loanType:businessType" or "lender:default"
+    private static final Map<String, BigDecimal> GST_LENDER_MARGINS = new HashMap<>();
+
     static {
         // L&T Finance — HL + LAP (same multipliers)
         SEP_MULTIPLIERS.put("lt:doctor", new BigDecimal("2.5"));
@@ -91,6 +95,46 @@ public class SurrogateIncomeResolver {
         CPM_MULTIPLIERS.put("yes:ca", new BigDecimal("3"));
         CPM_MULTIPLIERS.put("yes:cs", new BigDecimal("3"));
         CPM_MULTIPLIERS.put("yes:architect", new BigDecimal("3"));
+
+        // GST margins per lender
+        // L&T Finance
+        GST_LENDER_MARGINS.put("lt:service", new BigDecimal("0.10"));
+        GST_LENDER_MARGINS.put("lt:trader", new BigDecimal("0.12"));
+        GST_LENDER_MARGINS.put("lt:wholesale", new BigDecimal("0.08"));
+        GST_LENDER_MARGINS.put("lt:manufacturing", new BigDecimal("0.04"));
+
+        // ICICI Bank
+        GST_LENDER_MARGINS.put("icici:manufacturing", new BigDecimal("0.06"));
+        GST_LENDER_MARGINS.put("icici:default", new BigDecimal("0.06"));
+
+        // Bandhan Bank
+        GST_LENDER_MARGINS.put("bandhan:default", new BigDecimal("0.10"));
+
+        // Yes Bank
+        GST_LENDER_MARGINS.put("yes:default", new BigDecimal("0.20"));
+
+        // HDFC Bank
+        GST_LENDER_MARGINS.put("hdfc:hl:manufacturing", new BigDecimal("0.08"));
+        GST_LENDER_MARGINS.put("hdfc:hl:trader", new BigDecimal("0.08"));
+        GST_LENDER_MARGINS.put("hdfc:lap:trader", new BigDecimal("0.09"));
+        GST_LENDER_MARGINS.put("hdfc:lap:manufacturing", new BigDecimal("0.10"));
+        GST_LENDER_MARGINS.put("hdfc:lap:service", new BigDecimal("0.08"));
+
+        // Bajaj Finance
+        GST_LENDER_MARGINS.put("bajaj:trader", new BigDecimal("0.10"));
+        GST_LENDER_MARGINS.put("bajaj:service", new BigDecimal("0.10"));
+        GST_LENDER_MARGINS.put("bajaj:wholesale", new BigDecimal("0.08"));
+        GST_LENDER_MARGINS.put("bajaj:manufacturing", new BigDecimal("0.08"));
+
+        // IDFC Bank
+        GST_LENDER_MARGINS.put("idfc:manufacturing", new BigDecimal("0.10"));
+        GST_LENDER_MARGINS.put("idfc:trader", new BigDecimal("0.07"));
+        GST_LENDER_MARGINS.put("idfc:service", new BigDecimal("0.07"));
+
+        // JIO Finance
+        GST_LENDER_MARGINS.put("jio:trader", new BigDecimal("0.06"));
+        GST_LENDER_MARGINS.put("jio:manufacturing", new BigDecimal("0.08"));
+        GST_LENDER_MARGINS.put("jio:service", new BigDecimal("0.12"));
     }
 
     /**
@@ -146,11 +190,51 @@ public class SurrogateIncomeResolver {
 
     // ─── GST: (Last 12M GSTR-3B Turnover × profit margin) ÷ 12 ───────────
     private BigDecimal resolveGst(IncomeComputationInput input) {
-        String businessType = input.businessType() != null ? input.businessType() : "";
-        BigDecimal margin = GST_MARGINS.getOrDefault(businessType, BigDecimal.ZERO);
+        String lenderKey = normalizeLenderKey(input.lenderName());
+        String businessTypeKey = normalizeBusinessTypeKey(input.businessType());
+        String loanTypeKey = input.loanType() != null ? input.loanType().toLowerCase() : "";
+
+        // 1. Try with loan type: lender:loanType:businessType
+        BigDecimal margin = GST_LENDER_MARGINS.get(lenderKey + ":" + loanTypeKey + ":" + businessTypeKey);
+
+        // 2. Try without loan type: lender:businessType
+        if (margin == null) {
+            margin = GST_LENDER_MARGINS.get(lenderKey + ":" + businessTypeKey);
+        }
+
+        // 3. Try lender default: lender:default
+        if (margin == null) {
+            margin = GST_LENDER_MARGINS.get(lenderKey + ":default");
+        }
+
+        // 4. Global fallback to static defaults
+        if (margin == null) {
+            margin = GST_MARGINS.getOrDefault(input.businessType(), BigDecimal.ZERO);
+            if (margin.compareTo(BigDecimal.ZERO) == 0) {
+                // Try looking up with normalized key
+                if ("service".equals(businessTypeKey)) margin = new BigDecimal("0.10");
+                else if ("trader".equals(businessTypeKey)) margin = new BigDecimal("0.12");
+                else if ("wholesale".equals(businessTypeKey)) margin = new BigDecimal("0.08");
+                else if ("manufacturing".equals(businessTypeKey)) margin = new BigDecimal("0.04");
+            }
+        }
+
+        log.debug("GST margin lookup: lender={}, loanType={}, businessType={} (normalized={}) -> margin={}",
+                lenderKey, loanTypeKey, input.businessType(), businessTypeKey, margin);
+
         return safe(input.gstrTurnover12Months())
                 .multiply(margin, MC)
                 .divide(TWELVE, MC);
+    }
+
+    private String normalizeBusinessTypeKey(String businessType) {
+        if (businessType == null) return "";
+        String lower = businessType.toLowerCase().trim();
+        if (lower.contains("service")) return "service";
+        if (lower.contains("retail") || lower.contains("trader") || lower.contains("shop")) return "trader";
+        if (lower.contains("wholesale")) return "wholesale";
+        if (lower.contains("manufactur")) return "manufacturing";
+        return lower;
     }
 
     // ─── CashFlow: same ABB formula as Banking, LTV deviation handled by engine

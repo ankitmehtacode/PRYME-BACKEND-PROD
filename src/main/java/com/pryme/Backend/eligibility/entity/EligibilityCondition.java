@@ -60,6 +60,18 @@ public class EligibilityCondition {
     @Column(name = "foir_max", precision = 5, scale = 4)
     private BigDecimal foirMax;
 
+    @Column(name = "min_tenure")
+    private Integer minTenure;
+
+    @Column(name = "max_tenure")
+    private Integer maxTenure;
+
+    @Column(name = "min_loan_amount", precision = 15, scale = 2)
+    private BigDecimal minLoanAmount;
+
+    @Column(name = "max_loan_amount", precision = 15, scale = 2)
+    private BigDecimal maxLoanAmount;
+
 
 
     @Column(name = "bank_name")

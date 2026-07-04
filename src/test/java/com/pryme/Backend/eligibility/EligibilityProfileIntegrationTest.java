@@ -254,8 +254,8 @@ public class EligibilityProfileIntegrationTest {
     void profile16_combinedCibilAndIncome() {
         var expect = ProfileExpectation.eligible(16,
                 "Combined CIBIL 660 + Income ₹32K — Highly restricted",
-                Set.of("BOB-HL", "LT-HL", "SBI-HL", "TATA-HL", "HDFC-HL", "JIO-HL"),
-                Set.of("ABFL-HL", "BAJAJ-HL", "YES-HL", "BANDHAN-HL", "ICICI-HL")
+                Set.of("BOB-HL", "LT-HL", "SBI-HL", "TATA-HL", "HDFC-HL"),
+                Set.of("ABFL-HL", "BAJAJ-HL", "YES-HL", "BANDHAN-HL", "ICICI-HL", "JIO-HL")
         );
         executeAndAssert(TestProfileFixtures.profile16(), expect);
     }
@@ -265,8 +265,8 @@ public class EligibilityProfileIntegrationTest {
     void profile17_gstLowTurnoverShortVintage() {
         var expect = ProfileExpectation.eligible(17,
                 "GST Wholesale 2yr vintage — Qualifies under NIP fallback",
-                Set.of("SBI-HL", "BANDHAN-HL", "ICICI-HL", "YES-HL", "BOB-HL", "HDFC-HL", "LT-HL"),
-                Set.of("BAJAJ-HL", "ABFL-HL")
+                Set.of("SBI-HL", "BANDHAN-HL", "ICICI-HL", "BOB-HL", "HDFC-HL", "LT-HL", "TATA-HL", "JIO-HL"),
+                Set.of("BAJAJ-HL", "ABFL-HL", "YES-HL")
         );
         executeAndAssert(TestProfileFixtures.profile17(), expect);
     }

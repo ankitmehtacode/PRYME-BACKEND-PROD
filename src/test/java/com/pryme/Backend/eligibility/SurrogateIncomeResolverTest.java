@@ -161,4 +161,86 @@ class SurrogateIncomeResolverTest {
         BigDecimal uncappedResult = resolver.resolve(caInputUncappedHl);
         assertEquals(0, new BigDecimal("30000").compareTo(uncappedResult), "Expected uncapped monthly income of 30k for HL");
     }
+
+    @Test
+    @DisplayName("GST Surrogate — dynamic lender and loanType profit margin lookup validation")
+    void testGstLenderSpecificMargins() {
+        // L&T: Service=10%, Retailer=12%, Wholesale=8%, Manufacturer=4%
+        // Turnover = 1,200,000. Service monthly = 1.2M * 0.10 / 12 = 10,000.
+        IncomeComputationInput ltService = createGstInput("L&T Finance", "HL", "Service", new BigDecimal("1200000"));
+        assertEquals(0, new BigDecimal("10000").compareTo(resolver.resolve(ltService)));
+
+        // ICICI: Manufacturer = 6% -> 1.2M * 0.06 / 12 = 6,000.
+        IncomeComputationInput iciciMfg = createGstInput("ICICI Bank", "HL", "Manufacturer", new BigDecimal("1200000"));
+        assertEquals(0, new BigDecimal("6000").compareTo(resolver.resolve(iciciMfg)));
+
+        // Bandhan: GST = 10% -> 1.2M * 0.10 / 12 = 10,000.
+        IncomeComputationInput bandhanDefault = createGstInput("Bandhan Bank", "HL", "Retailer", new BigDecimal("1200000"));
+        assertEquals(0, new BigDecimal("10000").compareTo(resolver.resolve(bandhanDefault)));
+
+        // Yes Bank: GST = 20% -> 1.2M * 0.20 / 12 = 20,000.
+        IncomeComputationInput yesDefault = createGstInput("Yes Bank", "HL", "Service", new BigDecimal("1200000"));
+        assertEquals(0, new BigDecimal("20000").compareTo(resolver.resolve(yesDefault)));
+
+        // HDFC HL: Trader = 8% -> 1.2M * 0.08 / 12 = 8,000.
+        IncomeComputationInput hdfcHl = createGstInput("HDFC Bank", "HL", "Trader", new BigDecimal("1200000"));
+        assertEquals(0, new BigDecimal("8000").compareTo(resolver.resolve(hdfcHl)));
+
+        // HDFC LAP: Trader = 9% -> 1.2M * 0.09 / 12 = 9,000.
+        IncomeComputationInput hdfcLapTrader = createGstInput("HDFC Bank", "LAP", "Trader", new BigDecimal("1200000"));
+        assertEquals(0, new BigDecimal("9000").compareTo(resolver.resolve(hdfcLapTrader)));
+
+        // HDFC LAP: Manufacturer = 10% -> 1.2M * 0.10 / 12 = 10,000.
+        IncomeComputationInput hdfcLapMfg = createGstInput("HDFC Bank", "LAP", "Manufacturer", new BigDecimal("1200000"));
+        assertEquals(0, new BigDecimal("10000").compareTo(resolver.resolve(hdfcLapMfg)));
+
+        // HDFC LAP: Service = 8% -> 1.2M * 0.08 / 12 = 8,000.
+        IncomeComputationInput hdfcLapService = createGstInput("HDFC Bank", "LAP", "Service", new BigDecimal("1200000"));
+        assertEquals(0, new BigDecimal("8000").compareTo(resolver.resolve(hdfcLapService)));
+
+        // Bajaj: Trader/Service = 10% -> 1.2M * 0.10 / 12 = 10,000.
+        IncomeComputationInput bajajTrader = createGstInput("Bajaj Finance", "LAP", "Trader", new BigDecimal("1200000"));
+        assertEquals(0, new BigDecimal("10000").compareTo(resolver.resolve(bajajTrader)));
+
+        // Bajaj: Wholesale/Manufacturer = 8% -> 1.2M * 0.08 / 12 = 8,000.
+        IncomeComputationInput bajajWholesale = createGstInput("Bajaj Finance", "LAP", "Wholesale", new BigDecimal("1200000"));
+        assertEquals(0, new BigDecimal("8000").compareTo(resolver.resolve(bajajWholesale)));
+
+        // IDFC: Manufacturer = 10% -> 1.2M * 0.10 / 12 = 10,000.
+        IncomeComputationInput idfcMfg = createGstInput("IDFC Bank", "LAP", "Manufacturer", new BigDecimal("1200000"));
+        assertEquals(0, new BigDecimal("10000").compareTo(resolver.resolve(idfcMfg)));
+
+        // IDFC: Trader/Service = 7% -> 1.2M * 0.07 / 12 = 7,000.
+        IncomeComputationInput idfcService = createGstInput("IDFC Bank", "LAP", "Service", new BigDecimal("1200000"));
+        assertEquals(0, new BigDecimal("7000").compareTo(resolver.resolve(idfcService)));
+
+        // JIO: Trader = 6% -> 1.2M * 0.06 / 12 = 6,000.
+        IncomeComputationInput jioTrader = createGstInput("JIO Finance", "HL", "Trader", new BigDecimal("1200000"));
+        assertEquals(0, new BigDecimal("6000").compareTo(resolver.resolve(jioTrader)));
+
+        // JIO: Manufacturer = 8% -> 1.2M * 0.08 / 12 = 8,000.
+        IncomeComputationInput jioMfg = createGstInput("JIO Finance", "HL", "Manufacturer", new BigDecimal("1200000"));
+        assertEquals(0, new BigDecimal("8000").compareTo(resolver.resolve(jioMfg)));
+
+        // JIO: Service = 12% -> 1.2M * 0.12 / 12 = 12,000.
+        IncomeComputationInput jioService = createGstInput("JIO Finance", "HL", "Service", new BigDecimal("1200000"));
+        assertEquals(0, new BigDecimal("12000").compareTo(resolver.resolve(jioService)));
+    }
+
+    private IncomeComputationInput createGstInput(String lenderName, String loanType, String businessType, BigDecimal turnover) {
+        return new IncomeComputationInput(
+                "GST",
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                new ArrayList<>(),
+                turnover,
+                businessType,
+                BigDecimal.ZERO,
+                "",
+                lenderName,
+                loanType
+        );
+    }
 }
