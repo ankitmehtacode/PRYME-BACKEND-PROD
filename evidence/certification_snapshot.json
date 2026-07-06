@@ -1,0 +1,807 @@
+{
+  "LT-HL:Salaried:NIP" : {
+    "minCibil" : 650,
+    "minIncome" : "30000",
+    "minAge" : 23,
+    "maxAge" : 60,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "LT-HL:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 650,
+    "minIncome" : "25000",
+    "minAge" : 25,
+    "maxAge" : 70,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "LT-HL:Self Employed Professional:SEP" : {
+    "minCibil" : 650,
+    "minIncome" : "25000",
+    "minAge" : 25,
+    "maxAge" : 70,
+    "ltv" : "0.75"
+  },
+  "LT-HL:Self Employed Professional/Self Employed Non Professional:Banking" : {
+    "minCibil" : 650,
+    "minIncome" : "25000",
+    "minAge" : 25,
+    "maxAge" : 70,
+    "ltv" : "0.75"
+  },
+  "LT-HL:Self Employed Professional/Self Employed Non Professional:GST" : {
+    "minCibil" : 650,
+    "minIncome" : "25000",
+    "minAge" : 25,
+    "maxAge" : 70,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "ICICI-HL:Salaried:NIP" : {
+    "minCibil" : 700,
+    "minIncome" : "30000",
+    "minAge" : 20,
+    "maxAge" : 62,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "ICICI-HL:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 700,
+    "minIncome" : "200000",
+    "minAge" : 20,
+    "maxAge" : 70,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "ICICI-HL:Self Employed Professional/Self Employed Non Professional:Banking" : {
+    "minCibil" : 700,
+    "minIncome" : "30000",
+    "minAge" : 20,
+    "maxAge" : 70,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "ICICI-HL:Self Employed Professional/Self Employed Non Professional:GST" : {
+    "minCibil" : 700,
+    "minIncome" : "30000",
+    "minAge" : 20,
+    "maxAge" : 70,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "BANDHAN-HL:Salaried:NIP" : {
+    "minCibil" : 700,
+    "minIncome" : "15000",
+    "minAge" : 21,
+    "maxAge" : 60,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "BANDHAN-HL:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 700,
+    "minIncome" : "15000",
+    "minAge" : 21,
+    "maxAge" : 75,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "BANDHAN-HL:Self Employed Professional/Self Employed Non Professional:Banking" : {
+    "minCibil" : 700,
+    "minIncome" : "15000",
+    "minAge" : 21,
+    "maxAge" : 75,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "BANDHAN-HL:Self Employed Professional/Self Employed Non Professional:GST" : {
+    "minCibil" : 700,
+    "minIncome" : "15000",
+    "minAge" : 21,
+    "maxAge" : 75,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "ABFL-HL:Salaried:NIP" : {
+    "minCibil" : 675,
+    "minIncome" : "30000",
+    "minAge" : 22,
+    "maxAge" : 62,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "ABFL-HL:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 675,
+    "minIncome" : "30000",
+    "minAge" : 22,
+    "maxAge" : 80,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "ABFL-HL:Salaried:Low LTV" : {
+    "minCibil" : 675,
+    "minIncome" : "30000",
+    "minAge" : 22,
+    "maxAge" : 62,
+    "ltv" : "0.5"
+  },
+  "ABFL-HL:Self Employed Professional/Self Employed Non Professional:Low LTV" : {
+    "minCibil" : 675,
+    "minIncome" : "30000",
+    "minAge" : 22,
+    "maxAge" : 80,
+    "ltv" : "0.5"
+  },
+  "ABFL-HL:Self Employed Professional/Self Employed Non Professional:Banking" : {
+    "minCibil" : 675,
+    "minIncome" : "30000",
+    "minAge" : 22,
+    "maxAge" : 80,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "ABFL-HL:Self Employed Professional/Self Employed Non Professional:GST" : {
+    "minCibil" : 675,
+    "minIncome" : "30000",
+    "minAge" : 22,
+    "maxAge" : 80,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "BOB-HL:Salaried:NIP" : {
+    "minCibil" : 650,
+    "minIncome" : "10000",
+    "minAge" : 21,
+    "maxAge" : 60,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "BOB-HL:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 650,
+    "minIncome" : "10000",
+    "minAge" : 21,
+    "maxAge" : 70,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "SBI-HL:Salaried:NIP" : {
+    "minCibil" : 550,
+    "minIncome" : "25000",
+    "minAge" : 20,
+    "maxAge" : 65,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "SBI-HL:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 550,
+    "minIncome" : "25000",
+    "minAge" : 20,
+    "maxAge" : 70,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "BAJAJ-HL:Salaried:NIP" : {
+    "minCibil" : 680,
+    "minIncome" : "30000",
+    "minAge" : 23,
+    "maxAge" : 62,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "BAJAJ-HL:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 680,
+    "minIncome" : "30000",
+    "minAge" : 23,
+    "maxAge" : 70,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "BAJAJ-HL:Self Employed Professional:SEP" : {
+    "minCibil" : 680,
+    "minIncome" : "30000",
+    "minAge" : 23,
+    "maxAge" : 70,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "BAJAJ-HL:Salaried:Low LTV" : {
+    "minCibil" : 680,
+    "minIncome" : "30000",
+    "minAge" : 23,
+    "maxAge" : 62,
+    "ltv" : "0.65"
+  },
+  "BAJAJ-HL:Self Employed Professional/Self Employed Non Professional:Low LTV" : {
+    "minCibil" : 680,
+    "minIncome" : "30000",
+    "minAge" : 23,
+    "maxAge" : 70,
+    "ltv" : "0.65"
+  },
+  "BAJAJ-HL:Self Employed Professional/Self Employed Non Professional:Banking" : {
+    "minCibil" : 680,
+    "minIncome" : "30000",
+    "minAge" : 23,
+    "maxAge" : 70,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "BAJAJ-HL:Self Employed Professional/Self Employed Non Professional:GST" : {
+    "minCibil" : 680,
+    "minIncome" : "30000",
+    "minAge" : 23,
+    "maxAge" : 70,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "YES-HL:Salaried:NIP" : {
+    "minCibil" : 680,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 65,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "YES-HL:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 680,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 75,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "YES-HL:Self Employed Professional/Self Employed Non Professional:Low LTV" : {
+    "minCibil" : 680,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 75,
+    "ltv" : "0.45"
+  },
+  "YES-HL:Self Employed Professional:SEP" : {
+    "minCibil" : 680,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 75,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "YES-HL:Self Employed Professional:CPM SEP" : {
+    "minCibil" : 680,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 75,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "YES-HL:Self Employed Professional/Self Employed Non Professional:Banking" : {
+    "minCibil" : 680,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 75,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "YES-HL:Self Employed Professional/Self Employed Non Professional:GST" : {
+    "minCibil" : 680,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 75,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "HDFC-HL:Salaried:NIP" : {
+    "minCibil" : 650,
+    "minIncome" : "40000",
+    "minAge" : 21,
+    "maxAge" : 65,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "HDFC-HL:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 650,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 75,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "HDFC-HL:Self Employed Professional/Self Employed Non Professional:GST" : {
+    "minCibil" : 750,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 75,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "JIO-HL:Salaried:NIP" : {
+    "minCibil" : 650,
+    "minIncome" : "40000",
+    "minAge" : 22,
+    "maxAge" : 62,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "JIO-HL:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 650,
+    "minIncome" : "40000",
+    "minAge" : 22,
+    "maxAge" : 75,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "JIO-HL:Salaried:Low LTV" : {
+    "minCibil" : 650,
+    "minIncome" : "40000",
+    "minAge" : 22,
+    "maxAge" : 62,
+    "ltv" : "0.5"
+  },
+  "JIO-HL:Self Employed Professional/Self Employed Non Professional:Low LTV" : {
+    "minCibil" : 650,
+    "minIncome" : "40000",
+    "minAge" : 22,
+    "maxAge" : 75,
+    "ltv" : "0.5"
+  },
+  "JIO-HL:Self Employed Professional:SEP" : {
+    "minCibil" : 650,
+    "minIncome" : "40000",
+    "minAge" : 22,
+    "maxAge" : 75,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "JIO-HL:Self Employed Professional/Self Employed Non Professional:Banking" : {
+    "minCibil" : 650,
+    "minIncome" : "40000",
+    "minAge" : 22,
+    "maxAge" : 75,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "JIO-HL:Self Employed Professional/Self Employed Non Professional:GST" : {
+    "minCibil" : 650,
+    "minIncome" : "40000",
+    "minAge" : 22,
+    "maxAge" : 75,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "IDBI-HL:Salaried:NIP" : {
+    "minCibil" : 700,
+    "minIncome" : "40000",
+    "minAge" : 22,
+    "maxAge" : 65,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "IDBI-HL:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 700,
+    "minIncome" : "40000",
+    "minAge" : 22,
+    "maxAge" : 75,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "TATA-HL:Salaried:NIP" : {
+    "minCibil" : 650,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 62,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "TATA-HL:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 650,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 70,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "TATA-HL:Self Employed Professional:SEP" : {
+    "minCibil" : 650,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 70,
+    "ltv" : "As per HL LTV Grid"
+  },
+  "TATA-HL:Salaried:Low LTV" : {
+    "minCibil" : 650,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 62,
+    "ltv" : "0.4"
+  },
+  "TATA-HL:Self Employed Professional/Self Employed Non Professional:Low LTV" : {
+    "minCibil" : 650,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 70,
+    "ltv" : "0.4"
+  },
+  "LT-LAP:Salaried:NIP" : {
+    "minCibil" : 650,
+    "minIncome" : "30000",
+    "minAge" : 23,
+    "maxAge" : 60,
+    "ltv" : null
+  },
+  "LT-LAP:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 650,
+    "minIncome" : "25000",
+    "minAge" : 25,
+    "maxAge" : 70,
+    "ltv" : null
+  },
+  "LT-LAP:Self Employed Professional:SEP" : {
+    "minCibil" : 650,
+    "minIncome" : "25000",
+    "minAge" : 25,
+    "maxAge" : 70,
+    "ltv" : "0.75"
+  },
+  "LT-LAP:Self Employed Professional/Self Employed Non Professional:Banking" : {
+    "minCibil" : 650,
+    "minIncome" : "25000",
+    "minAge" : 25,
+    "maxAge" : 70,
+    "ltv" : "0.75"
+  },
+  "LT-LAP:Self Employed Professional/Self Employed Non Professional:GST" : {
+    "minCibil" : 650,
+    "minIncome" : "25000",
+    "minAge" : 25,
+    "maxAge" : 70,
+    "ltv" : null
+  },
+  "ICICI-LAP:Salaried:NIP" : {
+    "minCibil" : 700,
+    "minIncome" : "30000",
+    "minAge" : 20,
+    "maxAge" : 62,
+    "ltv" : null
+  },
+  "ICICI-LAP:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 700,
+    "minIncome" : "200000",
+    "minAge" : 20,
+    "maxAge" : 70,
+    "ltv" : null
+  },
+  "ICICI-LAP:Self Employed Professional/Self Employed Non Professional:Banking" : {
+    "minCibil" : 700,
+    "minIncome" : "30000",
+    "minAge" : 20,
+    "maxAge" : 70,
+    "ltv" : null
+  },
+  "ICICI-LAP:Self Employed Professional/Self Employed Non Professional:GST" : {
+    "minCibil" : 700,
+    "minIncome" : "30000",
+    "minAge" : 20,
+    "maxAge" : 70,
+    "ltv" : null
+  },
+  "BANDHAN-LAP:Salaried:NIP" : {
+    "minCibil" : 700,
+    "minIncome" : "15000",
+    "minAge" : 21,
+    "maxAge" : 60,
+    "ltv" : null
+  },
+  "BANDHAN-LAP:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 700,
+    "minIncome" : "15000",
+    "minAge" : 21,
+    "maxAge" : 75,
+    "ltv" : null
+  },
+  "BANDHAN-LAP:Self Employed Professional/Self Employed Non Professional:Banking" : {
+    "minCibil" : 700,
+    "minIncome" : "15000",
+    "minAge" : 21,
+    "maxAge" : 75,
+    "ltv" : null
+  },
+  "BANDHAN-LAP:Self Employed Professional/Self Employed Non Professional:GST" : {
+    "minCibil" : 700,
+    "minIncome" : "15000",
+    "minAge" : 21,
+    "maxAge" : 75,
+    "ltv" : null
+  },
+  "ABFL-LAP:Salaried:NIP" : {
+    "minCibil" : 675,
+    "minIncome" : "30000",
+    "minAge" : 22,
+    "maxAge" : 62,
+    "ltv" : null
+  },
+  "ABFL-LAP:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 675,
+    "minIncome" : "30000",
+    "minAge" : 22,
+    "maxAge" : 80,
+    "ltv" : null
+  },
+  "ABFL-LAP:Salaried:Low LTV" : {
+    "minCibil" : 675,
+    "minIncome" : "30000",
+    "minAge" : 22,
+    "maxAge" : 62,
+    "ltv" : "0.4"
+  },
+  "ABFL-LAP:Self Employed Professional/Self Employed Non Professional:Low LTV" : {
+    "minCibil" : 675,
+    "minIncome" : "30000",
+    "minAge" : 22,
+    "maxAge" : 80,
+    "ltv" : "0.4"
+  },
+  "ABFL-LAP:Self Employed Professional/Self Employed Non Professional:Banking" : {
+    "minCibil" : 675,
+    "minIncome" : "30000",
+    "minAge" : 22,
+    "maxAge" : 80,
+    "ltv" : null
+  },
+  "ABFL-LAP:Self Employed Professional/Self Employed Non Professional:GST" : {
+    "minCibil" : 675,
+    "minIncome" : "30000",
+    "minAge" : 22,
+    "maxAge" : 80,
+    "ltv" : null
+  },
+  "BOB-LAP:Salaried:NIP" : {
+    "minCibil" : 650,
+    "minIncome" : "10000",
+    "minAge" : 21,
+    "maxAge" : 60,
+    "ltv" : null
+  },
+  "BOB-LAP:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 650,
+    "minIncome" : "10000",
+    "minAge" : 21,
+    "maxAge" : 65,
+    "ltv" : null
+  },
+  "SBI-LAP:Salaried:NIP" : {
+    "minCibil" : 600,
+    "minIncome" : "25000",
+    "minAge" : 20,
+    "maxAge" : 65,
+    "ltv" : null
+  },
+  "SBI-LAP:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 600,
+    "minIncome" : "25000",
+    "minAge" : 20,
+    "maxAge" : 70,
+    "ltv" : null
+  },
+  "BAJAJ-LAP:Salaried:NIP" : {
+    "minCibil" : 680,
+    "minIncome" : "30000",
+    "minAge" : 23,
+    "maxAge" : 62,
+    "ltv" : null
+  },
+  "BAJAJ-LAP:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 680,
+    "minIncome" : "30000",
+    "minAge" : 23,
+    "maxAge" : 70,
+    "ltv" : null
+  },
+  "BAJAJ-LAP:Self Employed Professional:SEP" : {
+    "minCibil" : 680,
+    "minIncome" : "30000",
+    "minAge" : 23,
+    "maxAge" : 70,
+    "ltv" : "As per LAP LTV grid"
+  },
+  "BAJAJ-LAP:Salaried:Low LTV" : {
+    "minCibil" : 680,
+    "minIncome" : "30000",
+    "minAge" : 23,
+    "maxAge" : 62,
+    "ltv" : "0.5"
+  },
+  "BAJAJ-LAP:Self Employed Professional/Self Employed Non Professional:Low LTV" : {
+    "minCibil" : 680,
+    "minIncome" : "30000",
+    "minAge" : 23,
+    "maxAge" : 70,
+    "ltv" : "0.5"
+  },
+  "BAJAJ-LAP:Self Employed Professional/Self Employed Non Professional:Banking" : {
+    "minCibil" : 680,
+    "minIncome" : "30000",
+    "minAge" : 23,
+    "maxAge" : 70,
+    "ltv" : null
+  },
+  "BAJAJ-LAP:Self Employed Professional/Self Employed Non Professional:GST" : {
+    "minCibil" : 680,
+    "minIncome" : "30000",
+    "minAge" : 23,
+    "maxAge" : 70,
+    "ltv" : null
+  },
+  "YES-LAP:Salaried:NIP" : {
+    "minCibil" : 680,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 65,
+    "ltv" : null
+  },
+  "YES-LAP:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 680,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 75,
+    "ltv" : null
+  },
+  "YES-LAP:Salaried:Low LTV" : {
+    "minCibil" : 680,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 65,
+    "ltv" : "0.3"
+  },
+  "YES-LAP:Self Employed Professional/Self Employed Non Professional:Low LTV" : {
+    "minCibil" : 680,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 75,
+    "ltv" : "0.3"
+  },
+  "YES-LAP:Self Employed Professional:SEP" : {
+    "minCibil" : 680,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 75,
+    "ltv" : "As per LAP LTV grid"
+  },
+  "YES-LAP:Self Employed Professional:CPM SEP" : {
+    "minCibil" : 680,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 75,
+    "ltv" : "As per LAP LTV grid"
+  },
+  "YES-LAP:Self Employed Professional/Self Employed Non Professional:Banking" : {
+    "minCibil" : 680,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 75,
+    "ltv" : null
+  },
+  "YES-LAP:Self Employed Professional/Self Employed Non Professional:GST" : {
+    "minCibil" : 680,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 75,
+    "ltv" : null
+  },
+  "HDFC-LAP:Salaried:NIP" : {
+    "minCibil" : 650,
+    "minIncome" : "30000",
+    "minAge" : 20,
+    "maxAge" : 62,
+    "ltv" : null
+  },
+  "HDFC-LAP:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 650,
+    "minIncome" : "30000",
+    "minAge" : 20,
+    "maxAge" : 70,
+    "ltv" : null
+  },
+  "HDFC-LAP:Self Employed Professional/Self Employed Non Professional:Banking" : {
+    "minCibil" : 650,
+    "minIncome" : "30000",
+    "minAge" : 20,
+    "maxAge" : 70,
+    "ltv" : null
+  },
+  "HDFC-LAP:Self Employed Professional/Self Employed Non Professional:GST" : {
+    "minCibil" : 650,
+    "minIncome" : "30000",
+    "minAge" : 20,
+    "maxAge" : 70,
+    "ltv" : null
+  },
+  "IDFC-LAP:Salaried:NIP" : {
+    "minCibil" : 600,
+    "minIncome" : null,
+    "minAge" : 22,
+    "maxAge" : 62,
+    "ltv" : null
+  },
+  "IDFC-LAP:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 600,
+    "minIncome" : null,
+    "minAge" : 22,
+    "maxAge" : 75,
+    "ltv" : null
+  },
+  "IDFC-LAP:Salaried:Low LTV" : {
+    "minCibil" : 600,
+    "minIncome" : null,
+    "minAge" : 22,
+    "maxAge" : 62,
+    "ltv" : "0.4"
+  },
+  "IDFC-LAP:Self Employed Professional/Self Employed Non Professional:Low LTV" : {
+    "minCibil" : 600,
+    "minIncome" : null,
+    "minAge" : 22,
+    "maxAge" : 75,
+    "ltv" : "0.4"
+  },
+  "IDFC-LAP:Self Employed Professional/Self Employed Non Professional:GST" : {
+    "minCibil" : 600,
+    "minIncome" : null,
+    "minAge" : 22,
+    "maxAge" : 75,
+    "ltv" : null
+  },
+  "JIO-LAP:Salaried:NIP" : {
+    "minCibil" : 650,
+    "minIncome" : null,
+    "minAge" : 23,
+    "maxAge" : 60,
+    "ltv" : null
+  },
+  "JIO-LAP:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 650,
+    "minIncome" : null,
+    "minAge" : 23,
+    "maxAge" : 75,
+    "ltv" : null
+  },
+  "JIO-LAP:Salaried:Low LTV" : {
+    "minCibil" : 650,
+    "minIncome" : null,
+    "minAge" : 23,
+    "maxAge" : 60,
+    "ltv" : "0.5"
+  },
+  "JIO-LAP:Self Employed Professional/Self Employed Non Professional:Low LTV" : {
+    "minCibil" : 650,
+    "minIncome" : null,
+    "minAge" : 23,
+    "maxAge" : 75,
+    "ltv" : "0.5"
+  },
+  "JIO-LAP:Self Employed Professional:SEP" : {
+    "minCibil" : 650,
+    "minIncome" : null,
+    "minAge" : 23,
+    "maxAge" : 75,
+    "ltv" : null
+  },
+  "JIO-LAP:Self Employed Professional/Self Employed Non Professional:Banking" : {
+    "minCibil" : 650,
+    "minIncome" : null,
+    "minAge" : 23,
+    "maxAge" : 75,
+    "ltv" : null
+  },
+  "JIO-LAP:Self Employed Professional/Self Employed Non Professional:GST" : {
+    "minCibil" : 650,
+    "minIncome" : null,
+    "minAge" : 23,
+    "maxAge" : 75,
+    "ltv" : null
+  },
+  "IDBI-LAP:Salaried:NIP" : {
+    "minCibil" : 700,
+    "minIncome" : "40000",
+    "minAge" : 22,
+    "maxAge" : 65,
+    "ltv" : null
+  },
+  "IDBI-LAP:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 700,
+    "minIncome" : "40000",
+    "minAge" : 22,
+    "maxAge" : 75,
+    "ltv" : null
+  },
+  "TATA-LAP:Salaried:NIP" : {
+    "minCibil" : 650,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 62,
+    "ltv" : null
+  },
+  "TATA-LAP:Self Employed Professional/Self Employed Non Professional:NIP" : {
+    "minCibil" : 650,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 70,
+    "ltv" : null
+  },
+  "TATA-LAP:Self Employed Professional:SEP" : {
+    "minCibil" : 650,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 70,
+    "ltv" : "As per LAP LTV grid"
+  },
+  "TATA-LAP:Salaried:Low LTV" : {
+    "minCibil" : 650,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 62,
+    "ltv" : "0.4"
+  },
+  "TATA-LAP:Self Employed Professional/Self Employed Non Professional:Low LTV" : {
+    "minCibil" : 650,
+    "minIncome" : "40000",
+    "minAge" : 23,
+    "maxAge" : 70,
+    "ltv" : "0.4"
+  }
+}

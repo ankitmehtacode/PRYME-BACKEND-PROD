@@ -1,0 +1,29 @@
+{
+  "certificationId" : "e047fb96-b753-436b-a168-48622307ca08",
+  "timestamp" : "2026-07-04T17:34:38.321256Z",
+  "gitCommit" : "42cb50f70e0235900e7c66a0bba752d7e26676ad",
+  "engineVersion" : "1.0.0-SSOT",
+  "masterDataVersion" : "sha256:1fc3421f15bf7863deae30a2ce963fe83147f5d3d578312a861cfb2395e57c02",
+  "policyVersion" : "2026.07.04",
+  "combinedHash" : "sha256:9063f1c064bf51d852c527a5a6d794752226646e269f4b2eef857670fc339f7b",
+  "individualHashes" : {
+    "PF_data.xlsx" : "sha256:43980e8ca12f83461771dbaf1abd4ea785a4208f33dcefb7566b3d6964044b97",
+    "eligibility_workbook.xlsx" : "sha256:ffbe5bca5e918db2039fd44bdda9e39cd5262f09bbba379969b0eec9184f9ec7",
+    "Login_fees.xlsx" : "sha256:de59b8ccd02ea067bbf5d60cfe7db27e3195673b560d36b91fc27afd46e479bb",
+    "LAP_LTV_Sheet.xlsx" : "sha256:79f09640b1d5cad42659803e54f7bbadeeb2f9aaa77cdbe99efdd786bc421d99",
+    "FOIR_Sheet.xlsx" : "sha256:9f59978b6f2349c0955a8fc63d2adc2a87422f0337802a41b485e7190bf44035",
+    "HL_LTV_Sheet.xlsx" : "sha256:7f280020984773872038eb129391a6716b42dbae3afa974094f922210615ce9b"
+  },
+  "uploadedAt" : "2026-07-04T17:20:48.755780Z",
+  "uploadedBy" : "Operations",
+  "active" : true,
+  "overallVerdict" : "FAIL",
+  "overallStatus" : "FAIL",
+  "coverageSummary" : {
+    "formulaCoverage" : 0.0,
+    "workbookCoverage" : 100.0,
+    "replayCoverage" : 0.0,
+    "databaseCoverage" : 0.0,
+    "ruleCoverage" : 57.14285714285714
+  }
+}

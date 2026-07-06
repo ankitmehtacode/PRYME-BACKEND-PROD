@@ -27,11 +27,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import com.pryme.Backend.eligibility.policy.provider.ActiveBundlePolicyProvider;
+import com.pryme.Backend.eligibility.policy.engine.ResolverRegistry;
 import com.pryme.Backend.eligibility.audit.*;
+import com.pryme.Backend.eligibility.policy.model.EmploymentType;
+import com.pryme.Backend.eligibility.service.EmploymentCompatibilityService;
 import java.util.UUID;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -49,9 +54,23 @@ public class EligibilityEngineService {
     private final LowLtvSurrogateService lowLtvSurrogateService;
     private final MasterDataVersionService masterDataVersionService;
     private final CentralizedNormalizer centralizedNormalizer;
+    private final ActiveBundlePolicyProvider activeBundlePolicyProvider;
+    private final ResolverRegistry resolverRegistry;
+    private final EmploymentCompatibilityService employmentCompatibilityService;
+    private final Map<String, Optional<LoanProduct>> productCache = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<Integer, List<LoanProduct>> cibilProductCache = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<String, List<EligibilityCondition>> conditionsCache = new java.util.concurrent.ConcurrentHashMap<>();
 
     private static final String ENGINE_VERSION = "1.0.0";
     private static final BigDecimal DEFAULT_FOIR = new BigDecimal("0.65");
+
+    private void traceLog(EligibilityRequest req, String format, Object... args) {
+        if (req != null && req.idempotencyKey() != null && req.idempotencyKey().startsWith("idempotency-certification-replay-15")) {
+            try {
+                System.out.println("[TRACE-" + req.idempotencyKey() + "] " + String.format(format, args));
+            } catch (Exception e) {}
+        }
+    }
 
     // ── PROPERTY TYPE NORMALIZATION ──────────────────────────────────────────
     // DB stores categories (RESIDENTIAL, COMMERCIAL, INDUSTRIAL, LAND, PLOT).
@@ -146,16 +165,45 @@ public class EligibilityEngineService {
         if (applicantEmpType == null) {
             return false;
         }
-        if (rowEmpType.equalsIgnoreCase("SALARIED_SEP")) {
-            return applicantEmpType.equalsIgnoreCase("Salaried") || applicantEmpType.equalsIgnoreCase("SEP/SENP");
-        } else if (rowEmpType.equalsIgnoreCase("SEP_SENP")
-                || rowEmpType.equalsIgnoreCase("SENP")
-                || rowEmpType.equalsIgnoreCase("SEP")
-                || rowEmpType.equalsIgnoreCase("SENP (Industry Margin)")) {
-            return applicantEmpType.equalsIgnoreCase("SEP/SENP");
-        } else {
-            return rowEmpType.equalsIgnoreCase(applicantEmpType);
+        
+        String r = rowEmpType.trim().toUpperCase();
+        String a = applicantEmpType.trim().toUpperCase();
+        
+        if (r.equals(a)) {
+            return true;
         }
+        
+        boolean rSal = r.contains("SALARIED");
+        boolean aSal = a.contains("SALARIED");
+        if (rSal && aSal) {
+            return true;
+        }
+        
+        // Normalize SEP/SENP equivalents
+        boolean rIsSepSenp = r.equals("SEP/SENP") || r.equals("SEP_SENP") || r.equals("SELF EMPLOYED PROFESSIONAL/SELF EMPLOYED NON PROFESSIONAL");
+        boolean aIsSepSenp = a.equals("SEP/SENP") || a.equals("SEP_SENP") || a.equals("SELF EMPLOYED PROFESSIONAL/SELF EMPLOYED NON PROFESSIONAL");
+        
+        boolean rIsSep = r.equals("SEP") || r.equals("SELF EMPLOYED PROFESSIONAL");
+        boolean aIsSep = a.equals("SEP") || a.equals("SELF EMPLOYED PROFESSIONAL");
+        
+        boolean rIsSenp = r.equals("SENP") || r.equals("SELF EMPLOYED NON PROFESSIONAL") || r.contains("INDUSTRY MARGIN");
+        boolean aIsSenp = a.equals("SENP") || a.equals("SELF EMPLOYED NON PROFESSIONAL");
+        
+        if (r.equals("SALARIED_SEP")) {
+            return aSal || aIsSepSenp || aIsSep || aIsSenp;
+        }
+        
+        if (rIsSepSenp) {
+            return aIsSepSenp || aIsSep || aIsSenp;
+        }
+        if (aIsSepSenp) {
+            return rIsSepSenp || rIsSep || rIsSenp;
+        }
+        
+        if (rIsSep && aIsSep) return true;
+        if (rIsSenp && aIsSenp) return true;
+        
+        return false;
     }
 
     public List<EligibilityResult> evaluate(EligibilityRequest request) {
@@ -196,9 +244,9 @@ public class EligibilityEngineService {
         log.info("🔍 STEP 2: loanType='{}' → normalized='{}', cibil={}",
                 request.loanType(), normalizedLoanType, request.cibilScore());
 
-        var allCibilMatches = loanProductRepository
-                .findByMinCibilLessThanEqualAndMaxCibilGreaterThanEqual(
-                        request.cibilScore(), request.cibilScore());
+        var allCibilMatches = cibilProductCache.computeIfAbsent(request.cibilScore(), score ->
+                loanProductRepository.findByMinCibilLessThanEqualAndMaxCibilGreaterThanEqual(score, score)
+        );
         log.info("   CIBIL band returned {} products (before loanType/lender filter)", allCibilMatches.size());
 
         var candidates = allCibilMatches.stream()
@@ -270,7 +318,7 @@ public class EligibilityEngineService {
         long startTime = System.nanoTime();
 
         // a. Load eligibility conditions for this product
-        var allConditions = eligibilityConditionRepository.findByProductId(product.getId());
+        var allConditions = loadInMemoryConditions(product.getProductCode());
 
         // ── SURROGATE SCOPE FILTER ───────────────────────────────────────────
         // Conditions with a non-null `surrogate` field only apply to applicants
@@ -690,14 +738,14 @@ public class EligibilityEngineService {
 
             // ── If this condition passed ALL checks → product is eligible via this lane
             if (reasonsForThisCondition.isEmpty()) {
+                traceLog(request, "Matched EligibilityCondition: rule id=%d, margin=%s, formula=%s",
+                        c.getId(), c.getMarginByOccupation(), c.getDeviationFormulae());
                 matchedCondition = c;
-                log.info("✅ Product {} PASSED via condition lane [id={}, empType={}, surrogate={}]",
-                        product.getProductCode(), c.getId(), c.getEmploymentType(), c.getSurrogate());
                 break; // One pass is enough — short-circuit
+            } else {
+                traceLog(request, "Condition %d REJECTED. Reasons: %s", c.getId(), reasonsForThisCondition);
+                allRejectionReasons.addAll(reasonsForThisCondition);
             }
-
-            // Otherwise, collect reasons for diagnostic reporting
-            allRejectionReasons.addAll(reasonsForThisCondition);
         }
 
         // If no condition passed, the product is ineligible
@@ -728,11 +776,15 @@ public class EligibilityEngineService {
                     duration, buildRequestSnapshot(request), List.of(step), summary
             );
 
-            return EligibilityResult.ineligible(
-                    product.getProductCode(),
-                    product.getLenderName(),
-                    allRejectionReasons,
-                    "Applicant profile does not satisfy any eligibility lane"
+            return new EligibilityResult(
+                    false, product.getProductCode(), product.getLenderName(), applicantProgram,
+                    BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                    BigDecimal.ZERO, BigDecimal.ZERO, 0, BigDecimal.ZERO,
+                    false, allRejectionReasons, "Applicant profile does not satisfy any eligibility lane",
+                    BigDecimal.ZERO, BigDecimal.ZERO,
+                    null, null, null, null, null, null, null,
+                    null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                    trace
             );
         }
 
@@ -741,21 +793,17 @@ public class EligibilityEngineService {
                 ? matchedCondition.getLtvAllowed()
                 : (product.getLtv() != null ? product.getLtv() : BigDecimal.ZERO);
 
-        // c. Resolve effective FOIR from matched condition (static field)
-        BigDecimal foirMaxVal = matchedCondition.getFoirMax();
-        if (foirMaxVal == null) {
-            if ("ICICI Bank".equalsIgnoreCase(product.getLenderName())
-                    && "NIP".equalsIgnoreCase(matchedCondition.getSurrogate())
-                    && ("SENP".equalsIgnoreCase(matchedCondition.getEmploymentType())
-                            || "SEP_SENP".equalsIgnoreCase(matchedCondition.getEmploymentType())
-                            || "SEP".equalsIgnoreCase(matchedCondition.getEmploymentType()))) {
-                foirMaxVal = new BigDecimal("1.40").subtract(effectiveLtv);
-                log.info("Dynamic ICICI FOIR resolved: 1.40 - LTV ({}) = {}", effectiveLtv, foirMaxVal);
-            } else {
-                foirMaxVal = (product.getMaxEmiNmiRatio() != null ? product.getMaxEmiNmiRatio() : DEFAULT_FOIR);
-            }
-        }
-        final BigDecimal effectiveFoir = foirMaxVal;
+        // c. Resolve effective FOIR using the unified PolicyFoirResolver
+        var activeBundle = activeBundlePolicyProvider.getActiveBundle();
+        final BigDecimal effectiveFoir = resolverRegistry.getFoirResolver().resolve(
+                activeBundle,
+                product.getLenderName(),
+                matchedCondition.getSurrogate(),
+                matchedCondition.getEmploymentType(),
+                effectiveIncome,
+                effectiveLtv,
+                product.getMaxEmiNmiRatio()
+        );
 
         // d. Resolve surrogate income (monthly, BigDecimal precision) - already computed before loop
 
@@ -1162,7 +1210,7 @@ public class EligibilityEngineService {
         return true; // Passed
     }
 
-    private EligibilityResult evaluateProductCascaded(LoanProduct product, EligibilityRequest request) {
+    public EligibilityResult evaluateProductCascaded(LoanProduct product, EligibilityRequest request) {
         log.info("🚀 Initiating cascade evaluation for product={}, lender={}",
                 product.getProductCode(), product.getLenderName());
         long cascadeStartTime = System.nanoTime();
@@ -1242,6 +1290,12 @@ public class EligibilityEngineService {
         }
 
         // Check if NIP is fully satisfied
+        log.info("🔍 CASCADE NIP CHECK: product={}, nipEligible={}, nipMaxAmount={}, requestedAmount={}, nipReasons={}",
+                product.getProductCode(),
+                nipResult != null ? nipResult.isEligible() : "null",
+                nipResult != null ? nipResult.maxEligibleAmount() : "null",
+                request.loanAmount(),
+                nipResult != null ? nipResult.rejectionReasons() : "null");
         if (nipResult != null && nipResult.isEligible()
                 && nipResult.maxEligibleAmount().compareTo(request.loanAmount()) >= 0) {
             log.info("🎯 NIP satisfied requested amount for product={}", product.getProductCode());
@@ -1269,12 +1323,19 @@ public class EligibilityEngineService {
             ));
 
             // Add skipped steps for audit/trace
-            ProgramType skippedSurrogate = "LOW_LTV".equals(normRequested) ? ProgramType.BANKING : parseProgramType(requestedProgram);
-            steps.add(new DecisionStep(
-                    skippedSurrogate, DecisionStatus.SKIPPED, 0,
-                    null, null, null, null, null, null, null, null, null, BigDecimal.ZERO, BigDecimal.ZERO,
-                    List.of(), List.of(), "Skipped: NIP stage satisfied requested amount"
-            ));
+            boolean isSurrogateReq = requestedProgram != null
+                    && !"NIP".equalsIgnoreCase(requestedProgram)
+                    && !"LOW_LTV".equalsIgnoreCase(requestedProgram)
+                    && !"LOW LTV".equalsIgnoreCase(requestedProgram);
+
+            if (isSurrogateReq) {
+                ProgramType skippedSurrogate = parseProgramType(requestedProgram);
+                steps.add(new DecisionStep(
+                        skippedSurrogate, DecisionStatus.SKIPPED, 0,
+                        null, null, null, null, null, null, null, null, null, BigDecimal.ZERO, BigDecimal.ZERO,
+                        List.of(), List.of(), "Skipped: NIP stage satisfied requested amount"
+                ));
+            }
             steps.add(new DecisionStep(
                     ProgramType.LOW_LTV, DecisionStatus.SKIPPED, 0,
                     null, null, null, null, null, null, null, null, null, BigDecimal.ZERO, BigDecimal.ZERO,
@@ -1361,15 +1422,6 @@ public class EligibilityEngineService {
                     stagesFailed++;
                 }
             }
-        } else {
-            steps.add(new DecisionStep(
-                    surrogateProgType,
-                    DecisionStatus.SKIPPED,
-                    0,
-                    null, null, null, null, null, null, null, null, null, BigDecimal.ZERO, BigDecimal.ZERO,
-                    List.of(), List.of(),
-                    "Skipped: No Surrogate Requested"
-            ));
         }
 
         // Check if Surrogate is satisfied
@@ -1632,7 +1684,7 @@ public class EligibilityEngineService {
 
     private EligibilityResult evaluateProductLowLtv(LoanProduct product, EligibilityRequest request) {
         long startTime = System.nanoTime();
-        var allConditions = eligibilityConditionRepository.findByProductId(product.getId());
+        var allConditions = loadInMemoryConditions(product.getProductCode());
 
         final String normalizedEmpType = normalizeEmploymentType(
                 request.employmentType() != null ? request.employmentType() : null);
@@ -2121,43 +2173,12 @@ public class EligibilityEngineService {
         );
     }
 
-    private boolean isProductAllowedForEmploymentType(String productCode, String lenderName, String rawEmpType) {
+    public boolean isProductAllowedForEmploymentType(String productCode, String lenderName, String rawEmpType) {
         if (rawEmpType == null) {
             return true;
         }
-
-        String empType = rawEmpType.toUpperCase();
-        String code = productCode != null ? productCode.toUpperCase() : "";
-        String lender = lenderName != null ? lenderName.toUpperCase() : "";
-
-        if (empType.equals("SALARIED")) {
-            // Exclude products that are self-employed only
-            if (code.endsWith("-0002") || code.endsWith("-0003") || code.endsWith("-SEP") || code.endsWith("-SENP")) {
-                return false;
-            }
-        } else if (empType.equals("SELF_EMPLOYED")) {
-            // Exclude products that are salaried (or salaried/SEP)
-            if (code.endsWith("-0001") || code.endsWith("-SAL") || code.endsWith("-SALARIED")) {
-                return false;
-            }
-        } else if (empType.equals("PROFESSIONAL")) {
-            // For Bajaj and L&T, professional matches self-employed products
-            if (lender.contains("BAJAJ") || lender.contains("L&T") || code.startsWith("BAJAJ-")
-                    || code.startsWith("LT-") || code.startsWith("LT_")) {
-                if (code.endsWith("-0001") || code.endsWith("-SAL") || code.endsWith("-SALARIED")) {
-                    return false;
-                }
-            } else {
-                // For other lenders, professional matches salaried/SEP products (which is
-                // -0001)
-                if (code.endsWith("-0002") || code.endsWith("-0003") || code.endsWith("-SEP")
-                        || code.endsWith("-SENP")) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
+        EmploymentType empType = centralizedNormalizer.normalizeToEnum(rawEmpType);
+        return employmentCompatibilityService.isProductAllowedForEmploymentType(productCode, lenderName, empType);
     }
 
     private FormulaTrace traceIncome(IncomeComputationInput input, BigDecimal output) {
@@ -2290,6 +2311,113 @@ public class EligibilityEngineService {
 
     private FormulaTrace traceFormula(String formulaName, String expression, Map<String, Object> inputs, Map<String, Object> intermediate, BigDecimal output) {
         return new FormulaTrace(formulaName, "1.0.0", expression, inputs, intermediate, "HALF_UP", 2, output);
+    }
+
+    private List<EligibilityCondition> loadInMemoryConditions(String productCode) {
+        return conditionsCache.computeIfAbsent(productCode, this::loadInMemoryConditionsUncached);
+    }
+
+    private List<EligibilityCondition> loadInMemoryConditionsUncached(String productCode) {
+        var active = activeBundlePolicyProvider.getActiveBundle();
+        List<EligibilityCondition> list = new ArrayList<>();
+        if (active != null && active.eligibilityRules() != null) {
+            var optProduct = productCache.computeIfAbsent(productCode, loanProductRepository::findByProductCode);
+            if (optProduct.isPresent()) {
+                var product = optProduct.get();
+                for (var row : active.eligibilityRules()) {
+                    if (isLenderMatch(product.getLenderName(), row.lenderName())
+                            && isLoanTypeMatch(product.getLoanType(), row.productName())) {
+                        BigDecimal parsedLtv = null;
+                        if (row.ltv() != null) {
+                            try {
+                                parsedLtv = new BigDecimal(row.ltv().trim());
+                            } catch (Exception e) {
+                                // Ignore
+                            }
+                        }
+                        BigDecimal parsedMinIncome = null;
+                        if (row.minIncome() != null) {
+                            parsedMinIncome = row.minIncome();
+                        }
+
+                        String empType = row.employmentType() != null ? row.employmentType().toUpperCase() : "";
+                        Integer vintageVal = parseVintage(row.vintage());
+                        Integer workExp = empType.contains("SALARIED") ? vintageVal : null;
+                        Integer bizAge = !empType.contains("SALARIED") ? vintageVal : null;
+
+                        list.add(EligibilityCondition.builder()
+                                .productId(product.getId())
+                                .productCode(productCode)
+                                .employmentType(row.employmentType())
+                                .surrogate(row.surrogate())
+                                .minAge(row.minAge())
+                                .maxAge(row.maxAge())
+                                .minIncome(parsedMinIncome)
+                                .workExpYears(workExp)
+                                .businessAgeYears(bizAge)
+                                .cibilMin(row.minCibil())
+                                .foirMax(null)
+                                .minTenure(row.minTenure())
+                                .maxTenure(row.maxTenure())
+                                .bankName(row.lenderName())
+                                .loanType(row.loanType())
+                                .ltvAllowed(parsedLtv)
+                                .bundleId(active.manifest().bundleId())
+                                .active(true)
+                                .build());
+                    }
+                }
+            }
+        }
+        return list;
+    }
+
+    private boolean isLenderMatch(String inputName, String targetName) {
+        if (inputName == null || targetName == null) return false;
+        String lowerInput = inputName.toLowerCase().replaceAll("[^a-z0-9]", "");
+        String lowerTarget = targetName.toLowerCase().replaceAll("[^a-z0-9]", "");
+        return lowerInput.contains(lowerTarget) || lowerTarget.contains(lowerInput);
+    }
+
+    private boolean isLoanTypeMatch(String productLoanType, String rowProductName) {
+        if (productLoanType == null || rowProductName == null) return false;
+        String cleanProd = productLoanType.trim().toUpperCase();
+        String cleanRow = rowProductName.trim().toUpperCase();
+        if (cleanProd.equalsIgnoreCase(cleanRow)) return true;
+        if (cleanProd.contains(cleanRow) || cleanRow.contains(cleanProd)) return true;
+        return false;
+    }
+
+    private Integer parseVintage(String vintage) {
+        if (vintage == null || vintage.isBlank()) return null;
+        try {
+            String digits = vintage.replaceAll("[^0-9]", "");
+            if (digits.isEmpty()) return null;
+            return Integer.parseInt(digits);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @org.springframework.context.event.EventListener
+    public void handleCachesCleared(com.pryme.Backend.eligibility.policy.event.PolicyCachesClearedEvent event) {
+        clearCaches();
+    }
+
+    public void clearCaches() {
+        productCache.clear();
+        cibilProductCache.clear();
+        conditionsCache.clear();
+        log.info("EligibilityEngineService caches cleared successfully.");
+    }
+
+    public void warmupCaches() {
+        clearCaches();
+        List<LoanProduct> allProducts = loanProductRepository.findAll();
+        for (var p : allProducts) {
+            productCache.put(p.getProductCode(), Optional.of(p));
+        }
+        log.info("EligibilityEngineService caches warmed successfully with {} products.", allProducts.size());
     }
 
 }

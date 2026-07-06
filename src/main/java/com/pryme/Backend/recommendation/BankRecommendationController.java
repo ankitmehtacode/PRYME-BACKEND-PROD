@@ -27,7 +27,7 @@ public class BankRecommendationController {
     private final BankRecommendationService bankRecommendationService;
     private final FinancialComputationEngine computationEngine;
 
-    @Operation(summary = "One-line description of this endpoint")
+    @Operation(summary = "Get personalized bank recommendations")
     @GetMapping("/recommendation")
     public List<BankRecommendationResponse> getRecommendations(
             @RequestParam @NotNull BigDecimal salary,

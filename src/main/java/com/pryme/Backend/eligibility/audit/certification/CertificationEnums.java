@@ -21,6 +21,7 @@ public class CertificationEnums {
         PIPELINE_VERIFICATION,
         SNAPSHOT_DETERMINISM,
         CONDITION_REACHABILITY,
+        POLICY_REGISTRY_INTEGRITY,
         PRODUCTION_GATE
     }
 }

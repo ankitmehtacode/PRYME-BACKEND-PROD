@@ -55,6 +55,9 @@ public class ProductPfMatrix {
     @Builder.Default
     private BigDecimal taxRate = new BigDecimal("0.1800");
 
+    @Column(name = "bundle_id", length = 255)
+    private String bundleId;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

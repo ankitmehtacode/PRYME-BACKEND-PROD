@@ -1,0 +1,11 @@
+{
+  "validationPassed" : true,
+  "duplicatesCount" : 0,
+  "duplicates" : [ ],
+  "overlapsCount" : 0,
+  "slabOverlaps" : [ ],
+  "invalidLenders" : [ ],
+  "invalidProductCodes" : [ ],
+  "crossWorkbookErrorsCount" : 0,
+  "crossWorkbookErrors" : [ ]
+}

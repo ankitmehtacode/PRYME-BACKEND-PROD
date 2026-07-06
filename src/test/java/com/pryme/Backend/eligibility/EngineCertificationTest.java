@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
         "spring.datasource.driver-class-name=org.postgresql.Driver",
         "spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect",
         "spring.jpa.hibernate.ddl-auto=none",
-        "spring.flyway.enabled=false"
+        "spring.flyway.enabled=true"
 })
 @ActiveProfiles("test")
 @DisplayName("Eligibility Engine Certification — workbook-to-engine mathematical validation gate")
@@ -31,6 +31,15 @@ public class EngineCertificationTest {
 
     @Autowired
     private CertificationService certificationService;
+
+    @Autowired
+    private com.pryme.Backend.eligibility.policy.repository.PolicyBundleEntityRepository policyBundleEntityRepository;
+
+    @Autowired
+    private com.pryme.Backend.eligibility.policy.repository.PolicyActivationHistoryRepository policyActivationHistoryRepository;
+
+    @Autowired
+    private com.pryme.Backend.eligibility.policy.deployment.PolicyActivationService policyActivationService;
 
     @Test
     @DisplayName("Verify full 10-phase eligibility certification report")
@@ -69,5 +78,68 @@ public class EngineCertificationTest {
         // We assert true here to produce a full Exception/Remediation log,
         // which helps engineers resolve individual matrix values, rather than just breaking compiles.
         assertTrue(report.certified(), "Engine certification failed! Check console logs for remediation instructions.");
+
+        // Verify persistent bundle entity creation
+        var bundles = policyBundleEntityRepository.findAll();
+        assertFalse(bundles.isEmpty(), "PolicyBundleEntity must be persisted in database");
+        var latestBundle = bundles.get(bundles.size() - 1);
+        assertEquals("CERTIFIED", latestBundle.getState(), "Persisted bundle state must be CERTIFIED");
+        assertFalse(latestBundle.isActive(), "Persisted bundle must not be ACTIVE yet");
+
+        // Verify activation workflow
+        var activationHistoryBefore = policyActivationHistoryRepository.findAll();
+        int initialHistorySize = activationHistoryBefore.size();
+
+        var activationLog = policyActivationService.activate(
+                latestBundle.getBundleId(),
+                "PrincipalEngineer",
+                "ComplianceCommittee",
+                "Verification run for deployment gates"
+        );
+
+        assertNotNull(activationLog, "Activation log must be created");
+        assertNotNull(activationLog.getActivationId(), "Activation ID must be generated");
+        assertEquals(latestBundle.getBundleId(), activationLog.getBundleId(), "Activation log must point to the activated bundle ID");
+
+        var updatedBundle = policyBundleEntityRepository.findByBundleId(latestBundle.getBundleId()).orElse(null);
+        assertNotNull(updatedBundle, "Activated bundle must exist");
+        assertTrue(updatedBundle.isActive(), "Activated bundle must be marked active");
+        assertEquals("ACTIVE", updatedBundle.getState(), "Activated bundle state must transition to ACTIVE");
+
+        var activationHistoryAfter = policyActivationHistoryRepository.findAll();
+        assertEquals(initialHistorySize + 1, activationHistoryAfter.size(), "One new entry must be added to PolicyActivationHistory");
+    }
+
+    @Autowired
+    private com.pryme.Backend.loanproduct.repository.LoanProductRepository loanProductRepository;
+    @Autowired
+    private com.pryme.Backend.eligibility.repository.EligibilityConditionRepository eligibilityConditionRepository;
+    @Autowired
+    private com.pryme.Backend.loanproduct.repository.ProductRoiMatrixRepository productRoiMatrixRepository;
+
+    @Test
+    public void debugDbData() {
+        System.out.println("=== DEBUGGING DB DATA ===");
+        var products = loanProductRepository.findAll();
+        for (var p : products) {
+            if (true) {
+                System.out.println(String.format("PRODUCT: code=%s, name=%s, lender=%s, type=%s, id=%d",
+                        p.getProductCode(), p.getProductName(), p.getLenderName(), p.getLoanType(), p.getId()));
+            }
+        }
+
+        var conditions = eligibilityConditionRepository.findAll();
+        for (var c : conditions) {
+            if (true) {
+                System.out.println(String.format("CONDITION: productCode=%s, lender=%s, employmentType=%s, surrogate=%s, minAge=%d, maxAge=%d, minIncome=%s",
+                        c.getProductCode(), c.getBankName(), c.getEmploymentType(), c.getSurrogate(), c.getMinAge(), c.getMaxAge(), c.getMinIncome()));
+            }
+        }
+
+        var rois = productRoiMatrixRepository.findAll();
+        for (var r : rois) {
+            System.out.println(String.format("ROI_ROW: productId=%d, employmentType=%s, minAmt=%s, maxAmt=%s, minCibil=%s, maxCibil=%s, isNtc=%s, roi=%s",
+                    r.getProductId(), r.getEmploymentType(), r.getMinLoanAmount(), r.getMaxLoanAmount(), r.getMinCibil(), r.getMaxCibil(), r.isNtc(), r.getRoi()));
+        }
     }
 }

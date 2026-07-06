@@ -12,6 +12,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
+import com.pryme.Backend.eligibility.policy.event.PolicyCachesClearedEvent;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -24,13 +26,16 @@ public class PolicyAdminService {
     private final LoanProductRepository loanProductRepository;
     private final PolicyFieldDefinitionRepository fieldDefinitionRepository;
     private final PolicyChangeAuditRepository auditRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public PolicyAdminService(LoanProductRepository loanProductRepository,
                               PolicyFieldDefinitionRepository fieldDefinitionRepository,
-                              PolicyChangeAuditRepository auditRepository) {
+                              PolicyChangeAuditRepository auditRepository,
+                              ApplicationEventPublisher eventPublisher) {
         this.loanProductRepository = loanProductRepository;
         this.fieldDefinitionRepository = fieldDefinitionRepository;
         this.auditRepository = auditRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -78,6 +83,7 @@ public class PolicyAdminService {
                 .build();
                 
         auditRepository.save(audit);
+        eventPublisher.publishEvent(new PolicyCachesClearedEvent(this));
     }
 
     @Transactional(readOnly = true)

@@ -1,17 +1,18 @@
-package com.pryme.Backend.eligibility.audit.certification;
+package com.pryme.Backend.eligibility.policy.importing.excel;
 
+import com.pryme.Backend.eligibility.policy.model.*;
 import org.apache.poi.ss.usermodel.*;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.*;
 
-@Service
-public class ExcelWorkbookParser {
+@Component
+public class ExcelParser {
 
-    public List<WorkbookModels.EligibilityRow> parseEligibilityWorkbook(InputStream is) throws Exception {
-        List<WorkbookModels.EligibilityRow> list = new ArrayList<>();
+    public List<EligibilityPolicyRule> parseEligibility(InputStream is) throws Exception {
+        List<EligibilityPolicyRule> list = new ArrayList<>();
         try (Workbook wb = WorkbookFactory.create(is)) {
             Sheet sheet = wb.getSheet("Loan_Product_Master");
             if (sheet == null) {
@@ -24,7 +25,8 @@ public class ExcelWorkbookParser {
                 Row row = sheet.getRow(r);
                 if (row == null || isRowEmpty(row)) continue;
                 
-                list.add(new WorkbookModels.EligibilityRow(
+                list.add(new EligibilityPolicyRule(
+                    row.getRowNum() + 1,
                     getStringValue(row, headerMap, "Product_Name"),
                     getStringValue(row, headerMap, "Loan_Type"),
                     getStringValue(row, headerMap, "Lender_Name"),
@@ -70,8 +72,8 @@ public class ExcelWorkbookParser {
         return list;
     }
 
-    public List<WorkbookModels.FoirRow> parseFoirWorkbook(InputStream is) throws Exception {
-        List<WorkbookModels.FoirRow> list = new ArrayList<>();
+    public List<FoirPolicyRule> parseFoir(InputStream is) throws Exception {
+        List<FoirPolicyRule> list = new ArrayList<>();
         try (Workbook wb = WorkbookFactory.create(is)) {
             Sheet sheet = wb.getSheetAt(0);
             Map<String, Integer> headerMap = getHeaderMap(sheet);
@@ -80,7 +82,7 @@ public class ExcelWorkbookParser {
                 Row row = sheet.getRow(r);
                 if (row == null || isRowEmpty(row)) continue;
                 
-                list.add(new WorkbookModels.FoirRow(
+                list.add(new FoirPolicyRule(
                     getStringValue(row, headerMap, "Product_Name"),
                     getStringValue(row, headerMap, "Loan_Type"),
                     getStringValue(row, headerMap, "Lender_Name"),
@@ -96,8 +98,8 @@ public class ExcelWorkbookParser {
         return list;
     }
 
-    public List<WorkbookModels.PfRow> parsePfWorkbook(InputStream is) throws Exception {
-        List<WorkbookModels.PfRow> list = new ArrayList<>();
+    public List<ProcessingFeeRule> parsePf(InputStream is) throws Exception {
+        List<ProcessingFeeRule> list = new ArrayList<>();
         try (Workbook wb = WorkbookFactory.create(is)) {
             Sheet sheet = wb.getSheetAt(0);
             Map<String, Integer> headerMap = getHeaderMap(sheet);
@@ -106,7 +108,7 @@ public class ExcelWorkbookParser {
                 Row row = sheet.getRow(r);
                 if (row == null || isRowEmpty(row)) continue;
                 
-                list.add(new WorkbookModels.PfRow(
+                list.add(new ProcessingFeeRule(
                     getStringValue(row, headerMap, "Product_Name"),
                     getStringValue(row, headerMap, "Loan_Type"),
                     getStringValue(row, headerMap, "Lender_Name"),
@@ -122,8 +124,8 @@ public class ExcelWorkbookParser {
         return list;
     }
 
-    public List<WorkbookModels.LoginFeeRow> parseLoginFeeWorkbook(InputStream is) throws Exception {
-        List<WorkbookModels.LoginFeeRow> list = new ArrayList<>();
+    public List<LoginFeeRule> parseLoginFee(InputStream is) throws Exception {
+        List<LoginFeeRule> list = new ArrayList<>();
         try (Workbook wb = WorkbookFactory.create(is)) {
             Sheet sheet = wb.getSheetAt(0);
             Map<String, Integer> headerMap = getHeaderMap(sheet);
@@ -132,7 +134,7 @@ public class ExcelWorkbookParser {
                 Row row = sheet.getRow(r);
                 if (row == null || isRowEmpty(row)) continue;
                 
-                list.add(new WorkbookModels.LoginFeeRow(
+                list.add(new LoginFeeRule(
                     getStringValue(row, headerMap, "Product_Name"),
                     getStringValue(row, headerMap, "Loan_Type"),
                     getStringValue(row, headerMap, "Lender_Name"),
@@ -146,72 +148,8 @@ public class ExcelWorkbookParser {
         return list;
     }
 
-    private Map<String, Integer> getHeaderMap(Sheet sheet) {
-        Map<String, Integer> map = new HashMap<>();
-        Row headerRow = sheet.getRow(0);
-        if (headerRow != null) {
-            for (Cell cell : headerRow) {
-                if (cell != null && cell.getCellType() == CellType.STRING) {
-                    map.put(cell.getStringCellValue().trim(), cell.getColumnIndex());
-                }
-            }
-        }
-        return map;
-    }
-
-    private boolean isRowEmpty(Row row) {
-        for (int c = row.getFirstCellNum(); c < row.getLastCellNum(); c++) {
-            Cell cell = row.getCell(c);
-            if (cell != null && cell.getCellType() != CellType.BLANK) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private String getStringValue(Row row, Map<String, Integer> headerMap, String columnName) {
-        Integer colIndex = headerMap.get(columnName);
-        if (colIndex == null) return null;
-        Cell cell = row.getCell(colIndex);
-        if (cell == null || cell.getCellType() == CellType.BLANK) return null;
-        if (cell.getCellType() == CellType.NUMERIC) {
-            double num = cell.getNumericCellValue();
-            if (num == (long) num) {
-                return String.valueOf((long) num);
-            }
-            return String.valueOf(num);
-        }
-        if (cell.getCellType() == CellType.BOOLEAN) {
-            return String.valueOf(cell.getBooleanCellValue());
-        }
-        return cell.getStringCellValue().trim();
-    }
-
-    private Integer getIntegerValue(Row row, Map<String, Integer> headerMap, String columnName) {
-        String val = getStringValue(row, headerMap, columnName);
-        if (val == null || val.equalsIgnoreCase("NA") || val.equalsIgnoreCase("No Limit")) return null;
-        try {
-            return (int) Double.parseDouble(val);
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
-    private BigDecimal getBigDecimalValue(Row row, Map<String, Integer> headerMap, String columnName) {
-        String val = getStringValue(row, headerMap, columnName);
-        if (val == null || val.equalsIgnoreCase("NA") || val.equalsIgnoreCase("No Limit")) return null;
-        // Strip commas and currency symbols
-        val = val.replaceAll("[^0-9.\\-]", "");
-        if (val.isEmpty()) return null;
-        try {
-            return new BigDecimal(val);
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
-    public List<WorkbookModels.HlLtvRow> parseHlLtvWorkbook(InputStream is) throws Exception {
-        List<WorkbookModels.HlLtvRow> list = new ArrayList<>();
+    public List<LowLtvRule> parseHlLtv(InputStream is) throws Exception {
+        List<LowLtvRule> list = new ArrayList<>();
         try (Workbook wb = WorkbookFactory.create(is)) {
             Sheet sheet = wb.getSheetAt(0);
             int totalRows = sheet.getLastRowNum();
@@ -225,7 +163,6 @@ public class ExcelWorkbookParser {
                     String val = cell0.getStringCellValue().trim();
                     if (val.equalsIgnoreCase("Ready Built Property") || val.equalsIgnoreCase("Plot")) {
                         currentPropertyType = val;
-                        // Skip header row right below it
                         r++;
                         continue;
                     }
@@ -236,7 +173,15 @@ public class ExcelWorkbookParser {
                     BigDecimal maxVal = getBigDecimalValueFromCell(row.getCell(1));
                     BigDecimal ltvVal = getBigDecimalValueFromCell(row.getCell(2));
                     if (minVal != null || maxVal != null || ltvVal != null) {
-                        list.add(new WorkbookModels.HlLtvRow(currentPropertyType, minVal, maxVal, ltvVal));
+                        list.add(new LowLtvRule(
+                            "HL",
+                            null,
+                            null,
+                            currentPropertyType,
+                            minVal,
+                            maxVal,
+                            ltvVal != null ? ltvVal.toString() : null
+                        ));
                     }
                 }
             }
@@ -244,8 +189,8 @@ public class ExcelWorkbookParser {
         return list;
     }
 
-    public List<WorkbookModels.LapLtvRow> parseLapLtvWorkbook(InputStream is) throws Exception {
-        List<WorkbookModels.LapLtvRow> list = new ArrayList<>();
+    public List<LowLtvRule> parseLapLtv(InputStream is) throws Exception {
+        List<LowLtvRule> list = new ArrayList<>();
         try (Workbook wb = WorkbookFactory.create(is)) {
             Sheet sheet = wb.getSheetAt(0);
             Row catRow = sheet.getRow(0);
@@ -287,12 +232,90 @@ public class ExcelWorkbookParser {
                         }
                     }
                     if (ltvVal != null) {
-                        list.add(new WorkbookModels.LapLtvRow(lenderName, catSub[0], catSub[1], ltvVal));
+                        list.add(new LowLtvRule(
+                            "LAP",
+                            lenderName,
+                            catSub[0],
+                            catSub[1],
+                            null,
+                            null,
+                            ltvVal
+                        ));
                     }
                 }
             }
         }
         return list;
+    }
+
+    private Map<String, Integer> getHeaderMap(Sheet sheet) {
+        Map<String, Integer> map = new HashMap<>();
+        Row headerRow = sheet.getRow(0);
+        if (headerRow != null) {
+            for (Cell cell : headerRow) {
+                if (cell != null && cell.getCellType() == CellType.STRING) {
+                    map.put(cell.getStringCellValue().trim(), cell.getColumnIndex());
+                }
+            }
+        }
+        return map;
+    }
+
+    private boolean isRowEmpty(Row row) {
+        if (row == null) return true;
+        for (int c = row.getFirstCellNum(); c < row.getLastCellNum(); c++) {
+            Cell cell = row.getCell(c);
+            if (cell != null && cell.getCellType() != CellType.BLANK) {
+                if (cell.getCellType() == CellType.STRING) {
+                    if (!cell.getStringCellValue().trim().isEmpty()) {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private String getStringValue(Row row, Map<String, Integer> headerMap, String columnName) {
+        Integer colIndex = headerMap.get(columnName);
+        if (colIndex == null) return null;
+        Cell cell = row.getCell(colIndex);
+        if (cell == null || cell.getCellType() == CellType.BLANK) return null;
+        if (cell.getCellType() == CellType.NUMERIC) {
+            double num = cell.getNumericCellValue();
+            if (num == (long) num) {
+                return String.valueOf((long) num);
+            }
+            return String.valueOf(num);
+        }
+        if (cell.getCellType() == CellType.BOOLEAN) {
+            return String.valueOf(cell.getBooleanCellValue());
+        }
+        return cell.getStringCellValue().trim();
+    }
+
+    private Integer getIntegerValue(Row row, Map<String, Integer> headerMap, String columnName) {
+        String val = getStringValue(row, headerMap, columnName);
+        if (val == null || val.equalsIgnoreCase("NA") || val.equalsIgnoreCase("No Limit")) return null;
+        try {
+            return (int) Double.parseDouble(val);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private BigDecimal getBigDecimalValue(Row row, Map<String, Integer> headerMap, String columnName) {
+        String val = getStringValue(row, headerMap, columnName);
+        if (val == null || val.equalsIgnoreCase("NA") || val.equalsIgnoreCase("No Limit")) return null;
+        val = val.replaceAll("[^0-9.\\-]", "");
+        if (val.isEmpty()) return null;
+        try {
+            return new BigDecimal(val);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private BigDecimal getBigDecimalValueFromCell(Cell cell) {

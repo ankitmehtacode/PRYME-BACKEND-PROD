@@ -41,6 +41,9 @@ public class ProductLoginFeeMatrix {
     @Column(name = "login_fee", nullable = false, precision = 15, scale = 2)
     private BigDecimal loginFee;
 
+    @Column(name = "bundle_id", length = 255)
+    private String bundleId;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

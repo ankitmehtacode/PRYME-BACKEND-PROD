@@ -1,13 +1,64 @@
 package com.pryme.Backend.eligibility;
 
+import com.pryme.Backend.eligibility.policy.engine.ResolverRegistry;
+import com.pryme.Backend.eligibility.policy.model.*;
+import com.pryme.Backend.eligibility.policy.provider.ActiveBundlePolicyProvider;
+import com.pryme.Backend.eligibility.policy.repository.MemoryPolicyRepository;
 import com.pryme.Backend.eligibility.service.LowLtvSurrogateService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.*;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class LowLtvSurrogateServiceTest {
 
-    private final LowLtvSurrogateService service = new LowLtvSurrogateService();
+    private ActiveBundlePolicyProvider provider;
+    private ResolverRegistry resolverRegistry;
+    private LowLtvSurrogateService service;
+
+    @BeforeEach
+    void setUp() {
+        provider = new ActiveBundlePolicyProvider(new MemoryPolicyRepository(), event -> {});
+        resolverRegistry = new ResolverRegistry();
+        service = new LowLtvSurrogateService(resolverRegistry, provider);
+
+        List<LowLtvRule> lowLtvRules = new ArrayList<>();
+        // HL Rules
+        lowLtvRules.add(new LowLtvRule("HL", "N/A", "N/A", "PLOT", BigDecimal.ZERO, new BigDecimal("999999999"), "0.70"));
+        lowLtvRules.add(new LowLtvRule("HL", "N/A", "N/A", "FLAT", BigDecimal.ZERO, new BigDecimal("3000000"), "0.90"));
+        lowLtvRules.add(new LowLtvRule("HL", "N/A", "N/A", "FLAT", new BigDecimal("3000001"), new BigDecimal("7500000"), "0.80"));
+        lowLtvRules.add(new LowLtvRule("HL", "N/A", "N/A", "FLAT", new BigDecimal("7500001"), new BigDecimal("999999999"), "0.75"));
+
+        // LAP Rules
+        lowLtvRules.add(new LowLtvRule("LAP", "L&T Finance", "Residential", "RES_FLAT", null, null, "0.75"));
+        lowLtvRules.add(new LowLtvRule("LAP", "l and t finance", "Residential", "RES_FLAT", null, null, "0.75"));
+        lowLtvRules.add(new LowLtvRule("LAP", "Bandhan Bank", "Residential", "RES_FLAT", null, null, "0.75"));
+        lowLtvRules.add(new LowLtvRule("LAP", "Bandhan Bank", "Residential", "RES_PLOT", null, null, "Negative"));
+        lowLtvRules.add(new LowLtvRule("LAP", "L&T Finance", "Commercial", "COM_HOSPITAL", null, null, "Negative"));
+        lowLtvRules.add(new LowLtvRule("LAP", "ICICI Bank", "Residential", "RES_FLAT", null, null, "0.70"));
+        lowLtvRules.add(new LowLtvRule("LAP", "Aditya Birla", "Residential", "RES_FLAT", null, null, "0.70"));
+        lowLtvRules.add(new LowLtvRule("LAP", "ABFL", "Residential", "RES_FLAT", null, null, "0.70"));
+        lowLtvRules.add(new LowLtvRule("LAP", "Bank of Baroda", "Residential", "RES_FLAT", null, null, "0.75"));
+        lowLtvRules.add(new LowLtvRule("LAP", "Bajaj", "Residential", "RES_FLAT", null, null, "0.75"));
+        lowLtvRules.add(new LowLtvRule("LAP", "Yes Bank", "Residential", "RES_FLAT", null, null, "0.70"));
+        lowLtvRules.add(new LowLtvRule("LAP", "HDFC Bank", "Residential", "RES_FLAT", null, null, "0.70"));
+        lowLtvRules.add(new LowLtvRule("LAP", "IDFC FIRST Bank", "Residential", "RES_FLAT", null, null, "0.75"));
+        lowLtvRules.add(new LowLtvRule("LAP", "JIO Finance", "Residential", "RES_FLAT", null, null, "0.75"));
+        lowLtvRules.add(new LowLtvRule("LAP", "IDBI Bank", "Residential", "RES_FLAT", null, null, "0.70"));
+        lowLtvRules.add(new LowLtvRule("LAP", "TATA Capital", "Residential", "RES_FLAT", null, null, "0.70"));
+
+        BundleManifest manifest = new BundleManifest(
+            "TEST-123", "1.0.0", "TEST_HASH", Map.of(), "COMMIT", "CERT-123", PolicyState.ACTIVE, true, Instant.now()
+        );
+        BundleMetadata metadata = new BundleMetadata("SYSTEM", "N/A", Instant.now(), Instant.now(), "TEST", "");
+        BundleSignature signature = new BundleSignature("TEST", "TEST", "N/A", "1.0.0", "1.0.0", "N/A", Instant.now());
+        PolicyBundle bundle = new PolicyBundle(manifest, metadata, signature, List.of(), List.of(), List.of(), List.of(), lowLtvRules, List.of());
+
+        provider.setActiveBundle(bundle);
+    }
 
     @Test
     void testNormalizeLender() {
@@ -31,10 +82,10 @@ class LowLtvSurrogateServiceTest {
     @Test
     void testGetLapLtvNegativeAndMissing() {
         // Bandhan Residential Plot is Negative
-        assertNull(service.getLapLtv("Bandhan Bank", "RES_PLOT"));
+        assertEquals(BigDecimal.ZERO, service.getLapLtv("Bandhan Bank", "RES_PLOT"));
         
         // Hospital for L&T is Negative
-        assertNull(service.getLapLtv("L&T Finance", "COM_HOSPITAL"));
+        assertEquals(BigDecimal.ZERO, service.getLapLtv("L&T Finance", "COM_HOSPITAL"));
 
         // Unknown lender should return null
         assertNull(service.getLapLtv("NonExistentBank", "RES_FLAT"));

@@ -24,7 +24,7 @@ public class EligibilityController {
 
     private final EligibilityEngineService eligibilityEngineService;
 
-    @Operation(summary = "One-line description of this endpoint")
+    @Operation(summary = "Evaluate eligibility across all active products")
     @PostMapping("/evaluate")
     public ResponseEntity<List<EligibilityResult>> evaluate(@RequestBody @Valid EligibilityRequest request) {
         log.info("Eligibility evaluate request: loanType={}, empType={}, cibil={}, loanAmt={}",
@@ -38,7 +38,7 @@ public class EligibilityController {
         return ResponseEntity.ok(publicResults);
     }
 
-    @Operation(summary = "One-line description of this endpoint")
+    @Operation(summary = "Get dynamic eligibility fields configuration")
     @GetMapping("/fields")
     public ResponseEntity<List<PolicyFieldDefinition>> getFields() {
         List<PolicyFieldDefinition> fields = eligibilityEngineService.getEligibilityConditionFields();
@@ -48,7 +48,7 @@ public class EligibilityController {
         return ResponseEntity.ok(fields);
     }
 
-    @Operation(summary = "One-line description of this endpoint")
+    @Operation(summary = "Find the best matched product for LNT/LAP")
     @PostMapping("/lnt-lap/best-match")
     public ResponseEntity<List<EligibilityResult>> bestMatch(@RequestBody @Valid EligibilityRequest request) {
         log.info("Eligibility best-match request: loanType={}, empType={}, cibil={}, loanAmt={}",

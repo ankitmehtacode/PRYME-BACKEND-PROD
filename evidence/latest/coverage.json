@@ -1,0 +1,63 @@
+{
+  "ruleCoverage" : {
+    "items" : [ {
+      "ruleName" : "MIN_CIBIL",
+      "executionCount" : 321,
+      "passCount" : 321,
+      "failCount" : 0,
+      "skippedCount" : 0
+    }, {
+      "ruleName" : "MIN_INCOME",
+      "executionCount" : 0,
+      "passCount" : 0,
+      "failCount" : 0,
+      "skippedCount" : 0
+    }, {
+      "ruleName" : "MIN_AGE",
+      "executionCount" : 321,
+      "passCount" : 321,
+      "failCount" : 0,
+      "skippedCount" : 0
+    }, {
+      "ruleName" : "LTV_LIMIT",
+      "executionCount" : 215,
+      "passCount" : 30,
+      "failCount" : 185,
+      "skippedCount" : 0
+    }, {
+      "ruleName" : "FOIR_LIMIT",
+      "executionCount" : 170,
+      "passCount" : 147,
+      "failCount" : 23,
+      "skippedCount" : 0
+    }, {
+      "ruleName" : "WORK_EXP_LIMIT",
+      "executionCount" : 0,
+      "passCount" : 0,
+      "failCount" : 0,
+      "skippedCount" : 0
+    }, {
+      "ruleName" : "PROPERTY_TYPE_CHECK",
+      "executionCount" : 0,
+      "passCount" : 0,
+      "failCount" : 0,
+      "skippedCount" : 0
+    } ],
+    "percentage" : 57.14285714285714
+  },
+  "workbookCoverage" : {
+    "matchedRows" : 155,
+    "totalRows" : 155,
+    "percentage" : 100.0
+  },
+  "databaseCoverage" : {
+    "totalConditions" : 373,
+    "percentage" : 0.0,
+    "matchedConditions" : 0
+  },
+  "formulaCoverage" : {
+    "matchedFormulae" : 238,
+    "percentage" : 100.0,
+    "totalFormulaeChecked" : 238
+  }
+}

@@ -140,6 +140,9 @@ public class EligibilityCondition {
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
 
+    @Column(name = "bundle_id", length = 255)
+    private String bundleId;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

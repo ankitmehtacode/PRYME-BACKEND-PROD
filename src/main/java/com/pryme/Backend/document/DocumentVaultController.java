@@ -47,7 +47,7 @@ public class DocumentVaultController {
     // ==========================================
     // 🧠 1. IDENTITY VERIFICATION GATEWAY
     // ==========================================
-    @Operation(summary = "One-line description of this endpoint")
+    @Operation(summary = "Verify applicant identity signature")
     @PostMapping("/documents/verify-id")
     public ResponseEntity<Map<String, String>> verifyIdentity(@Valid @RequestBody VerifyIdRequest request) {
         log.info("Vault Gateway: Verifying Identity Matrix for Application {}", request.applicationId());
@@ -104,7 +104,7 @@ public class DocumentVaultController {
     // ==========================================
     // 🧠 3. SECURE METADATA RETRIEVAL ENGINE
     // ==========================================
-    @Operation(summary = "One-line description of this endpoint")
+    @Operation(summary = "Retrieve document metadata for an application")
     @GetMapping({"/applications/{applicationId}/documents", "/documents/{applicationId}"})
     public ResponseEntity<List<DocumentMetadataResponse>> applicationDocuments(@PathVariable String applicationId) {
         log.info("Vault Gateway: Retrieving document metadata matrix for Application {}", applicationId);

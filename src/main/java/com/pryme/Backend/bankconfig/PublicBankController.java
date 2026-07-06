@@ -21,7 +21,7 @@ public class PublicBankController {
 
     private final BankService bankService;
 
-    @Operation(summary = "One-line description of this endpoint")
+    @Operation(summary = "Get list of active partner banks for public display")
     @GetMapping("/partners")
     @Timed(value = "pryme.api.public.partner_banks", description = "Public partner banks latency")
     public ResponseEntity<Map<String, List<PartnerBankResponse>>> partners() {

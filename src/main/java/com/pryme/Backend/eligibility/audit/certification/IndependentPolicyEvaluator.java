@@ -1,8 +1,10 @@
 package com.pryme.Backend.eligibility.audit.certification;
 
 import com.pryme.Backend.eligibility.service.CentralizedNormalizer;
+import com.pryme.Backend.eligibility.policy.engine.ResolverRegistry;
 import com.pryme.Backend.loanproduct.entity.ProductRoiMatrix;
 import com.pryme.Backend.loanproduct.repository.ProductRoiMatrixRepository;
+import com.pryme.Backend.eligibility.policy.model.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +19,25 @@ public class IndependentPolicyEvaluator {
 
     private final CentralizedNormalizer normalizer;
     private final ProductRoiMatrixRepository roiMatrixRepository;
+    private final ResolverRegistry resolverRegistry;
+    private final java.util.Map<Long, List<ProductRoiMatrix>> roiCache = new java.util.concurrent.ConcurrentHashMap<>();
+
+    @org.springframework.context.event.EventListener
+    public void handleCachesCleared(com.pryme.Backend.eligibility.policy.event.PolicyCachesClearedEvent event) {
+        clearCaches();
+    }
+
+    public void clearCaches() {
+        roiCache.clear();
+    }
+
+    public void warmupCaches() {
+        clearCaches();
+        List<ProductRoiMatrix> all = roiMatrixRepository.findAll();
+        for (var r : all) {
+            roiCache.computeIfAbsent(r.getProductId(), k -> new java.util.ArrayList<>()).add(r);
+        }
+    }
 
     public BigDecimal calculateEmi(BigDecimal principal, BigDecimal annualRate, int tenureMonths) {
         int effectiveTenure = tenureMonths > 0 ? tenureMonths : 12;
@@ -34,28 +55,11 @@ public class IndependentPolicyEvaluator {
         return principal.multiply(numerator.divide(denominator, mc), mc).setScale(2, RoundingMode.HALF_UP);
     }
 
-    public BigDecimal lookupFoir(List<WorkbookModels.FoirRow> foirRows, String lenderName, String surrogate, String employmentType, BigDecimal monthlyIncome) {
-        String normLender = normalizer.normalizeLender(lenderName);
-        String normEmp = normalizer.normalizeEmploymentType(employmentType);
-        String normSurrogate = normalizer.normalizeSurrogate(surrogate);
-        
-        for (var row : foirRows) {
-            if (normalizer.normalizeLender(row.lenderName()).equalsIgnoreCase(normLender)
-                && normalizer.normalizeSurrogate(row.surrogate()).equalsIgnoreCase(normSurrogate)
-                && normalizer.normalizeEmploymentType(row.employmentType()).equalsIgnoreCase(normEmp)) {
-                
-                BigDecimal lower = row.lowerSalary() != null ? row.lowerSalary() : BigDecimal.ZERO;
-                BigDecimal upper = row.upperSalary() != null ? row.upperSalary() : new BigDecimal("999999999");
-                
-                if (monthlyIncome.compareTo(lower) >= 0 && monthlyIncome.compareTo(upper) <= 0) {
-                    return row.foir();
-                }
-            }
-        }
-        return new BigDecimal("0.65"); // fallback
+    public BigDecimal lookupFoir(PolicyBundle bundle, String lenderName, String surrogate, String employmentType, BigDecimal monthlyIncome, BigDecimal effectiveLtv, BigDecimal maxEmiNmiRatio) {
+        return resolverRegistry.getFoirResolver().resolve(bundle, lenderName, surrogate, employmentType, monthlyIncome, effectiveLtv, maxEmiNmiRatio);
     }
 
-    public BigDecimal calculateProcessingFee(List<WorkbookModels.PfRow> pfRows, String lenderName, String loanType, String employmentType, BigDecimal loanAmount) {
+    public BigDecimal calculateProcessingFee(List<ProcessingFeeRule> pfRows, String lenderName, String loanType, String employmentType, BigDecimal loanAmount) {
         String normLender = normalizer.normalizeLender(lenderName);
         String normEmp = normalizer.normalizeEmploymentType(employmentType);
         String normLoanType = normalizer.normalizeLoanType(loanType);
@@ -84,7 +88,7 @@ public class IndependentPolicyEvaluator {
         return BigDecimal.ZERO;
     }
 
-    public BigDecimal lookupLoginFee(List<WorkbookModels.LoginFeeRow> loginFeeRows, String lenderName, String loanType, String employmentType, BigDecimal loanAmount) {
+    public BigDecimal lookupLoginFee(List<LoginFeeRule> loginFeeRows, String lenderName, String loanType, String employmentType, BigDecimal loanAmount) {
         String normLender = normalizer.normalizeLender(lenderName);
         String normEmp = normalizer.normalizeEmploymentType(employmentType);
         String normLoanType = normalizer.normalizeLoanType(loanType);
@@ -104,32 +108,40 @@ public class IndependentPolicyEvaluator {
         return BigDecimal.ZERO;
     }
 
-    public BigDecimal lookupHlLtv(List<WorkbookModels.HlLtvRow> hlLtvRows, String propertyType, BigDecimal loanAmount) {
+    public BigDecimal lookupHlLtv(List<LowLtvRule> hlLtvRows, String propertyType, BigDecimal loanAmount) {
         String normProp = propertyType != null ? propertyType.trim() : "";
         boolean isPlot = normProp.toLowerCase().contains("plot");
         String matchProp = isPlot ? "Plot" : "Ready Built Property";
         
         for (var row : hlLtvRows) {
-            if (row.propertyType().equalsIgnoreCase(matchProp)) {
+            if (!"HL".equalsIgnoreCase(row.loanType())) continue;
+            if (row.propertyType().equalsIgnoreCase(matchProp) || isHlPropertyMatch(normProp, row.propertyType())) {
                 BigDecimal minAmt = row.minLoanAmount() != null ? row.minLoanAmount() : BigDecimal.ZERO;
                 BigDecimal maxAmt = row.maxLoanAmount() != null ? row.maxLoanAmount() : new BigDecimal("999999999");
                 if (loanAmount.compareTo(minAmt) >= 0 && loanAmount.compareTo(maxAmt) <= 0) {
-                    return row.ltv();
+                    String ltvStr = row.ltvValue();
+                    if (ltvStr == null) return BigDecimal.ZERO;
+                    try {
+                        return new BigDecimal(ltvStr);
+                    } catch (Exception e) {
+                        return BigDecimal.ZERO;
+                    }
                 }
             }
         }
         return BigDecimal.ZERO;
     }
 
-    public BigDecimal lookupLapLtv(List<WorkbookModels.LapLtvRow> lapLtvRows, String lenderName, String propertyCategory, String propertySubtype) {
+    public BigDecimal lookupLapLtv(List<LowLtvRule> lapLtvRows, String lenderName, String propertyCategory, String propertySubtype) {
         String normLender = normalizer.normalizeLender(lenderName);
         String normCat = propertyCategory != null ? propertyCategory.trim() : "";
         String normSub = propertySubtype != null ? propertySubtype.trim() : "";
         
         for (var row : lapLtvRows) {
+            if (!"LAP".equalsIgnoreCase(row.loanType())) continue;
             if (normalizer.normalizeLender(row.lenderName()).equalsIgnoreCase(normLender)
                 && row.propertyCategory().equalsIgnoreCase(normCat)
-                && row.propertySubtype().equalsIgnoreCase(normSub)) {
+                && row.propertyType().equalsIgnoreCase(normSub)) {
                 
                 String val = row.ltvValue();
                 if (val == null || val.equalsIgnoreCase("Negative")) {
@@ -145,7 +157,7 @@ public class IndependentPolicyEvaluator {
         return BigDecimal.ZERO;
     }
 
-    public BigDecimal resolveLapLtvFromRequest(List<WorkbookModels.LapLtvRow> lapLtvRows, String lenderName, String propertyType, String propertyCategory, String businessPropertyCategory) {
+    public BigDecimal resolveLapLtvFromRequest(List<LowLtvRule> lapLtvRows, String lenderName, String propertyType, String propertyCategory, String businessPropertyCategory) {
         String pType = propertyType != null ? propertyType.toUpperCase() : "FLAT";
         String cat = propertyCategory != null ? propertyCategory.toUpperCase() : "RESIDENTIAL";
         String bCat = businessPropertyCategory != null ? businessPropertyCategory.toUpperCase() : "";
@@ -186,12 +198,12 @@ public class IndependentPolicyEvaluator {
         return lookupLapLtv(lapLtvRows, lenderName, targetCategory, targetSubtype);
     }
 
-    public BigDecimal resolveDatabaseRoi(Long productId, String employmentType, BigDecimal loanAmount, int cibil, boolean isNtc, BigDecimal defaultRoi) {
+    public BigDecimal resolveDatabaseRoi(Long productId, String employmentType, BigDecimal loanAmount, int cibil, boolean isNtc, BigDecimal defaultRoi, String lenderName) {
         if (productId == null) {
             return defaultRoi;
         }
-        List<ProductRoiMatrix> matrixRows = roiMatrixRepository.findByProductId(productId);
-        if (matrixRows.isEmpty()) {
+        List<ProductRoiMatrix> matrixRows = roiCache.computeIfAbsent(productId, roiMatrixRepository::findByProductId);
+        if (matrixRows == null || matrixRows.isEmpty()) {
             return defaultRoi;
         }
 
@@ -203,19 +215,9 @@ public class IndependentPolicyEvaluator {
 
             String rowEmpType = row.getEmploymentType();
             if (rowEmpType != null) {
-                boolean match = false;
-                if (rowEmpType.equalsIgnoreCase("SALARIED_SEP")) {
-                    match = employmentType.equalsIgnoreCase("Salaried") || employmentType.equalsIgnoreCase("SEP/SENP");
-                } else if (rowEmpType.equalsIgnoreCase("SEP_SENP") 
-                        || rowEmpType.equalsIgnoreCase("SENP") 
-                        || rowEmpType.equalsIgnoreCase("SEP")) {
-                    match = employmentType.equalsIgnoreCase("Self Employed Professional") 
-                            || employmentType.equalsIgnoreCase("Self Employed Non Professional")
-                            || employmentType.equalsIgnoreCase("SEP/SENP");
-                } else {
-                    match = rowEmpType.equalsIgnoreCase(employmentType);
+                if (!normalizer.matchRoiEmploymentType(rowEmpType, employmentType, lenderName)) {
+                    continue;
                 }
-                if (!match) continue;
             }
 
             BigDecimal minAmt = row.getMinLoanAmount() != null ? row.getMinLoanAmount() : BigDecimal.ZERO;
@@ -232,5 +234,15 @@ public class IndependentPolicyEvaluator {
             return row.getRoi();
         }
         return defaultRoi;
+    }
+
+    private boolean isHlPropertyMatch(String inputType, String targetType) {
+        if (inputType == null || targetType == null) return false;
+        String lowerInput = inputType.toLowerCase();
+        String lowerTarget = targetType.toLowerCase();
+        if (lowerTarget.contains("plot") || lowerTarget.contains("land")) {
+            return lowerInput.contains("plot") || lowerInput.contains("land");
+        }
+        return !lowerInput.contains("plot") && !lowerInput.contains("land");
     }
 }

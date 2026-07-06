@@ -21,7 +21,7 @@ public class PublicTestimonialController {
 
     private final TestimonialService testimonialService;
 
-    @Operation(summary = "One-line description of this endpoint")
+    @Operation(summary = "Get published testimonials for public display")
     @GetMapping
     @Timed(value = "pryme.api.public.reviews", description = "Public reviews endpoint latency")
     public ResponseEntity<Map<String, List<TestimonialResponse>>> reviews() {

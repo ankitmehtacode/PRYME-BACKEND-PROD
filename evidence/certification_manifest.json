@@ -1,0 +1,22 @@
+{
+  "certificationId" : "918a42b4-d545-4451-ab97-ffd79ce2f568",
+  "timestamp" : "2026-07-06T14:46:33.075027Z",
+  "gitCommit" : "42cb50f70e0235900e7c66a0bba752d7e26676ad",
+  "engineVersion" : "1.0.0-SSOT",
+  "masterDataVersion" : "sha256:1fc3421f15bf7863deae30a2ce963fe83147f5d3d578312a861cfb2395e57c02",
+  "workbookHash" : "88d06890d91a2278f289e3b5fa3ee915939adb86ae5e62d75be5cd495db06df7",
+  "overallVerdict" : "FAIL",
+  "overallStatus" : "FAIL",
+  "telemetry" : {
+    "dbQueryCount" : 1,
+    "memoryDeltaKb" : 4663,
+    "durationMs" : 75731
+  },
+  "coverageSummary" : {
+    "formulaCoverage" : 100.0,
+    "workbookCoverage" : 100.0,
+    "replayCoverage" : 0.0,
+    "databaseCoverage" : 0.0,
+    "ruleCoverage" : 57.14285714285714
+  }
+}

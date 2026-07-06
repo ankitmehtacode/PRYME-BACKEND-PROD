@@ -26,7 +26,7 @@ public class PublicOfferController {
     private final LoanProductRepository loanProductRepository;
     private final HeroOfferConfigRepository heroOfferConfigRepository;
 
-    @Operation(summary = "One-line description of this endpoint")
+    @Operation(summary = "Get top hero offers (custom configured or lowest ROI)")
     @GetMapping("/hero")
     @Cacheable(cacheNames = "banks:recommendation", key = "'hero-offers'")
     @Timed(value = "pryme.api.public.hero_offers", description = "Public hero offers latency")

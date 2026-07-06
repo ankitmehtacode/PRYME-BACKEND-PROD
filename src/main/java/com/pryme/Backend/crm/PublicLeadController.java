@@ -16,7 +16,7 @@ public class PublicLeadController {
 
     private final LeadService leadService;
 
-    @Operation(summary = "One-line description of this endpoint")
+    @Operation(summary = "Submit a new lead application")
     @PostMapping("/leads")
     public ResponseEntity<Map<String, Object>> submitLead(
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
