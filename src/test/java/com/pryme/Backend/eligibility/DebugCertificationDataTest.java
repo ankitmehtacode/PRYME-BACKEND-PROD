@@ -2,14 +2,17 @@ package com.pryme.Backend.eligibility;
 
 import com.pryme.Backend.eligibility.policy.provider.ActiveBundlePolicyProvider;
 import com.pryme.Backend.eligibility.policy.model.PolicyBundle;
+import io.github.bucket4j.distributed.proxy.ProxyManager;
+import io.lettuce.core.RedisClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import java.util.stream.Collectors;
 
 @SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:postgresql://ep-empty-boat-a1abgqec-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channelBinding=require",
+        "spring.datasource.url=jdbc:postgresql://localhost:5432/testdb?sslmode=require&channelBinding=require",
         "spring.datasource.username=neondb_owner",
         "spring.datasource.password=npg_VbzCd0Anf8oZ",
         "spring.datasource.driver-class-name=org.postgresql.Driver",
@@ -19,6 +22,9 @@ import java.util.stream.Collectors;
 })
 @ActiveProfiles("test")
 public class DebugCertificationDataTest {
+
+    @MockBean private RedisClient redisClient;
+    @MockBean private ProxyManager<byte[]> proxyManager;
 
     @Autowired
     private ActiveBundlePolicyProvider activeBundlePolicyProvider;

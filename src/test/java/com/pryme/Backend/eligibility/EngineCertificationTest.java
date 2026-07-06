@@ -14,7 +14,7 @@ import org.springframework.test.context.ActiveProfiles;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:postgresql://ep-empty-boat-a1abgqec-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channelBinding=require",
+        "spring.datasource.url=jdbc:postgresql://localhost:5432/testdb?sslmode=require&channelBinding=require",
         "spring.datasource.username=neondb_owner",
         "spring.datasource.password=npg_VbzCd0Anf8oZ",
         "spring.datasource.driver-class-name=org.postgresql.Driver",
