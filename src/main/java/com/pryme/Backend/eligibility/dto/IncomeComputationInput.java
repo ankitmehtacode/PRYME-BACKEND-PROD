@@ -43,4 +43,28 @@ public record IncomeComputationInput(
         // Context for bank-specific multiplier resolution (SEP / CPM_SEP)
         String lenderName,                  // e.g. "L&T Finance", "Yes Bank" — needed for multiplier lookup
         String loanType                     // HL | LAP — JIO Finance has different CA multiplier per loan type
-) {}
+) {
+    public BigDecimal pat() {
+        return pat == null ? BigDecimal.ZERO : pat;
+    }
+
+    public BigDecimal depreciation() {
+        return depreciation == null ? BigDecimal.ZERO : depreciation;
+    }
+
+    public BigDecimal interestExpense() {
+        return interestExpense == null ? BigDecimal.ZERO : interestExpense;
+    }
+
+    public BigDecimal averageBankBalance() {
+        return averageBankBalance == null ? BigDecimal.ZERO : averageBankBalance;
+    }
+
+    public BigDecimal gstrTurnover12Months() {
+        return gstrTurnover12Months == null ? BigDecimal.ZERO : gstrTurnover12Months;
+    }
+
+    public BigDecimal grossReceipts() {
+        return grossReceipts == null ? BigDecimal.ZERO : grossReceipts;
+    }
+}

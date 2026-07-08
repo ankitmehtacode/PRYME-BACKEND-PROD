@@ -33,4 +33,11 @@ public record EligibilityRequest(
         String propertyCategory,
         String businessPropertyCategory
 ) {
+    public Integer itrYearsAvailable() {
+        return itrYearsAvailable == null ? 0 : itrYearsAvailable;
+    }
+
+    public BigDecimal grossMonthlyIncome() {
+        return grossMonthlyIncome == null ? BigDecimal.ZERO : grossMonthlyIncome;
+    }
 }

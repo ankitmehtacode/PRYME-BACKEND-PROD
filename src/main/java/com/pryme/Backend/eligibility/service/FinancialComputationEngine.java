@@ -266,6 +266,10 @@ public class FinancialComputationEngine {
         List<ProductFoirMatrix> matrixRows = foirMatrixRepository.findByProductId(product.getId());
         
         if (matrixRows == null || matrixRows.isEmpty()) {
+            BigDecimal maxFoir = product.getMaxEmiNmiRatio();
+            if (maxFoir != null && maxFoir.compareTo(BigDecimal.ZERO) > 0) {
+                return maxFoir.divide(new BigDecimal("100"), 4, java.math.RoundingMode.HALF_UP);
+            }
             return null;
         }
 
