@@ -37,6 +37,12 @@ public class AdminProductRewardController {
             existing.setProductCode(updatedReward.getProductCode());
             existing.setIconType(updatedReward.getIconType());
             existing.setRewardText(updatedReward.getRewardText());
+            if (updatedReward.getButtonDesign() != null) {
+                existing.setButtonDesign(updatedReward.getButtonDesign());
+            }
+            if (updatedReward.getLogoUrl() != null) {
+                existing.setLogoUrl(updatedReward.getLogoUrl());
+            }
             return ResponseEntity.ok(productRewardRepository.save(existing));
         }).orElseGet(() -> ResponseEntity.notFound().build());
     }

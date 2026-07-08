@@ -33,6 +33,12 @@ public class ProductReward {
     @Column(name = "reward_text", nullable = false, length = 255)
     private String rewardText;
 
+    @Column(name = "button_design", nullable = false, length = 100)
+    private String buttonDesign = "ocean-blue";
+
+    @Column(name = "logo_url", length = 255)
+    private String logoUrl;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
