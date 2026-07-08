@@ -1,6 +1,5 @@
 package com.pryme.Backend.eligibility.dto;
 
-import com.pryme.Backend.eligibility.audit.DecisionTrace;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -45,10 +44,7 @@ public record EligibilityResult(
         String gstReturnRequirement,
         Boolean providentFundMandatory,
         Integer itrRequiredYears,
-        String profileRestrictions,
-
-        // Decision Trace for Auditing
-        DecisionTrace decisionTrace
+        String profileRestrictions
 ) {
     // Backwards-compatibility bridge for existing controllers/services
     public boolean isEligible() {
@@ -63,8 +59,7 @@ public record EligibilityResult(
                 BigDecimal.ZERO, BigDecimal.ZERO, 0, BigDecimal.ZERO,
                 false, reasons, notes, BigDecimal.ZERO, BigDecimal.ZERO,
                 null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                null
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null
         );
     }
 
@@ -75,8 +70,7 @@ public record EligibilityResult(
                 BigDecimal.ZERO, BigDecimal.ZERO, 0, BigDecimal.ZERO,
                 false, reasons, notes, BigDecimal.ZERO, BigDecimal.ZERO,
                 null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                null
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null
         );
     }
 
@@ -127,18 +121,11 @@ public record EligibilityResult(
                 this.processingFee,
                 this.loginFee,
 
-                // Fee Structure restored for dynamic frontend display
-                this.adminFee,
-                this.insuranceCharges,
-                this.legalTechnicalCharges,
-                this.otherExpense,
-                this.stampDuty,
-                this.prepaymentCharges,
-                this.foreclosureCharges,
+                // Fee Structure nullified to prevent backtrack
+                null, null, null, null, null, null, null,
 
                 // Eligibility Details nullified to prevent backtrack
-                null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                null // decisionTrace set to null for public response
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null
         );
     }
 
@@ -194,9 +181,6 @@ public record EligibilityResult(
         }
         if (upper.startsWith("LTV_EXCEEDED") || upper.contains("LTV EXCEEDED")) {
             return "Requested loan amount exceeds the maximum allowed Loan-to-Value (LTV) ratio for this product.";
-        }
-        if (upper.startsWith("LOW_LTV_EXCEEDED") || upper.contains("LOW LTV EXCEEDED")) {
-            return "Requested loan amount exceeds the Low LTV surrogate limit.";
         }
         if (upper.contains("SERVICE AREA RESTRICTED") || upper.contains("OUTSIDE INDORE")) {
             return "PRYME currently operates only in Indore (PIN 452xxx/453xxx).";

@@ -12,8 +12,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.context.ApplicationEventPublisher;
-import com.pryme.Backend.eligibility.policy.event.PolicyCachesClearedEvent;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -26,16 +24,13 @@ public class PolicyAdminService {
     private final LoanProductRepository loanProductRepository;
     private final PolicyFieldDefinitionRepository fieldDefinitionRepository;
     private final PolicyChangeAuditRepository auditRepository;
-    private final ApplicationEventPublisher eventPublisher;
 
     public PolicyAdminService(LoanProductRepository loanProductRepository,
                               PolicyFieldDefinitionRepository fieldDefinitionRepository,
-                              PolicyChangeAuditRepository auditRepository,
-                              ApplicationEventPublisher eventPublisher) {
+                              PolicyChangeAuditRepository auditRepository) {
         this.loanProductRepository = loanProductRepository;
         this.fieldDefinitionRepository = fieldDefinitionRepository;
         this.auditRepository = auditRepository;
-        this.eventPublisher = eventPublisher;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -83,7 +78,6 @@ public class PolicyAdminService {
                 .build();
                 
         auditRepository.save(audit);
-        eventPublisher.publishEvent(new PolicyCachesClearedEvent(this));
     }
 
     @Transactional(readOnly = true)
@@ -109,7 +103,6 @@ public class PolicyAdminService {
             case "min_cibil": return product.getMinCibil();
             case "max_cibil": return product.getMaxCibil();
             case "roi": return product.getRoi();
-            case "processing_fee": return product.getProcessingFee();
             case "max_emi_nmi_ratio": return product.getMaxEmiNmiRatio();
             case "min_loan_amount": return product.getMinLoanAmount();
             case "max_loan_amount": return product.getMaxLoanAmount();
@@ -141,9 +134,6 @@ public class PolicyAdminService {
                 break;
             case "roi":
                 product.setRoi((BigDecimal) typedValue);
-                break;
-            case "processing_fee":
-                product.setProcessingFee((BigDecimal) typedValue);
                 break;
             case "max_emi_nmi_ratio":
                 product.setMaxEmiNmiRatio((BigDecimal) typedValue);

@@ -26,13 +26,13 @@ public class PrepaymentEngine {
 
     private final PrepaymentEngineService prepaymentEngineService;
 
-    @Operation(summary = "Calculate pure ROI impact of prepayment")
+    @Operation(summary = "One-line description of this endpoint")
     @PostMapping("/roi")
     public ResponseEntity<PrepaymentRoiResponse> roi(@Valid @RequestBody PrepaymentRoiRequest request) {
         return ResponseEntity.ok(prepaymentEngineService.calculateRoi(request));
     }
 
-    @Operation(summary = "Analyze prepayment impact with detailed strategies")
+    @Operation(summary = "One-line description of this endpoint")
     @PostMapping("/analyze")
     public ResponseEntity<Map<String, Object>> analyze(@Valid @RequestBody PrepaymentRoiRequest request) {
         PrepaymentRoiResponse response = prepaymentEngineService.calculateRoi(request);

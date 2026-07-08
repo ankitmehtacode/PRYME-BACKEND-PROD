@@ -25,18 +25,6 @@ public class LeadElevationService {
 
     private static final Logger log = LoggerFactory.getLogger(LeadElevationService.class);
 
-    // 🧠 NORMALIZATION BRIDGE: LeadService stores lowercase names ("home", "lap")
-    // but EligibilityEngine and Admin Dashboard expect short codes ("HL", "LAP").
-    // This map ensures the elevated LoanApplication.loanType is engine-compatible.
-    private static final Map<String, String> LEAD_TO_ENGINE_LOAN_TYPE = Map.of(
-            "home", "HL",
-            "lap", "LAP",
-            "personal", "PL",
-            "business", "BL",
-            "education", "EL",
-            "auto", "AL"
-    );
-
     /**
      * 🧠 TEMPORAL GUARD: Anonymous leads older than 24 hours cannot be elevated.
      * This prevents stale lead harvesting attacks where an attacker collects
@@ -152,15 +140,10 @@ public class LeadElevationService {
         log.info("🔄 Ensured custom IDs and backfilled User {} metadata from Lead {}", userId, leadId);
 
         // 6. Fuse the data into the highly-secure LoanApplication entity
-        // 🧠 NORMALIZATION: Convert lead's lowercase loanType ("home") to engine short code ("HL")
-        String normalizedLoanType = LEAD_TO_ENGINE_LOAN_TYPE.getOrDefault(
-                lead.getLoanType() != null ? lead.getLoanType().trim().toLowerCase() : "",
-                lead.getLoanType() != null ? lead.getLoanType().toUpperCase() : "HL"
-        );
         LoanApplication application = LoanApplication.builder()
                 .applicationId(generateAppId)
                 .applicant(applicant)
-                .loanType(normalizedLoanType)
+                .loanType(lead.getLoanType())
                 .requestedAmount(lead.getLoanAmount())
                 .declaredCibilScore(lead.getCibilScore() != null ? lead.getCibilScore() : -1)
                 .selectedBank(selectedBank)

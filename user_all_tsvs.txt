@@ -1,0 +1,623 @@
+--- BLOCK 0 ---
+<USER_REQUEST>
+Product_Name	Loan_Type	Lender_Name	Employment_Type	Min_Loan_Amount	Max_Loan_Amount	Login Fees	
+HL	Secured	L&T Finance	Salaried	2000000	50000000	1000	
+HL	Secured	L&T Finance	Self Employed Professional/Self Employed Non Professional	2000000	50000000	1000	
+HL	Secured	ICICI Bank	Salaried	2000000	No Limit	3000	
+HL	Secured	ICICI Bank	Self Employed Professional/Self Employed Non Professional	2000000	No Limit	3000	
+HL	Secured	Bandhan Bank	Salaried	200000	80000000	2360	
+HL	Secured	Bandhan Bank	Self Employed Professional/Self Employed Non Professional	200000	80000000	2360	
+HL	Secured	Aditya Birla Finance Limited	Salaried	3500000	75000000	2950	
+HL	Secured	Aditya Birla Finance Limited	Self Employed Professional/Self Employed Non Professional	3500000	75000000	2950	
+HL	Secured	Bank of Baroda	Salaried	500000	No Limit	0	
+HL	Secured	Bank of Baroda	Self Employed Professional/Self Employed Non Professional	500000	No Limit	0	
+HL	Secured	SBI	Salaried	1000000	No Limit	0	
+HL	Secured	SBI	Self Employed Professional/Self Employed Non Professional	1000000	No Limit	0	
+HL	Secured	Bajaj Prime	Salaried	3500000	100000000	2000	
+HL	Secured	Bajaj Prime	Self Employed Professional/Self Employed Non Professional	3500000	100000000	3500	
+HL	Secured	Yes Bank	Salaried	2100000	150000000		
+HL	Secured	Yes Bank	Self Employed Professional/Self Employed Non Professional	2100000	150000000		
+HL	Secured	HDFC	Salaried	1100000	No Limit	4000	
+HL	Secured	HDFC	Self Employed Professional/Self Employed Non Professional	1100000	No Limit	4000	
+HL	Secured	JIO Finance	Salaried	3000000	500000000	1500	
+HL	Secured	JIO Finance	Self Employed Professional/Self Employed Non Professional	3000000	500000000	1500	
+HL	Secured	IDBI	Salaried	5000000	No Limit	2950	
+HL	Secured	IDBI	Self Employed Professional/Self Employed Non Professional	5000000	No Limit	2950	
+HL	Secured	TATA Capital	Salaried	1000000	100000000	1000	
+HL	Secured	TATA Capital	Self Employed Professional/Self Employed Non Professional	1000000	100000000	1000	
+							
+LAP	Secured	L&T Finance	Salaried	2000000	50000000	1000	
+LAP	Secured	L&T Finance	Self Employed Professional/Self Employed Non Professional	2000000	50000000	1000	
+LAP	Secured	ICICI Bank	Salaried	2000000	No Limit	5000	
+LAP	Secured	ICICI Bank	Self Employed Professional/Self Employed Non Professional	2000000	No Limit	5000	
+LAP	Secured	Bandhan Bank	Salaried	200000	80000000	2360	
+LAP	Secured	Bandhan Bank	Self Employed Professional/Self Employed Non Professional	200000	80000000	2360	
+LAP	Secured	Aditya Birla Finance Limited	Salaried	3500000	75000000	5900	
+LAP	Secured	Aditya Birla Finance Limited	Self Employed Professional/Self Employed Non Professional	3500000	75000000	5900	
+LAP	Secured	Bank of Baroda	Salaried	500000	No Limit	0	
+LAP	Secured	Bank of Baroda	Self Employed Professional/Self Employed Non Professional	500000	No Limit	0	
+LAP	Secured	SBI	Salaried	1000000	No Limit	0	
+LAP	Secured	SBI	Self Employed Professional/Self Employed Non Professional	1000000	No Limit	0	
+LAP	Secured	Bajaj Prime	Salaried	3500000	100000000	2000	
+LAP	Secured	Bajaj Prime	Self Employed Professional/Self Employed Non Professional	3500000	100000000	3500	
+LAP	Secured	Yes Bank	Salaried	2100000	150000000		
+LAP	Secured	Yes Bank	Self Employed Professional/Self Employed Non Professional	2100000	150000000		
+LAP	Secured	HDFC	Salaried	1100000	No Limit		
+LAP	Secured	HDFC	Self Employed Professional/Self Employed Non Professional	1100000	No Limit		
+LAP	Secured	IDFC	Salaried	5000000	100000000	5900	
+LAP	Secured	IDFC	Self Employed Professional/Self Employed Non Professional	5000000	100000000		
+LAP	Secured	JIO Finance	Salaried	3000000	500000000	3250	
+LAP	Secured	JIO Finance	Self Employed Professional/Self Employed Non Professional	3000000	500000000	1500	
+LAP	Secured	IDBI	Salaried	5000000	No Limit	11800	
+LAP	Secured	IDBI	Self Employed Professional/Self Employed Non Professional	5000000	No Limit	11800	
+LAP	Secured	TATA Capital	Salaried	1000000	100000000	1180	
+LAP	Secured	TATA Capital	Self Employed Professional/Self Employed Non Professional	1000000	100000000	1180	 this exists in the db right?
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-01T15:45:22+05:30.
+
+The user's current state is as follows:
+Active Document: /Users/manishmehta/Documents/PRYME-BACKEND-PROD/src/main/java/com/pryme/Backend/eligibility/dto/EligibilityResult.java (LANGUAGE_JAVA)
+Cursor is on line: 1
+Other open documents:
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/src/main/java/com/pryme/Backend/eligibility/dto/EligibilityResult.java (LANGUAGE_JAVA)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/components/loan/BankComparisonCard.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/components/home/hero/OfferCard.tsx (LANGUAGE_TSX)
+</ADDITIONAL_METADATA>
+
+--- BLOCK 1 ---
+<USER_REQUEST>
+Product_Name	Loan_Type	Lender_Name	Employment_Type	Min_Loan_Amount	Max_Loan_Amount	PF	Tax	Notes
+HL	Secured	L&T Finance	Salaried	2000000	20000000	10000	18%	
+HL	Secured	L&T Finance	Salaried	20000001	50000000	0.25%	18%	
+HL	Secured	L&T Finance	Self Employed Professional/Self Employed Non Professional	2000000	50000000	0.50%	18%	
+HL	Secured	ICICI Bank	Salaried	2000000	No Limit	0.30%	18%	
+HL	Secured	ICICI Bank	Self Employed Professional/Self Employed Non Professional	2000000	No Limit	0.30%	18%	
+HL	Secured	Bandhan Bank	Salaried	200000	80000000	0.50%	18%	
+HL	Secured	Bandhan Bank	Self Employed Professional/Self Employed Non Professional	200000	80000000	0.50%	18%	
+HL	Secured	Aditya Birla Finance Limited	Salaried	3500000	75000000	0.50%	18%	
+HL	Secured	Aditya Birla Finance Limited	Self Employed Professional/Self Employed Non Professional	3500000	75000000	0.50%	18%	
+HL	Secured	Bank of Baroda	Salaried	500000	No Limit	0.00%	0%	
+HL	Secured	Bank of Baroda	Self Employed Professional/Self Employed Non Professional	500000	No Limit	0.00%	0%	
+HL	Secured	SBI	Salaried	1000000	No Limit	0.35%	18%	Minimun PF:5000, Maximum PF:15000
+HL	Secured	SBI	Self Employed Professional/Self Employed Non Professional	1000000	No Limit	0.35%	18%	Minimun PF:5000, Maximum PF:20000
+HL	Secured	Bajaj Prime	Salaried	1000000	No Limit	0.25%	18%	
+HL	Secured	Bajaj Prime	Self Employed Professional/Self Employed Non Professional	1000000	No Limit	0.25%	18%	
+HL	Secured	Yes Bank	Salaried	2100000	No Limit	0.30%	18%	
+HL	Secured	Yes Bank	Self Employed Professional/Self Employed Non Professional	2100000	No Limit	0.30%	18%	
+HL	Secured	HDFC	Salaried		1200000	4000	18%	
+HL	Secured	HDFC	Salaried	1200001	2000000	6000	18%	
+HL	Secured	HDFC	Salaried	2000001	No Limit	10000	18%	
+HL	Secured	HDFC	Self Employed Professional/Self Employed Non Professional		20000000	0.20%	18%	Maximum PF: 20000
+HL	Secured	HDFC	Self Employed Professional/Self Employed Non Professional	20000000	50000000	0.20%	18%	Maximum PF: 40000
+HL	Secured	HDFC	Self Employed Professional/Self Employed Non Professional	50000000	No Limit	0.20%	18%	Maximum PF: 50000
+HL	Secured	JIO Finance	Salaried	3000000		0.25%	18%	
+HL	Secured	JIO Finance	Self Employed Professional/Self Employed Non Professional	3000000		0.25%	18%	
+HL	Secured	IDBI	Salaried	5000000	7500000	10000	18%	
+HL	Secured	IDBI	Salaried	7500001	No Limit	15000	18%	
+HL	Secured	IDBI	Self Employed Professional/Self Employed Non Professional	5000000	No Limit	11000	18%	
+HL	Secured	IDBI	Self Employed Professional/Self Employed Non Professional	5000000	No Limit	17500	18%	
+HL	Secured	TATA 	Salaried	1000000	100000000	0.25%	18%	
+HL	Secured	TATA 	Self Employed Professional/Self Employed Non Professional	1000000	100000000	0.25%	18%	
+								
+LAP	Secured	L&T Finance	Salaried	2000000	50000000	1%	18%	
+LAP	Secured	L&T Finance	Self Employed Professional/Self Employed Non Professional	2000000	50000000	1%	18%	
+LAP	Secured	ICICI Bank	Salaried	2000000	No Limit	0.60%	18%	
+LAP	Secured	ICICI Bank	Self Employed Professional/Self Employed Non Professional	2000000	No Limit	0.60%	18%	
+LAP	Secured	Bandhan Bank	Salaried	200000	80000000	1.00%	18%	
+LAP	Secured	Bandhan Bank	Self Employed Professional/Self Employed Non Professional	200000	80000000	1.00%	18%	
+LAP	Secured	Aditya Birla Finance Limited	Salaried	3500000	75000000	0.75%	18%	
+LAP	Secured	Aditya Birla Finance Limited	Self Employed Professional/Self Employed Non Professional	3500000	75000000	0.75%	18%	
+LAP	Secured	Bank of Baroda	Salaried	500000	No Limit	1.00%	18%	Minimun PF:8500, Maximum PF: 150000
+LAP	Secured	Bank of Baroda	Self Employed Professional/Self Employed Non Professional	500000	No Limit	1.00%	18%	Minimun PF:8500, Maximum PF: 150000
+LAP	Secured	SBI	Salaried	1000000	No Limit	1.00%	18%	Maximum PF: 60000
+LAP	Secured	SBI	Self Employed Professional/Self Employed Non Professional	1000000	No Limit	1.00%	18%	Maximum PF: 60000
+LAP	Secured	Bajaj Prime	Salaried	1000000	No Limit	0.75%	18%	
+LAP	Secured	Bajaj Prime	Self Employed Professional/Self Employed Non Professional	1000000	No Limit	0.75%	18%	
+LAP	Secured	Yes Bank	Salaried	2100000	No Limit	0.75%	18%	
+LAP	Secured	Yes Bank	Self Employed Professional/Self Employed Non Professional	2100000	No Limit	0.75%	18%	
+LAP	Secured	HDFC	Salaried			0.50%	18%	
+LAP	Secured	HDFC	Self Employed Professional/Self Employed Non Professional	50000000	No Limit	0.50%	18%	
+LAP	Secured	IDFC	Salaried	5000000	100000000	0.50%	18%	
+LAP	Secured	IDFC	Self Employed Professional/Self Employed Non Professional	5000000	100000000	0.50%	18%	
+LAP	Secured	JIO Finance	Salaried	3000000		0.25%	18%	
+LAP	Secured	JIO Finance	Self Employed Professional/Self Employed Non Professional	3000000		0.25%	18%	
+LAP	Secured	IDBI	Salaried	5000000	No Limit	0.70%	18%	
+LAP	Secured	IDBI	Self Employed Professional/Self Employed Non Professional	5000000	No Limit	0.70%	18%	
+LAP	Secured	TATA Capital	Salaried	1000000	100000000	1.00%	18%	
+LAP	Secured	TATA Capital	Self Employed Professional/Self Employed Non Professional	1000000	100000000	1.00%	18%	 is this data correctly mapped in db also check which bank do have empty rowa i these case and also check if conditions are applied correctly and results are displayed according to the condition
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-01T15:51:12+05:30.
+
+The user's current state is as follows:
+Active Document: /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/components/loan/BankComparisonCard.tsx (LANGUAGE_TSX)
+Cursor is on line: 1
+Other open documents:
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/components/loan/BankComparisonCard.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/src/main/java/com/pryme/Backend/eligibility/dto/EligibilityResult.java (LANGUAGE_JAVA)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/components/home/hero/OfferCard.tsx (LANGUAGE_TSX)
+</ADDITIONAL_METADATA>
+
+--- BLOCK 2 ---
+<USER_REQUEST>
+Product_Name	Loan_Type	Lender_Name	Employment_Type	Min_Loan_Amount	Max_Loan_Amount	PF	Tax	Notes
+HL	Secured	L&T Finance	Salaried	2000000	20000000	10000	18%	
+HL	Secured	L&T Finance	Salaried	20000001	50000000	0.25%	18%	
+HL	Secured	L&T Finance	Self Employed Professional/Self Employed Non Professional	2000000	50000000	0.50%	18%	
+HL	Secured	ICICI Bank	Salaried	2000000	No Limit	0.30%	18%	
+HL	Secured	ICICI Bank	Self Employed Professional/Self Employed Non Professional	2000000	No Limit	0.30%	18%	
+HL	Secured	Bandhan Bank	Salaried	200000	80000000	0.50%	18%	
+HL	Secured	Bandhan Bank	Self Employed Professional/Self Employed Non Professional	200000	80000000	0.50%	18%	
+HL	Secured	Aditya Birla Finance Limited	Salaried	3500000	75000000	0.50%	18%	
+HL	Secured	Aditya Birla Finance Limited	Self Employed Professional/Self Employed Non Professional	3500000	75000000	0.50%	18%	
+HL	Secured	Bank of Baroda	Salaried	500000	No Limit	0.00%	0%	
+HL	Secured	Bank of Baroda	Self Employed Professional/Self Employed Non Professional	500000	No Limit	0.00%	0%	
+HL	Secured	SBI	Salaried	1000000	No Limit	0.35%	18%	Minimun PF:5000, Maximum PF:15000
+HL	Secured	SBI	Self Employed Professional/Self Employed Non Professional	1000000	No Limit	0.35%	18%	Minimun PF:5000, Maximum PF:20000
+HL	Secured	Bajaj Prime	Salaried	1000000	No Limit	0.25%	18%	
+HL	Secured	Bajaj Prime	Self Employed Professional/Self Employed Non Professional	1000000	No Limit	0.25%	18%	
+HL	Secured	Yes Bank	Salaried	2100000	No Limit	0.30%	18%	
+HL	Secured	Yes Bank	Self Employed Professional/Self Employed Non Professional	2100000	No Limit	0.30%	18%	
+HL	Secured	HDFC	Salaried	0	1200000	4000	18%	
+HL	Secured	HDFC	Salaried	1200001	2000000	6000	18%	
+HL	Secured	HDFC	Salaried	2000001	No Limit	10000	18%	
+HL	Secured	HDFC	Self Employed Professional/Self Employed Non Professional	0	20000000	0.20%	18%	Maximum PF: 20000
+HL	Secured	HDFC	Self Employed Professional/Self Employed Non Professional	20000000	50000000	0.20%	18%	Maximum PF: 40000
+HL	Secured	HDFC	Self Employed Professional/Self Employed Non Professional	50000000	No Limit	0.20%	18%	Maximum PF: 50000
+HL	Secured	JIO Finance	Salaried	3000000		0.25%	18%	
+HL	Secured	JIO Finance	Self Employed Professional/Self Employed Non Professional	3000000		0.25%	18%	
+HL	Secured	IDBI	Salaried	5000000	7500000	10000	18%	
+HL	Secured	IDBI	Salaried	7500001	No Limit	15000	18%	
+HL	Secured	IDBI	Self Employed Professional/Self Employed Non Professional	5000000	No Limit	11000	18%	
+HL	Secured	IDBI	Self Employed Professional/Self Employed Non Professional	5000000	No Limit	17500	18%	
+HL	Secured	TATA 	Salaried	1000000	100000000	0.25%	18%	
+HL	Secured	TATA 	Self Employed Professional/Self Employed Non Professional	1000000	100000000	0.25%	18%	
+								
+LAP	Secured	L&T Finance	Salaried	2000000	50000000	1%	18%	
+LAP	Secured	L&T Finance	Self Employed Professional/Self Employed Non Professional	2000000	50000000	1%	18%	
+LAP	Secured	ICICI Bank	Salaried	2000000	No Limit	0.60%	18%	
+LAP	Secured	ICICI Bank	Self Employed Professional/Self Employed Non Professional	2000000	No Limit	0.60%	18%	
+LAP	Secured	Bandhan Bank	Salaried	200000	80000000	1.00%	18%	
+LAP	Secured	Bandhan Bank	Self Employed Professional/Self Employed Non Professional	200000	80000000	1.00%	18%	
+LAP	Secured	Aditya Birla Finance Limited	Salaried	3500000	75000000	0.75%	18%	
+LAP	Secured	Aditya Birla Finance Limited	Self Employed Professional/Self Employed Non Professional	3500000	75000000	0.75%	18%	
+LAP	Secured	Bank of Baroda	Salaried	500000	No Limit	1.00%	18%	Minimun PF:8500, Maximum PF: 150000
+LAP	Secured	Bank of Baroda	Self Employed Professional/Self Employed Non Professional	500000	No Limit	1.00%	18%	Minimun PF:8500, Maximum PF: 150000
+LAP	Secured	SBI	Salaried	1000000	No Limit	1.00%	18%	Maximum PF: 60000
+LAP	Secured	SBI	Self Employed Professional/Self Employed Non Professional	1000000	No Limit	1.00%	18%	Maximum PF: 60000
+LAP	Secured	Bajaj Prime	Salaried	1000000	No Limit	0.75%	18%	
+LAP	Secured	Bajaj Prime	Self Employed Professional/Self Employed Non Professional	1000000	No Limit	0.75%	18%	
+LAP	Secured	Yes Bank	Salaried	2100000	No Limit	0.75%	18%	
+LAP	Secured	Yes Bank	Self Employed Professional/Self Employed Non Professional	2100000	No Limit	0.75%	18%	
+LAP	Secured	HDFC	Salaried	0	No Limit	0.50%	18%	
+LAP	Secured	HDFC	Self Employed Professional/Self Employed Non Professional	0	No Limit	0.50%	18%	
+LAP	Secured	IDFC	Salaried	5000000	100000000	0.50%	18%	
+LAP	Secured	IDFC	Self Employed Professional/Self Employed Non Professional	5000000	100000000	0.50%	18%	
+LAP	Secured	JIO Finance	Salaried	3000000		0.25%	18%	
+LAP	Secured	JIO Finance	Self Employed Professional/Self Employed Non Professional	3000000		0.25%	18%	
+LAP	Secured	IDBI	Salaried	5000000	No Limit	0.70%	18%	
+LAP	Secured	IDBI	Self Employed Professional/Self Employed Non Professional	5000000	No Limit	0.70%	18%	
+LAP	Secured	TATA Capital	Salaried	1000000	100000000	1.00%	18%	
+LAP	Secured	TATA Capital	Self Employed Professional/Self Employed Non Professional	1000000	100000000	1.00%	18%	 match it with processing fees
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-01T16:23:22+05:30.
+
+The user's current state is as follows:
+Active Document: /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/components/loan/BankComparisonCard.tsx (LANGUAGE_TSX)
+Cursor is on line: 426
+Other open documents:
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/components/loan/BankComparisonCard.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/pages/Offers.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/src/main/java/com/pryme/Backend/eligibility/dto/EligibilityResult.java (LANGUAGE_JAVA)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/components/home/hero/OfferCard.tsx (LANGUAGE_TSX)
+</ADDITIONAL_METADATA>
+
+--- BLOCK 3 ---
+<USER_REQUEST>
+Product_Name	Loan_Type	Lender_Name	Employment_Type	Min_Loan_Amount	Max_Loan_Amount	Login Fees
+HL	Secured	L&T Finance	Salaried	2000000	50000000	1000
+HL	Secured	L&T Finance	Self Employed Professional/Self Employed Non Professional	2000000	50000000	1000
+HL	Secured	ICICI Bank	Salaried	2000000	No Limit	3000
+HL	Secured	ICICI Bank	Self Employed Professional/Self Employed Non Professional	2000000	No Limit	3000
+HL	Secured	Bandhan Bank	Salaried	200000	80000000	2360
+HL	Secured	Bandhan Bank	Self Employed Professional/Self Employed Non Professional	200000	80000000	2360
+HL	Secured	Aditya Birla Finance Limited	Salaried	3500000	75000000	2950
+HL	Secured	Aditya Birla Finance Limited	Self Employed Professional/Self Employed Non Professional	3500000	75000000	2950
+HL	Secured	Bank of Baroda	Salaried	500000	No Limit	0
+HL	Secured	Bank of Baroda	Self Employed Professional/Self Employed Non Professional	500000	No Limit	0
+HL	Secured	SBI	Salaried	1000000	No Limit	0
+HL	Secured	SBI	Self Employed Professional/Self Employed Non Professional	1000000	No Limit	0
+HL	Secured	Bajaj Prime	Salaried	3500000	100000000	2000
+HL	Secured	Bajaj Prime	Self Employed Professional/Self Employed Non Professional	3500000	100000000	3500
+HL	Secured	Yes Bank	Salaried	2100000	150000000	0
+HL	Secured	Yes Bank	Self Employed Professional/Self Employed Non Professional	2100000	150000000	0
+HL	Secured	HDFC	Salaried	1100000	No Limit	4000
+HL	Secured	HDFC	Self Employed Professional/Self Employed Non Professional	1100000	No Limit	4000
+HL	Secured	JIO Finance	Salaried	3000000	500000000	1500
+HL	Secured	JIO Finance	Self Employed Professional/Self Employed Non Professional	3000000	500000000	1500
+HL	Secured	IDBI	Salaried	5000000	No Limit	2950
+HL	Secured	IDBI	Self Employed Professional/Self Employed Non Professional	5000000	No Limit	2950
+HL	Secured	TATA Capital	Salaried	1000000	100000000	1000
+HL	Secured	TATA Capital	Self Employed Professional/Self Employed Non Professional	1000000	100000000	1000
+						
+LAP	Secured	L&T Finance	Salaried	2000000	50000000	1000
+LAP	Secured	L&T Finance	Self Employed Professional/Self Employed Non Professional	2000000	50000000	1000
+LAP	Secured	ICICI Bank	Salaried	2000000	No Limit	5000
+LAP	Secured	ICICI Bank	Self Employed Professional/Self Employed Non Professional	2000000	No Limit	5000
+LAP	Secured	Bandhan Bank	Salaried	200000	80000000	2360
+LAP	Secured	Bandhan Bank	Self Employed Professional/Self Employed Non Professional	200000	80000000	2360
+LAP	Secured	Aditya Birla Finance Limited	Salaried	3500000	75000000	5900
+LAP	Secured	Aditya Birla Finance Limited	Self Employed Professional/Self Employed Non Professional	3500000	75000000	5900
+LAP	Secured	Bank of Baroda	Salaried	500000	No Limit	0
+LAP	Secured	Bank of Baroda	Self Employed Professional/Self Employed Non Professional	500000	No Limit	0
+LAP	Secured	SBI	Salaried	1000000	No Limit	0
+LAP	Secured	SBI	Self Employed Professional/Self Employed Non Professional	1000000	No Limit	0
+LAP	Secured	Bajaj Prime	Salaried	3500000	100000000	2000
+LAP	Secured	Bajaj Prime	Self Employed Professional/Self Employed Non Professional	3500000	100000000	3500
+LAP	Secured	Yes Bank	Salaried	2100000	150000000	2340
+LAP	Secured	Yes Bank	Self Employed Professional/Self Employed Non Professional	2100000	150000000	2340
+LAP	Secured	HDFC	Salaried	1100000	No Limit	5900
+LAP	Secured	HDFC	Self Employed Professional/Self Employed Non Professional	1100000	No Limit	5900
+LAP	Secured	IDFC	Salaried	5000000	100000000	5900
+LAP	Secured	IDFC	Self Employed Professional/Self Employed Non Professional	5000000	100000000	5900
+LAP	Secured	JIO Finance	Salaried	3000000	500000000	3250
+LAP	Secured	JIO Finance	Self Employed Professional/Self Employed Non Professional	3000000	500000000	1500
+LAP	Secured	IDBI	Salaried	5000000	No Limit	11800
+LAP	Secured	IDBI	Self Employed Professional/Self Employed Non Professional	5000000	No Limit	11800
+LAP	Secured	TATA Capital	Salaried	1000000	100000000	1180
+LAP	Secured	TATA Capital	Self Employed Professional/Self Employed Non Professional	1000000	100000000	1180 also match them and map them correctly
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-01T16:26:17+05:30.
+
+The user's current state is as follows:
+Active Document: /Users/manishmehta/Documents/PRYME-BACKEND-PROD/src/main/resources/db/migration/V41__align_pf_matrix_hdfc_lap.sql (LANGUAGE_SQL)
+Cursor is on line: 1
+Other open documents:
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/pages/Offers.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/src/main/java/com/pryme/Backend/eligibility/dto/EligibilityResult.java (LANGUAGE_JAVA)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/components/home/hero/OfferCard.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/src/main/resources/db/migration/V41__align_pf_matrix_hdfc_lap.sql (LANGUAGE_SQL)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/components/loan/BankComparisonCard.tsx (LANGUAGE_TSX)
+</ADDITIONAL_METADATA>
+
+--- BLOCK 4 ---
+<USER_REQUEST>
+LT-HL-0001	HL	Secured	L&T Finance	Salaried	2000000	50000000	1000	
+LT-LAP-0001	HL	Secured	L&T Finance	Salaried	2000000	50000000	1000	
+LT-HL-0001	HL	Secured	L&T Finance	Self Employed Professional/Self Employed Non Professional	2000000	50000000	1000	
+LT-LAP-0001	HL	Secured	L&T Finance	Self Employed Professional/Self Employed Non Professional	2000000	50000000	1000  here are log in fees product_code	Product_Name	Loan_Type	Lender_Name	Employment_Type	Min_Loan_Amount	Max_Loan_Amount	Login Fees	
+ICICI-HL-0001	HL	Secured	ICICI Bank	Salaried	2000000	9999999	3000	
+ICICI-LAP-0001	HL	Secured	ICICI Bank	Salaried	2000000	9999999	3000	
+ICICI-HL-0001	HL	Secured	ICICI Bank	Self Employed Professional/Self Employed Non Professional	2000000	9999999	3000	
+ICICI-LAP-0001	HL	Secured	ICICI Bank	Self Employed Professional/Self Employed Non Professional	2000000	9999999	3000	
+BANDHAN-HL-0001	HL	Secured	Bandhan Bank	Salaried	200000	80000000	2360	
+BANDHAN-LAP-0001	HL	Secured	Bandhan Bank	Salaried	200000	80000000	2360	
+BANDHAN-HL-0001	HL	Secured	Bandhan Bank	Self Employed Professional/Self Employed Non Professional	200000	80000000	2360	
+BANDHAN-LAP-0001	HL	Secured	Bandhan Bank	Self Employed Professional/Self Employed Non Professional	200000	80000000	2360	
+ABFL-HL-0001	HL	Secured	Aditya Birla Finance Limited	Salaried	3500000	75000000	2950	
+ABFL-LAP-0001	HL	Secured	Aditya Birla Finance Limited	Salaried	3500000	75000000	2950	
+ABFL-HL-0001	HL	Secured	Aditya Birla Finance Limited	Self Employed Professional/Self Employed Non Professional	3500000	75000000	2950	
+ABFL-LAP-0001	HL	Secured	Aditya Birla Finance Limited	Self Employed Professional/Self Employed Non Professional	3500000	75000000	2950	
+BOB-HL-0001	HL	Secured	Bank of Baroda	Salaried	500000	9999999	0	
+BOB-LAP-0001	HL	Secured	Bank of Baroda	Salaried	500000	9999999	0	
+BOB-HL-0001	HL	Secured	Bank of Baroda	Self Employed Professional/Self Employed Non Professional	500000	9999999	0	
+BOB-LAP-0001	HL	Secured	Bank of Baroda	Self Employed Professional/Self Employed Non Professional	500000	9999999	0	
+SBI-HL-0001	HL	Secured	SBI	Salaried	1000000	9999999	0	
+SBI-LAP-0001	HL	Secured	SBI	Salaried	1000000	9999999	0	
+SBI-HL-0001	HL	Secured	SBI	Self Employed Professional/Self Employed Non Professional	1000000	9999999	0	
+SBI-LAP-0001	HL	Secured	SBI	Self Employed Professional/Self Employed Non Professional	1000000	9999999	0	
+BAJAJ-HL-0001	HL	Secured	Bajaj Prime	Salaried	3500000	100000000	2000	
+BAJAJ-LAP-0001	HL	Secured	Bajaj Prime	Salaried	3500000	100000000	2000	
+BAJAJ-HL-0001	HL	Secured	Bajaj Prime	Self Employed Professional/Self Employed Non Professional	3500000	100000000	3500	
+BAJAJ-LAP-0001	HL	Secured	Bajaj Prime	Self Employed Professional/Self Employed Non Professional	3500000	100000000	3500	
+YES-HL-0001	HL	Secured	Yes Bank	Salaried	2100000	150000000	0	
+YES-LAP-0001	HL	Secured	Yes Bank	Salaried	2100000	150000000	0	
+YES-HL-0001	HL	Secured	Yes Bank	Self Employed Professional/Self Employed Non Professional	2100000	150000000	0	
+YES-LAP-0001	HL	Secured	Yes Bank	Self Employed Professional/Self Employed Non Professional	2100000	150000000	0	
+HDFC-HL-0001	HL	Secured	HDFC	Salaried	1100000	9999999	4000	
+HDFC-LAP-0001	HL	Secured	HDFC	Salaried	1100000	9999999	4000	
+HDFC-HL-0001	HL	Secured	HDFC	Self Employed Professional/Self Employed Non Professional	1100000	9999999	4000	
+HDFC-LAP-0001	HL	Secured	HDFC	Self Employed Professional/Self Employed Non Professional	1100000	9999999	4000	
+JIO-HL-0001	HL	Secured	JIO Finance	Salaried	3000000	500000000	1500	
+JIO-LAP-0001	HL	Secured	JIO Finance	Salaried	3000000	500000000	1500	
+JIO-HL-0001	HL	Secured	JIO Finance	Self Employed Professional/Self Employed Non Professional	3000000	500000000	1500	
+JIO-LAP-0001	HL	Secured	JIO Finance	Self Employed Professional/Self Employed Non Professional	3000000	500000000	1500	
+IDBI-HL-0001	HL	Secured	IDBI	Salaried	5000000	9999999	2950	
+IDBI-LAP-0001	HL	Secured	IDBI	Salaried	5000000	9999999	2950	
+IDBI-HL-0001	HL	Secured	IDBI	Self Employed Professional/Self Employed Non Professional	5000000	9999999	2950	
+IDBI-LAP-0001	HL	Secured	IDBI	Self Employed Professional/Self Employed Non Professional	5000000	9999999	2950	
+TATA-HL-0001	HL	Secured	TATA Capital	Salaried	1000000	100000000	1000	
+TATA-LAP-0001	HL	Secured	TATA Capital	Salaried	1000000	100000000	1000	
+TATA-HL-0001	HL	Secured	TATA Capital	Self Employed Professional/Self Employed Non Professional	1000000	100000000	1000	
+TATA-LAP-0001	HL	Secured	TATA Capital	Self Employed Professional/Self Employed Non Professional	1000000	100000000	1000	
+LT-HL-0001	LAP	Secured	L&T Finance	Salaried	2000000	50000000	1000	
+LT-LAP-0001	LAP	Secured	L&T Finance	Salaried	2000000	50000000	1000	
+LT-HL-0001	LAP	Secured	L&T Finance	Self Employed Professional/Self Employed Non Professional	2000000	50000000	1000	
+LT-LAP-0001	LAP	Secured	L&T Finance	Self Employed Professional/Self Employed Non Professional	2000000	50000000	1000	
+ICICI-HL-0001	LAP	Secured	ICICI Bank	Salaried	2000000	9999999	5000	
+ICICI-LAP-0001	LAP	Secured	ICICI Bank	Salaried	2000000	9999999	5000	
+ICICI-HL-0001	LAP	Secured	ICICI Bank	Self Employed Professional/Self Employed Non Professional	2000000	9999999	5000	
+ICICI-LAP-0001	LAP	Secured	ICICI Bank	Self Employed Professional/Self Employed Non Professional	2000000	9999999	5000	
+BANDHAN-HL-0001	LAP	Secured	Bandhan Bank	Salaried	200000	80000000	2360	
+BANDHAN-LAP-0001	LAP	Secured	Bandhan Bank	Salaried	200000	80000000	2360	
+BANDHAN-HL-0001	LAP	Secured	Bandhan Bank	Self Employed Professional/Self Employed Non Professional	200000	80000000	2360	
+BANDHAN-LAP-0001	LAP	Secured	Bandhan Bank	Self Employed Professional/Self Employed Non Professional	200000	80000000	2360	
+ABFL-HL-0001	LAP	Secured	Aditya Birla Finance Limited	Salaried	3500000	75000000	5900	
+ABFL-LAP-0001	LAP	Secured	Aditya Birla Finance Limited	Salaried	3500000	75000000	5900	
+ABFL-HL-0001	LAP	Secured	Aditya Birla Finance Limited	Self Employed Professional/Self Employed Non Professional	3500000	75000000	5900	
+ABFL-LAP-0001	LAP	Secured	Aditya Birla Finance Limited	Self Employed Professional/Self Employed Non Professional	3500000	75000000	5900	
+BOB-HL-0001	LAP	Secured	Bank of Baroda	Salaried	500000	9999999	0	
+BOB-LAP-0001	LAP	Secured	Bank of Baroda	Salaried	500000	9999999	0	
+BOB-HL-0001	LAP	Secured	Bank of Baroda	Self Employed Professional/Self Employed Non Professional	500000	9999999	0	
+BOB-LAP-0001	LAP	Secured	Bank of Baroda	Self Employed Professional/Self Employed Non Professional	500000	9999999	0	
+SBI-HL-0001	LAP	Secured	SBI	Salaried	1000000	9999999	0	
+SBI-LAP-0001	LAP	Secured	SBI	Salaried	1000000	9999999	0	
+SBI-HL-0001	LAP	Secured	SBI	Self Employed Professional/Self Employed Non Professional	1000000	9999999	0	
+SBI-LAP-0001	LAP	Secured	SBI	Self Employed Professional/Self Employed Non Professional	1000000	9999999	0	
+BAJAJ-HL-0001	LAP	Secured	Bajaj Prime	Salaried	3500000	100000000	2000	
+BAJAJ-LAP-0001	LAP	Secured	Bajaj Prime	Salaried	3500000	100000000	2000	
+BAJAJ-HL-0001	LAP	Secured	Bajaj Prime	Self Employed Professional/Self Employed Non Professional	3500000	100000000	3500	
+BAJAJ-LAP-0001	LAP	Secured	Bajaj Prime	Self Employed Professional/Self Employed Non Professional	3500000	100000000	3500	
+YES-HL-0001	LAP	Secured	Yes Bank	Salaried	2100000	150000000	2340	
+YES-LAP-0001	LAP	Secured	Yes Bank	Salaried	2100000	150000000	2340	
+YES-HL-0001	LAP	Secured	Yes Bank	Self Employed Professional/Self Employed Non Professional	2100000	150000000	2340	
+YES-LAP-0001	LAP	Secured	Yes Bank	Self Employed Professional/Self Employed Non Professional	2100000	150000000	2340	
+HDFC-HL-0001	LAP	Secured	HDFC	Salaried	1100000	9999999	5900	
+HDFC-LAP-0001	LAP	Secured	HDFC	Salaried	1100000	9999999	5900	
+HDFC-HL-0001	LAP	Secured	HDFC	Self Employed Professional/Self Employed Non Professional	1100000	9999999	5900	
+HDFC-LAP-0001	LAP	Secured	HDFC	Self Employed Professional/Self Employed Non Professional	1100000	9999999	5900	
+IDFC-LAP-0001	LAP	Secured	IDFC	Salaried	5000000	100000000	5900	
+IDFC-LAP-0001	LAP	Secured	IDFC	Self Employed Professional/Self Employed Non Professional	5000000	100000000	5900	
+JIO-HL-0001	LAP	Secured	JIO Finance	Salaried	3000000	500000000	3250	
+JIO-LAP-0001	LAP	Secured	JIO Finance	Salaried	3000000	500000000	3250	
+JIO-HL-0001	LAP	Secured	JIO Finance	Self Employed Professional/Self Employed Non Professional	3000000	500000000	1500	
+JIO-LAP-0001	LAP	Secured	JIO Finance	Self Employed Professional/Self Employed Non Professional	3000000	500000000	1500	
+IDBI-HL-0001	LAP	Secured	IDBI	Salaried	5000000	9999999	11800	
+IDBI-LAP-0001	LAP	Secured	IDBI	Salaried	5000000	9999999	11800	
+IDBI-HL-0001	LAP	Secured	IDBI	Self Employed Professional/Self Employed Non Professional	5000000	9999999	11800	
+IDBI-LAP-0001	LAP	Secured	IDBI	Self Employed Professional/Self Employed Non Professional	5000000	9999999	11800	
+TATA-HL-0001	LAP	Secured	TATA Capital	Salaried	1000000	100000000	1180	
+TATA-LAP-0001	LAP	Secured	TATA Capital	Salaried	1000000	100000000	1180	
+TATA-HL-0001	LAP	Secured	TATA Capital	Self Employed Professional/Self Employed Non Professional	1000000	100000000	1180	
+TATA-LAP-0001	LAP	Secured	TATA Capital	Self Employed Professional/Self Employed Non Professional	1000000	100000000	1180	map it too
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-08T02:30:17+05:30.
+
+The user's current state is as follows:
+Active Document: /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/components/loan/CibilTips.tsx (LANGUAGE_TSX)
+Cursor is on line: 1
+Other open documents:
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/components/loan/steps/IdentityStep.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/pages/Faq.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/components/loan/CibilTips.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/pages/Index.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/pages/tools/PrepaymentCalculatorPage.tsx (LANGUAGE_TSX)
+</ADDITIONAL_METADATA>
+
+--- BLOCK 5 ---
+<USER_REQUEST>
+Product_Name	Loan_Type	Lender_Name	Interest_Type	Property_Type	Negative_Property	Employment_Type	Self Employed Professional	Surrogate	Margin (by occupation)	LTV
+HL	Secured	L&T Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	L&T Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	L&T Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	CA, Doctor	SEP	NA	As per HL LTV Grid
+HL	Secured	L&T Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	CS	SEP	NA	As per HL LTV Grid
+HL	Secured	L&T Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	AS per HL LTV Grid
+HL	Secured	L&T Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	Service - 10%	As per HL LTV Grid
+HL	Secured	L&T Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	Retailer - 12%	As per HL LTV Grid
+HL	Secured	L&T Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	Wholesale - 8%	As per HL LTV Grid
+HL	Secured	L&T Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	Manufacturer - 4%	As per HL LTV Grid
+HL	Secured	ICICI Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	ICICI Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	ICICI Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per HL LTV Grid
+HL	Secured	ICICI Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	Manufacturer - 6%	As per HL LTV Grid
+HL	Secured	Bandhan Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	Bandhan Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	Bandhan Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per HL LTV Grid
+HL	Secured	Bandhan Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	10%	As per HL LTV Grid
+HL	Secured	Aditya Birla Finance Limited	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	Aditya Birla Finance Limited	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	Aditya Birla Finance Limited	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	Low LTV	NA	50%
+HL	Secured	Aditya Birla Finance Limited	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	50%
+HL	Secured	Aditya Birla Finance Limited	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per HL LTV Grid
+HL	Secured	Aditya Birla Finance Limited	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST		As per HL LTV Grid
+HL	Secured	Bank of Baroda	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	Bank of Baroda	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	State Bank of India	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	State Bank of India	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	Bajaj Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	Bajaj Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	Bajaj Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	CA, Doctor	SEP	NA	As per HL LTV Grid
+HL	Secured	Bajaj Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	Low LTV	NA	65%
+HL	Secured	Bajaj Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	65%
+HL	Secured	Bajaj Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per HL LTV Grid
+HL	Secured	Bajaj Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	Trader, Service - 10%	As per HL LTV Grid
+HL	Secured	Bajaj Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	Wholesale, Manufacturer - 8%	As per HL LTV Grid
+HL	Secured	Yes Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	Yes Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	Yes Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	45%
+HL	Secured	Yes Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	Doctor, BDS, BHMS, BAMS	SEP	NA	As per HL LTV Grid
+HL	Secured	Yes Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	CA, CS, Architect	SEP	NA	As per HL LTV Grid
+HL	Secured	Yes Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	Doctor, BDS, BHMS, BAMS	CPM SEP	NA	As per HL LTV Grid
+HL	Secured	Yes Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	CA, CS, Architect	CPM SEP	NA	As per HL LTV Grid
+HL	Secured	Yes Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per HL LTV Grid
+HL	Secured	Yes Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	20%	As per HL LTV Grid
+HL	Secured	HDFC	Floating	Ready Possession, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	HDFC	Floating	Plot	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	HDFC	Floating	Plot+Construction	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	HDFC	Floating	Ready Possession, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	HDFC	Floating	Plot	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	HDFC	Floating	Plot+Construction	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	HDFC	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	Manufacturer, Trader - 8%	As per HL LTV Grid
+HL	Secured	JIO Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	JIO Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	JIO Finance	Floating	Ready Possession, Construction/Renovation	Informal	Salaried	NA	Low LTV	NA	50%
+HL	Secured	JIO Finance	Floating	Ready Possession, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	50%
+HL	Secured	JIO Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	CA, Doctor	SEP	NA	As per HL LTV Grid
+HL	Secured	JIO Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per HL LTV Grid
+HL	Secured	JIO Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	Trader - 6%	As per HL LTV Grid
+HL	Secured	JIO Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	Manufacturer - 8%	As per HL LTV Grid
+HL	Secured	JIO Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	Service - 12%	As per HL LTV Grid
+HL	Secured	IDBI Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	IDBI Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	TATA Capital	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	TATA Capital	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	TATA Capital	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	Doctor	SEP	NA	As per HL LTV Grid
+HL	Secured	TATA Capital	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	CA, Architect	SEP	NA	As per HL LTV Grid
+HL	Secured	TATA Capital	Floating	Ready Possession, Construction/Renovation	Informal	Salaried	NA	Low LTV	NA	50%
+HL	Secured	TATA Capital	Floating	Ready Possession, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	50%
+HL	Secured	TATA Capital	Floating	Plot, Plot+Construction	Informal	Salaried	NA	Low LTV	NA	40%
+HL	Secured	TATA Capital	Floating	Plot, Plot+Construction	Informal	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	40%
+HL	Secured	Indus Ind Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	Indus Ind Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional	Doctor, MBBS, BDS, CA, Architect	NIP	NA	As per HL LTV Grid
+HL	Secured	Indus Ind Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	Doctor, MBBS, BDS	SEP	NA	As per HL LTV Grid
+HL	Secured	Indus Ind Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	CA	SEP	NA	As per HL LTV Grid
+HL	Secured	Indus Ind Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	Architect	SEP	NA	As per HL LTV Grid
+HL	Secured	Indus Ind Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional	Doctor, MBBS, BDS, CA, Architect	GST		As per HL LTV Grid
+HL	Secured	Indus Ind Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional	Doctor, MBBS, BDS, CA, Architect	Banking	NA	As per HL LTV Grid
+HL	Secured	Indus Ind Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	Low LTV	NA	50%
+HL	Secured	Indus Ind Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional	Doctor, MBBS, BDS, CA, Architect	Low LTV	NA	50%
+										
+LAP	Secured	L&T Finance	Floating	Residential/commercial/Industrial	Informal	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	L&T Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	L&T Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional	CA, Doctor	SEP	NA	As per LAP LTV Grid
+LAP	Secured	L&T Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional	CS	SEP	NA	As per LAP LTV Grid
+LAP	Secured	L&T Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per LAP LTV Grid
+LAP	Secured	L&T Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Service - 10%	As per LAP LTV Grid
+LAP	Secured	L&T Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Retailer - 12%	As per LAP LTV Grid
+LAP	Secured	L&T Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Wholesale - 8%	As per LAP LTV Grid
+LAP	Secured	L&T Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Manufacturer - 4%	As per LAP LTV Grid
+LAP	Secured	ICICI Bank	Floating	Residential/commercial/Industrial	Informal	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	ICICI Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	ICICI Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per LAP LTV Grid
+LAP	Secured	ICICI Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Manufacturer - 6%	As per LAP LTV Grid
+LAP	Secured	Bandhan Bank	Floating	Residential/commercial	Hospital, Industry,Marriage Garden	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	Bandhan Bank	Floating	Residential/commercial	Hospital, Industry,Marriage Garden	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	Bandhan Bank	Floating	Residential/commercial	Hospital, Industry,Marriage Garden	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per LAP LTV Grid
+LAP	Secured	Bandhan Bank	Floating	Residential/commercial	Hospital, Industry,Marriage Garden	Self Employed Professional/Self Employed Non Professional		GST	10%	As per LAP LTV Grid
+LAP	Secured	Aditya Birla Finance Limited	Floating	Residential/commercial/Industrial	Special Property	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	Aditya Birla Finance Limited	Floating	Residential/commercial/Industrial	Special Property	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	Aditya Birla Finance Limited	Floating	Residential/commercial/Industrial	Special Property	Salaried	NA	Low LTV	NA	40%
+LAP	Secured	Aditya Birla Finance Limited	Floating	Residential/commercial/Industrial	Special Property	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	40%
+LAP	Secured	Aditya Birla Finance Limited	Floating	Residential/commercial/Industrial	Special Property	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per LAP LTV Grid
+LAP	Secured	Aditya Birla Finance Limited	Floating	Residential/commercial/Industrial	Special Property	Self Employed Professional/Self Employed Non Professional		GST		As per LAP LTV Grid
+LAP	Secured	Bank of Baroda	Floating	Residential/commercial/Industrial	Hospital/School	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	Bank of Baroda	Floating	Residential/commercial/Industrial	Hospital/School	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	State Bank of India	Floating	Residential/commercial/Industrial	Hospital/School	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	State Bank of India	Floating	Residential/commercial/Industrial	Hospital/School	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	Bajaj Finance	Floating	Residential/commercial	NIL	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	Bajaj Finance	Floating	Residential/commercial	NIL	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	Bajaj Finance	Floating	Residential/commercial	NIL	Self Employed Professional	CA, Doctor	SEP	NA	As per LAP LTV Grid
+LAP	Secured	Bajaj Finance	Floating	Residential	NIL	Salaried	NA	Low LTV	NA	65%
+LAP	Secured	Bajaj Finance	Floating	Residential	NIL	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	65%
+LAP	Secured	Bajaj Finance	Floating	commercial	NIL	Salaried	NA	Low LTV	NA	50%
+LAP	Secured	Bajaj Finance	Floating	commercial	NIL	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	50%
+LAP	Secured	Bajaj Finance	Floating	Residential/commercial	NIL	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per LAP LTV Grid
+LAP	Secured	Bajaj Finance	Floating	Residential/commercial	NIL	Self Employed Professional/Self Employed Non Professional		GST	Trader, Service - 10%	As per LAP LTV Grid
+LAP	Secured	Bajaj Finance	Floating	Residential/commercial	NIL	Self Employed Professional/Self Employed Non Professional		GST	Wholesale, Manufacturer - 8%	As per LAP LTV Grid
+LAP	Secured	Yes Bank	Floating	Residential/commercial/Industrial	Informal	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	Yes Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	Yes Bank	Floating	Residential	Informal	Salaried	NA	Low LTV	NA	45%
+LAP	Secured	Yes Bank	Floating	commercial	Informal	Salaried	NA	Low LTV	NA	40%
+LAP	Secured	Yes Bank	Floating	Industrial	Informal	Salaried	NA	Low LTV	NA	30%
+LAP	Secured	Yes Bank	Floating	Residential	Informal	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	45%
+LAP	Secured	Yes Bank	Floating	commercial	Informal	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	40%
+LAP	Secured	Yes Bank	Floating	Industrial	Informal	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	30%
+LAP	Secured	Yes Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional	Doctor, BDS, BHMS, BAMS	SEP	NA	As per LAP LTV grid
+LAP	Secured	Yes Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional	CA, CS, Architect	SEP	NA	As per LAP LTV grid
+LAP	Secured	Yes Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional	Doctor, BDS, BHMS, BAMS	CPM SEP	NA	As per LAP LTV grid
+LAP	Secured	Yes Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional	CA, CS, Architect	CPM SEP	NA	As per LAP LTV grid
+LAP	Secured	Yes Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per LAP LTV Grid
+LAP	Secured	Yes Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	20%	As per LAP LTV Grid
+LAP	Secured	HDFC Bank	Floating	Residential/commercial/Industrial	Informal	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	HDFC Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	HDFC Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per LAP LTV Grid
+LAP	Secured	HDFC Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Trader - 9%	As per LAP LTV Grid
+LAP	Secured	HDFC Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Manufacturer - 10%	As per LAP LTV Grid
+LAP	Secured	HDFC Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Service - 8%	As per LAP LTV Grid
+LAP	Secured	IDFC Bank	Floating	Residential/commercial/Industrial	Informal	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	IDFC Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	IDFC Bank	Floating	Residential/commercial/Industrial	Plot	Salaried	NA	Low LTV	NA	40%
+LAP	Secured	IDFC Bank	Floating	Residential/commercial/Industrial	Plot	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	40%
+LAP	Secured	IDFC Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Manufacturer - 10%	As per LAP LTV Grid
+LAP	Secured	IDFC Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Trader, Service - 7%	As per LAP LTV Grid
+LAP	Secured	JIO Finance	Floating	Residential/commercial/Industrial 	Plot	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	JIO Finance	Floating	Residential/commercial/Industrial 	Plot	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	JIO Finance	Floating	Residential/commercial/Industrial 	Plot	Salaried	NA	Low LTV	NA	50%
+LAP	Secured	JIO Finance	Floating	Residential/commercial/Industrial 	Plot	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	50%
+LAP	Secured	JIO Finance	Floating	Residential/commercial/Industrial 	Informal	Self Employed Professional	CA	SEP	NA	As per LAP LTV Grid
+LAP	Secured	JIO Finance	Floating	Residential/commercial/Industrial 	Informal	Self Employed Professional	Doctor	SEP	NA	As per LAP LTV Grid
+LAP	Secured	JIO Finance	Floating	Plot	Informal	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	JIO Finance	Floating	Plot	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	JIO Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per LAP LTV Grid
+LAP	Secured	JIO Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Trader - 6%	As per LAP LTV Grid
+LAP	Secured	JIO Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Manufacturer - 8%	As per LAP LTV Grid
+LAP	Secured	JIO Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Service - 12%	As per LAP LTV Grid
+LAP	Secured	IDBI Bank	Floating	Residential/commercial	Informal	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	IDBI Bank	Floating	Residential/commercial	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	TATA Capital	Floating	Residential/commercial/Industrial	Informal	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	TATA Capital	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	TATA Capital	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional	Doctor	SEP	NA	As per LAP LTV Grid
+LAP	Secured	TATA Capital	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional	CA, Architect	SEP	NA	As per LAP LTV grid
+LAP	Secured	TATA Capital	Floating	Residential/commercial/Industrial	Plot	Salaried	NA	Low LTV	NA	50%
+LAP	Secured	TATA Capital	Floating	Residential/commercial/Industrial	Plot	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	50%
+LAP	Secured	TATA Capital	Floating	Plot	Informal	Salaried	NA	Low LTV	NA	40%
+LAP	Secured	TATA Capital	Floating	Plot	Informal	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	40%
+LAP	Secured	Indus Ind Bank	Floating	Residential/commercial/Industrial	Plot	Salaried	NA	NIP	NA	As per LAP LTV grid
+LAP	Secured	Indus Ind Bank	Floating	Residential/commercial/Industrial	Plot	Self Employed Professional/Self Employed Non Professional	Doctor, MBBS, BDS, CA, Architect	NIP	NA	As per LAP LTV grid
+LAP	Secured	Indus Ind Bank	Floating	Residential/commercial/Industrial	Plot	Self Employed Professional	Doctor, MBBS, BDS	SEP	NA	As per LAP LTV grid
+LAP	Secured	Indus Ind Bank	Floating	Residential/commercial/Industrial	Plot	Self Employed Professional	CA	SEP	NA	As per LAP LTV grid
+LAP	Secured	Indus Ind Bank	Floating	Residential/commercial/Industrial	Plot	Self Employed Professional	Architect	SEP	NA	As per LAP LTV grid
+LAP	Secured	Indus Ind Bank	Floating	Residential/commercial/Industrial	Plot	Self Employed Professional/Self Employed Non Professional	Doctor, MBBS, BDS, CA, Architect	GST		As per LAP LTV grid
+LAP	Secured	Indus Ind Bank	Floating	Residential/commercial/Industrial	Plot	Self Employed Professional/Self Employed Non Professional	Doctor, MBBS, BDS, CA, Architect	Banking	NA	As per LAP LTV grid
+LAP	Secured	Indus Ind Bank	Floating	Residential/commercial	Plot	Salaried	NA	Low LTV	NA	50%
+LAP	Secured	Indus Ind Bank	Floating	Residential/commercial	Plot	Self Employed Professional/Self Employed Non Professional	Doctor, MBBS, BDS, CA, Architect	Low LTV	NA	50% skip the low ltv keep the other data if it already exits use 200 iq to map it to the product use 200 iq 
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-08T02:35:33+05:30.
+
+The user's current state is as follows:
+Active Document: /Users/manishmehta/Documents/PRYME-BACKEND-PROD/src/main/resources/db/migration/V53__reseed_login_fee_matrix.sql (LANGUAGE_SQL)
+Cursor is on line: 1
+Other open documents:
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/pages/Index.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/pages/tools/PrepaymentCalculatorPage.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/pages/tools/EMICalculatorPage.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/components/loan/steps/IdentityStep.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/pages/Faq.tsx (LANGUAGE_TSX)
+</ADDITIONAL_METADATA>
+
+--- BLOCK 6 ---
+<USER_REQUEST>
+dont upadte the row such as bank_name	loan_type	product_code	employment_type	surrogate	cibil_min	min_income	min_age	max_age	min_tenure_months	max_tenure_months	min_loan_amount	max_loan_amount	 this already exists right just map the other things i.e Interest_Type , Property_Type, Negative_Property,Self Employed Professional which professions are allowed map it where there is na allow every profession ,margin by occupation where nothing is written its NA ,LTV WHERE AS PER LTV SHEET HERE IS THE DATA MAP IT MAP IT TO Ready Built Property		
+Min_LoanAmount	Max_LoanAmount	LTV
+0	3000000	90%
+3000001	7500000	80%
+7500001	No Limit	75%
+		
+		
+Plot		
+Min_LoanAmount	Max_LoanAmount	LTV
+0	No limit	70% USE THIS WHERE LTV SHEET IS MENTIONED ,Formulae MAP IT TO THE PRODUCTS ,Conditions Where nothing is metioned take it 0 ,Vintage years should be perfectly mapped ,ITR_Required should be mapped perfectly ,Provident_Fund_Mandatory map it too,Negative_Mode_Salary map it also,Bank_Statement	Salary_Slip_months	GST_Required_months	EMI_not_Obligated	Admin Fee	Insurance Charges	Legal and Technical Charges	Other_Expense	Stamp Duty	Prepayment Charges	Foreclosure Charges	Notes map it where notes are just personal memo every other thing metioned where maths is there should perfectly be mapped to the math and formula too
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-08T03:01:09+05:30.
+
+The user's current state is as follows:
+Active Document: /Users/manishmehta/Documents/PRYME-BACKEND-PROD/src/main/resources/db/migration/V53__reseed_login_fee_matrix.sql (LANGUAGE_SQL)
+Cursor is on line: 1
+Other open documents:
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/src/main/resources/db/migration/V53__reseed_login_fee_matrix.sql (LANGUAGE_SQL)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/components/loan/CibilTips.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/pages/Index.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/pages/tools/PrepaymentCalculatorPage.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/pages/tools/EMICalculatorPage.tsx (LANGUAGE_TSX)
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from Gemini 3.5 Flash (High) to Gemini 3.1 Pro (High). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>
+

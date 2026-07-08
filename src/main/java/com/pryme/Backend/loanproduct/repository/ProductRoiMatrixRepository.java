@@ -9,5 +9,4 @@ import java.util.List;
 @Repository
 public interface ProductRoiMatrixRepository extends JpaRepository<ProductRoiMatrix, Long> {
     List<ProductRoiMatrix> findByProductId(Long productId);
-    List<ProductRoiMatrix> findByProductIdAndBundleId(Long productId, String bundleId);
 }

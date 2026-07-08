@@ -5,5 +5,6 @@ public enum LoanProductType {
     LAP,
     PERSONAL_LOAN,
     BUSINESS_LOAN,
-    EDUCATION
+    EDUCATION,
+    BT_TOP_UP
 }

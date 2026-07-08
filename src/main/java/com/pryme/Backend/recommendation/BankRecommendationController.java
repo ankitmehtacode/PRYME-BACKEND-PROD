@@ -27,7 +27,7 @@ public class BankRecommendationController {
     private final BankRecommendationService bankRecommendationService;
     private final FinancialComputationEngine computationEngine;
 
-    @Operation(summary = "Get personalized bank recommendations")
+    @Operation(summary = "One-line description of this endpoint")
     @GetMapping("/recommendation")
     public List<BankRecommendationResponse> getRecommendations(
             @RequestParam @NotNull BigDecimal salary,
@@ -50,7 +50,7 @@ public class BankRecommendationController {
                 product.getLenderId(),
                 product.getLenderName(),
                 product.getRoi(),
-                product.getProcessingFee(),
+                null, // Processing fee is dynamic and requires loan amount
                 resolvedLoginFee,
                 product.getLoanType(),
                 bankRecommendationService.fitScore(product, salary, cibil),

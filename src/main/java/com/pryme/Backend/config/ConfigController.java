@@ -114,6 +114,9 @@ public class ConfigController {
      * Converts "HOME_LOAN" → "Home Loan", "PERSONAL" → "Personal"
      */
     private String formatEnumLabel(String enumName) {
+        if ("BT_TOP_UP".equals(enumName)) {
+            return "BT|Top Up";
+        }
         return Arrays.stream(enumName.split("_"))
                 .map(word -> word.charAt(0) + word.substring(1).toLowerCase())
                 .collect(Collectors.joining(" "));

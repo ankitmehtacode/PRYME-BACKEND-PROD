@@ -20,8 +20,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ProfileController {
 
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ProfileController.class);
-
     private final UserRepository userRepository;
     private final S3PresignedUrlService s3PresignedUrlService;
     private final UserIdGeneratorService userIdGeneratorService;
@@ -41,7 +39,6 @@ public class ProfileController {
         UUID userId = userIdFromAuth(authentication);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UnauthorizedException("User not found"));
-        log.info("Fetching profile for user: {}, city: {}, state: {}, metadata: {}", userId, user.getCity(), user.getState(), user.getMetadata());
         return ResponseEntity.ok(createProfileResponse(user));
     }
 
@@ -54,8 +51,6 @@ public class ProfileController {
         UUID userId = userIdFromAuth(authentication);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UnauthorizedException("User not found"));
-
-        log.info("Updating profile for user: {}, Request: {}", userId, request);
 
         if (request.fullName() != null && !request.fullName().isBlank()) user.setFullName(request.fullName());
         if (request.phone() != null) user.setPhone(request.phone());
@@ -71,8 +66,6 @@ public class ProfileController {
 
         userIdGeneratorService.ensureUserIds(user);
         user = userRepository.save(user);
-
-        log.info("Saved profile for user: {}, Saved city: {}, state: {}, metadata: {}", userId, user.getCity(), user.getState(), user.getMetadata());
         return ResponseEntity.ok(createProfileResponse(user));
     }
 

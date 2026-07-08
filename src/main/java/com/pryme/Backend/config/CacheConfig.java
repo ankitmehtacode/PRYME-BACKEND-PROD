@@ -42,10 +42,7 @@ public class CacheConfig {
                 buildCache("banks:recommendation", 5000, Duration.ofMinutes(30)),
 
                 // 4. SESSIONS CACHE: Short TTL to prevent stale session attacks.
-                buildCache("sessions", 10000, Duration.ofMinutes(5)),
-
-                // 5. MASTER DATA VERSION CACHE: Caches SHA-256 of active conditions.
-                buildCache("masterDataVersion", 1, Duration.ofHours(24))
+                buildCache("sessions", 10000, Duration.ofMinutes(5))
         ));
 
         log.info("Titanium L1 Cache Matrix Initialized. Protection layers active.");

@@ -62,7 +62,7 @@ class LoanRecommendationServiceTest {
                 .interestType("FLOATING")
                 .minCibil(650).maxCibil(900)
                 .roi(new BigDecimal("9.2500"))
-                .processingFee(new BigDecimal("0.0050"))
+
                 .minTenureMonths(12).maxTenureMonths(360)
                 .minLoanAmount(new BigDecimal("1000000"))
                 .maxLoanAmount(new BigDecimal("50000000"))
@@ -79,7 +79,7 @@ class LoanRecommendationServiceTest {
                 .interestType("FLOATING")
                 .minCibil(700).maxCibil(900)
                 .roi(new BigDecimal("8.5000"))
-                .processingFee(new BigDecimal("0.0025"))
+
                 .minTenureMonths(12).maxTenureMonths(240)
                 .minLoanAmount(new BigDecimal("2500000"))
                 .maxLoanAmount(new BigDecimal("100000000"))
@@ -96,7 +96,7 @@ class LoanRecommendationServiceTest {
                 .interestType("FLOATING")
                 .minCibil(780).maxCibil(900)
                 .roi(new BigDecimal("7.9500"))
-                .processingFee(new BigDecimal("0.0030"))
+
                 .minTenureMonths(12).maxTenureMonths(360)
                 .minLoanAmount(new BigDecimal("5000000"))
                 .maxLoanAmount(new BigDecimal("200000000"))
@@ -200,7 +200,7 @@ class LoanRecommendationServiceTest {
                 .loanType("HL").lenderId(100L).lenderName("State Bank of India")
                 .interestType("FLOATING").minCibil(650).maxCibil(900)
                 .roi(new BigDecimal("8.5000"))
-                .processingFee(new BigDecimal("0.0050"))
+
                 .minTenureMonths(12).maxTenureMonths(360)
                 .minLoanAmount(new BigDecimal("1000000"))
                 .maxLoanAmount(new BigDecimal("50000000"))

@@ -53,8 +53,6 @@ public class LoanProduct {
     @Column(name = "roi", nullable = false, precision = 6, scale = 4)
     private BigDecimal roi;
 
-    @Column(name = "processing_fee", precision = 14, scale = 4)
-    private BigDecimal processingFee;
 
 
     @Column(name = "prepayment_charges")

@@ -58,7 +58,7 @@ public class S3PresignedUrlService {
             throw new DocumentTypeNotAllowedException("Unsupported contentType. Allowed: application/pdf, image/jpeg, image/png");
         }
 
-        if ("dummy_bucket".equals(awsS3Properties.bucket())) {
+        if (isDummyMode()) {
             Instant expiresAt = Instant.now().plus(PRESIGN_TTL);
             return new PresignedUrlResponse("/api/v1/dummy-s3-upload/" + documentId, documentId, expiresAt);
         }
@@ -89,7 +89,7 @@ public class S3PresignedUrlService {
     }
 
     public PresignedUrlResponse generateDownloadUrl(String documentId) {
-        if ("dummy_bucket".equals(awsS3Properties.bucket())) {
+        if (isDummyMode()) {
             Instant expiresAt = Instant.now().plus(PRESIGN_TTL);
             return new PresignedUrlResponse("/api/v1/dummy-s3-download/" + documentId, documentId, expiresAt);
         }
@@ -112,7 +112,7 @@ public class S3PresignedUrlService {
     }
 
     public void deleteObject(String documentId) {
-        if ("dummy_bucket".equals(awsS3Properties.bucket())) {
+        if (isDummyMode()) {
             return;
         }
 
@@ -144,7 +144,7 @@ public class S3PresignedUrlService {
      * In dummy/local mode, always returns true to keep dev workflows unblocked.
      */
     public boolean objectExists(String objectKey) {
-        if ("dummy_bucket".equals(awsS3Properties.bucket())) {
+        if (isDummyMode()) {
             return true; // Dev mode — assume everything exists
         }
 
@@ -172,6 +172,12 @@ public class S3PresignedUrlService {
     }
 
     public record PresignedUrlResponse(String uploadUrl, String documentId, Instant expiresAt) {
+    }
+
+    private boolean isDummyMode() {
+        return awsS3Properties.bucket() == null 
+            || awsS3Properties.bucket().isBlank() 
+            || "dummy_bucket".equals(awsS3Properties.bucket());
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)

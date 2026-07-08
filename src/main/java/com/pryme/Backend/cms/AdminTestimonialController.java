@@ -17,25 +17,25 @@ public class AdminTestimonialController {
 
     private final TestimonialService testimonialService;
 
-    @Operation(summary = "Get all testimonials (admin view)")
+    @Operation(summary = "One-line description of this endpoint")
     @GetMapping
     public ResponseEntity<List<TestimonialResponse>> all() {
         return ResponseEntity.ok(testimonialService.all());
     }
 
-    @Operation(summary = "Create a new testimonial")
+    @Operation(summary = "One-line description of this endpoint")
     @PostMapping
     public ResponseEntity<TestimonialResponse> create(@Valid @RequestBody TestimonialRequest request) {
         return ResponseEntity.ok(testimonialService.create(request));
     }
 
-    @Operation(summary = "Update an existing testimonial")
+    @Operation(summary = "One-line description of this endpoint")
     @PutMapping("/{id}")
     public ResponseEntity<TestimonialResponse> update(@PathVariable UUID id, @Valid @RequestBody TestimonialRequest request) {
         return ResponseEntity.ok(testimonialService.update(id, request));
     }
 
-    @Operation(summary = "Delete a testimonial")
+    @Operation(summary = "One-line description of this endpoint")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         testimonialService.delete(id);

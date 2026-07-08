@@ -1,0 +1,190 @@
+<USER_REQUEST>
+Product_Name	Loan_Type	Lender_Name	Interest_Type	Property_Type	Negative_Property	Employment_Type	Self Employed Professional	Surrogate	Margin (by occupation)	LTV
+HL	Secured	L&T Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	L&T Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	L&T Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	CA, Doctor	SEP	NA	As per HL LTV Grid
+HL	Secured	L&T Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	CS	SEP	NA	As per HL LTV Grid
+HL	Secured	L&T Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	AS per HL LTV Grid
+HL	Secured	L&T Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	Service - 10%	As per HL LTV Grid
+HL	Secured	L&T Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	Retailer - 12%	As per HL LTV Grid
+HL	Secured	L&T Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	Wholesale - 8%	As per HL LTV Grid
+HL	Secured	L&T Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	Manufacturer - 4%	As per HL LTV Grid
+HL	Secured	ICICI Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	ICICI Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	ICICI Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per HL LTV Grid
+HL	Secured	ICICI Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	Manufacturer - 6%	As per HL LTV Grid
+HL	Secured	Bandhan Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	Bandhan Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	Bandhan Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per HL LTV Grid
+HL	Secured	Bandhan Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	10%	As per HL LTV Grid
+HL	Secured	Aditya Birla Finance Limited	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	Aditya Birla Finance Limited	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	Aditya Birla Finance Limited	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	Low LTV	NA	50%
+HL	Secured	Aditya Birla Finance Limited	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	50%
+HL	Secured	Aditya Birla Finance Limited	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per HL LTV Grid
+HL	Secured	Aditya Birla Finance Limited	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST		As per HL LTV Grid
+HL	Secured	Bank of Baroda	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	Bank of Baroda	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	State Bank of India	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	State Bank of India	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	Bajaj Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	Bajaj Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	Bajaj Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	CA, Doctor	SEP	NA	As per HL LTV Grid
+HL	Secured	Bajaj Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	Low LTV	NA	65%
+HL	Secured	Bajaj Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	65%
+HL	Secured	Bajaj Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per HL LTV Grid
+HL	Secured	Bajaj Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	Trader, Service - 10%	As per HL LTV Grid
+HL	Secured	Bajaj Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	Wholesale, Manufacturer - 8%	As per HL LTV Grid
+HL	Secured	Yes Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	Yes Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	Yes Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	45%
+HL	Secured	Yes Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	Doctor, BDS, BHMS, BAMS	SEP	NA	As per HL LTV Grid
+HL	Secured	Yes Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	CA, CS, Architect	SEP	NA	As per HL LTV Grid
+HL	Secured	Yes Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	Doctor, BDS, BHMS, BAMS	CPM SEP	NA	As per HL LTV Grid
+HL	Secured	Yes Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	CA, CS, Architect	CPM SEP	NA	As per HL LTV Grid
+HL	Secured	Yes Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per HL LTV Grid
+HL	Secured	Yes Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	20%	As per HL LTV Grid
+HL	Secured	HDFC	Floating	Ready Possession, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	HDFC	Floating	Plot	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	HDFC	Floating	Plot+Construction	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	HDFC	Floating	Ready Possession, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	HDFC	Floating	Plot	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	HDFC	Floating	Plot+Construction	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	HDFC	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	Manufacturer, Trader - 8%	As per HL LTV Grid
+HL	Secured	JIO Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	JIO Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	JIO Finance	Floating	Ready Possession, Construction/Renovation	Informal	Salaried	NA	Low LTV	NA	50%
+HL	Secured	JIO Finance	Floating	Ready Possession, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	50%
+HL	Secured	JIO Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	CA, Doctor	SEP	NA	As per HL LTV Grid
+HL	Secured	JIO Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per HL LTV Grid
+HL	Secured	JIO Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	Trader - 6%	As per HL LTV Grid
+HL	Secured	JIO Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	Manufacturer - 8%	As per HL LTV Grid
+HL	Secured	JIO Finance	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		GST	Service - 12%	As per HL LTV Grid
+HL	Secured	IDBI Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	IDBI Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	TATA Capital	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	TATA Capital	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per HL LTV Grid
+HL	Secured	TATA Capital	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	Doctor	SEP	NA	As per HL LTV Grid
+HL	Secured	TATA Capital	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	CA, Architect	SEP	NA	As per HL LTV Grid
+HL	Secured	TATA Capital	Floating	Ready Possession, Construction/Renovation	Informal	Salaried	NA	Low LTV	NA	50%
+HL	Secured	TATA Capital	Floating	Ready Possession, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	50%
+HL	Secured	TATA Capital	Floating	Plot, Plot+Construction	Informal	Salaried	NA	Low LTV	NA	40%
+HL	Secured	TATA Capital	Floating	Plot, Plot+Construction	Informal	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	40%
+HL	Secured	Indus Ind Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	NIP	NA	As per HL LTV Grid
+HL	Secured	Indus Ind Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional	Doctor, MBBS, BDS, CA, Architect	NIP	NA	As per HL LTV Grid
+HL	Secured	Indus Ind Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	Doctor, MBBS, BDS	SEP	NA	As per HL LTV Grid
+HL	Secured	Indus Ind Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	CA	SEP	NA	As per HL LTV Grid
+HL	Secured	Indus Ind Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional	Architect	SEP	NA	As per HL LTV Grid
+HL	Secured	Indus Ind Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional	Doctor, MBBS, BDS, CA, Architect	GST		As per HL LTV Grid
+HL	Secured	Indus Ind Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional	Doctor, MBBS, BDS, CA, Architect	Banking	NA	As per HL LTV Grid
+HL	Secured	Indus Ind Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Salaried	NA	Low LTV	NA	50%
+HL	Secured	Indus Ind Bank	Floating	Ready Possession, Plot, Plot+Construction, Construction/Renovation	Informal	Self Employed Professional/Self Employed Non Professional	Doctor, MBBS, BDS, CA, Architect	Low LTV	NA	50%
+										
+LAP	Secured	L&T Finance	Floating	Residential/commercial/Industrial	Informal	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	L&T Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	L&T Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional	CA, Doctor	SEP	NA	As per LAP LTV Grid
+LAP	Secured	L&T Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional	CS	SEP	NA	As per LAP LTV Grid
+LAP	Secured	L&T Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per LAP LTV Grid
+LAP	Secured	L&T Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Service - 10%	As per LAP LTV Grid
+LAP	Secured	L&T Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Retailer - 12%	As per LAP LTV Grid
+LAP	Secured	L&T Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Wholesale - 8%	As per LAP LTV Grid
+LAP	Secured	L&T Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Manufacturer - 4%	As per LAP LTV Grid
+LAP	Secured	ICICI Bank	Floating	Residential/commercial/Industrial	Informal	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	ICICI Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	ICICI Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per LAP LTV Grid
+LAP	Secured	ICICI Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Manufacturer - 6%	As per LAP LTV Grid
+LAP	Secured	Bandhan Bank	Floating	Residential/commercial	Hospital, Industry,Marriage Garden	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	Bandhan Bank	Floating	Residential/commercial	Hospital, Industry,Marriage Garden	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	Bandhan Bank	Floating	Residential/commercial	Hospital, Industry,Marriage Garden	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per LAP LTV Grid
+LAP	Secured	Bandhan Bank	Floating	Residential/commercial	Hospital, Industry,Marriage Garden	Self Employed Professional/Self Employed Non Professional		GST	10%	As per LAP LTV Grid
+LAP	Secured	Aditya Birla Finance Limited	Floating	Residential/commercial/Industrial	Special Property	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	Aditya Birla Finance Limited	Floating	Residential/commercial/Industrial	Special Property	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	Aditya Birla Finance Limited	Floating	Residential/commercial/Industrial	Special Property	Salaried	NA	Low LTV	NA	40%
+LAP	Secured	Aditya Birla Finance Limited	Floating	Residential/commercial/Industrial	Special Property	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	40%
+LAP	Secured	Aditya Birla Finance Limited	Floating	Residential/commercial/Industrial	Special Property	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per LAP LTV Grid
+LAP	Secured	Aditya Birla Finance Limited	Floating	Residential/commercial/Industrial	Special Property	Self Employed Professional/Self Employed Non Professional		GST		As per LAP LTV Grid
+LAP	Secured	Bank of Baroda	Floating	Residential/commercial/Industrial	Hospital/School	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	Bank of Baroda	Floating	Residential/commercial/Industrial	Hospital/School	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	State Bank of India	Floating	Residential/commercial/Industrial	Hospital/School	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	State Bank of India	Floating	Residential/commercial/Industrial	Hospital/School	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	Bajaj Finance	Floating	Residential/commercial	NIL	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	Bajaj Finance	Floating	Residential/commercial	NIL	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	Bajaj Finance	Floating	Residential/commercial	NIL	Self Employed Professional	CA, Doctor	SEP	NA	As per LAP LTV Grid
+LAP	Secured	Bajaj Finance	Floating	Residential	NIL	Salaried	NA	Low LTV	NA	65%
+LAP	Secured	Bajaj Finance	Floating	Residential	NIL	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	65%
+LAP	Secured	Bajaj Finance	Floating	commercial	NIL	Salaried	NA	Low LTV	NA	50%
+LAP	Secured	Bajaj Finance	Floating	commercial	NIL	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	50%
+LAP	Secured	Bajaj Finance	Floating	Residential/commercial	NIL	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per LAP LTV Grid
+LAP	Secured	Bajaj Finance	Floating	Residential/commercial	NIL	Self Employed Professional/Self Employed Non Professional		GST	Trader, Service - 10%	As per LAP LTV Grid
+LAP	Secured	Bajaj Finance	Floating	Residential/commercial	NIL	Self Employed Professional/Self Employed Non Professional		GST	Wholesale, Manufacturer - 8%	As per LAP LTV Grid
+LAP	Secured	Yes Bank	Floating	Residential/commercial/Industrial	Informal	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	Yes Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	Yes Bank	Floating	Residential	Informal	Salaried	NA	Low LTV	NA	45%
+LAP	Secured	Yes Bank	Floating	commercial	Informal	Salaried	NA	Low LTV	NA	40%
+LAP	Secured	Yes Bank	Floating	Industrial	Informal	Salaried	NA	Low LTV	NA	30%
+LAP	Secured	Yes Bank	Floating	Residential	Informal	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	45%
+LAP	Secured	Yes Bank	Floating	commercial	Informal	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	40%
+LAP	Secured	Yes Bank	Floating	Industrial	Informal	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	30%
+LAP	Secured	Yes Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional	Doctor, BDS, BHMS, BAMS	SEP	NA	As per LAP LTV grid
+LAP	Secured	Yes Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional	CA, CS, Architect	SEP	NA	As per LAP LTV grid
+LAP	Secured	Yes Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional	Doctor, BDS, BHMS, BAMS	CPM SEP	NA	As per LAP LTV grid
+LAP	Secured	Yes Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional	CA, CS, Architect	CPM SEP	NA	As per LAP LTV grid
+LAP	Secured	Yes Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per LAP LTV Grid
+LAP	Secured	Yes Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	20%	As per LAP LTV Grid
+LAP	Secured	HDFC Bank	Floating	Residential/commercial/Industrial	Informal	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	HDFC Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	HDFC Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per LAP LTV Grid
+LAP	Secured	HDFC Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Trader - 9%	As per LAP LTV Grid
+LAP	Secured	HDFC Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Manufacturer - 10%	As per LAP LTV Grid
+LAP	Secured	HDFC Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Service - 8%	As per LAP LTV Grid
+LAP	Secured	IDFC Bank	Floating	Residential/commercial/Industrial	Informal	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	IDFC Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	IDFC Bank	Floating	Residential/commercial/Industrial	Plot	Salaried	NA	Low LTV	NA	40%
+LAP	Secured	IDFC Bank	Floating	Residential/commercial/Industrial	Plot	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	40%
+LAP	Secured	IDFC Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Manufacturer - 10%	As per LAP LTV Grid
+LAP	Secured	IDFC Bank	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Trader, Service - 7%	As per LAP LTV Grid
+LAP	Secured	JIO Finance	Floating	Residential/commercial/Industrial 	Plot	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	JIO Finance	Floating	Residential/commercial/Industrial 	Plot	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	JIO Finance	Floating	Residential/commercial/Industrial 	Plot	Salaried	NA	Low LTV	NA	50%
+LAP	Secured	JIO Finance	Floating	Residential/commercial/Industrial 	Plot	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	50%
+LAP	Secured	JIO Finance	Floating	Residential/commercial/Industrial 	Informal	Self Employed Professional	CA	SEP	NA	As per LAP LTV Grid
+LAP	Secured	JIO Finance	Floating	Residential/commercial/Industrial 	Informal	Self Employed Professional	Doctor	SEP	NA	As per LAP LTV Grid
+LAP	Secured	JIO Finance	Floating	Plot	Informal	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	JIO Finance	Floating	Plot	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	JIO Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		Banking	NA	As per LAP LTV Grid
+LAP	Secured	JIO Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Trader - 6%	As per LAP LTV Grid
+LAP	Secured	JIO Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Manufacturer - 8%	As per LAP LTV Grid
+LAP	Secured	JIO Finance	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		GST	Service - 12%	As per LAP LTV Grid
+LAP	Secured	IDBI Bank	Floating	Residential/commercial	Informal	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	IDBI Bank	Floating	Residential/commercial	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	TATA Capital	Floating	Residential/commercial/Industrial	Informal	Salaried	NA	NIP	NA	As per LAP LTV Grid
+LAP	Secured	TATA Capital	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional/Self Employed Non Professional		NIP	NA	As per LAP LTV Grid
+LAP	Secured	TATA Capital	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional	Doctor	SEP	NA	As per LAP LTV Grid
+LAP	Secured	TATA Capital	Floating	Residential/commercial/Industrial	Informal	Self Employed Professional	CA, Architect	SEP	NA	As per LAP LTV grid
+LAP	Secured	TATA Capital	Floating	Residential/commercial/Industrial	Plot	Salaried	NA	Low LTV	NA	50%
+LAP	Secured	TATA Capital	Floating	Residential/commercial/Industrial	Plot	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	50%
+LAP	Secured	TATA Capital	Floating	Plot	Informal	Salaried	NA	Low LTV	NA	40%
+LAP	Secured	TATA Capital	Floating	Plot	Informal	Self Employed Professional/Self Employed Non Professional		Low LTV	NA	40%
+LAP	Secured	Indus Ind Bank	Floating	Residential/commercial/Industrial	Plot	Salaried	NA	NIP	NA	As per LAP LTV grid
+LAP	Secured	Indus Ind Bank	Floating	Residential/commercial/Industrial	Plot	Self Employed Professional/Self Employed Non Professional	Doctor, MBBS, BDS, CA, Architect	NIP	NA	As per LAP LTV grid
+LAP	Secured	Indus Ind Bank	Floating	Residential/commercial/Industrial	Plot	Self Employed Professional	Doctor, MBBS, BDS	SEP	NA	As per LAP LTV grid
+LAP	Secured	Indus Ind Bank	Floating	Residential/commercial/Industrial	Plot	Self Employed Professional	CA	SEP	NA	As per LAP LTV grid
+LAP	Secured	Indus Ind Bank	Floating	Residential/commercial/Industrial	Plot	Self Employed Professional	Architect	SEP	NA	As per LAP LTV grid
+LAP	Secured	Indus Ind Bank	Floating	Residential/commercial/Industrial	Plot	Self Employed Professional/Self Employed Non Professional	Doctor, MBBS, BDS, CA, Architect	GST		As per LAP LTV grid
+LAP	Secured	Indus Ind Bank	Floating	Residential/commercial/Industrial	Plot	Self Employed Professional/Self Employed Non Professional	Doctor, MBBS, BDS, CA, Architect	Banking	NA	As per LAP LTV grid
+LAP	Secured	Indus Ind Bank	Floating	Residential/commercial	Plot	Salaried	NA	Low LTV	NA	50%
+LAP	Secured	Indus Ind Bank	Floating	Residential/commercial	Plot	Self Employed Professional/Self Employed Non Professional	Doctor, MBBS, BDS, CA, Architect	Low LTV	NA	50% skip the low ltv keep the other data if it already exits use 200 iq to map it to the product use 200 iq 
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-08T02:35:33+05:30.
+
+The user's current state is as follows:
+Active Document: /Users/manishmehta/Documents/PRYME-BACKEND-PROD/src/main/resources/db/migration/V53__reseed_login_fee_matrix.sql (LANGUAGE_SQL)
+Cursor is on line: 1
+Other open documents:
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/pages/Index.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/pages/tools/PrepaymentCalculatorPage.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/pages/tools/EMICalculatorPage.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/components/loan/steps/IdentityStep.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/pages/Faq.tsx (LANGUAGE_TSX)
+</ADDITIONAL_METADATA>

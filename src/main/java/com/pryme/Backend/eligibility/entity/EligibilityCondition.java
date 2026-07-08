@@ -57,20 +57,6 @@ public class EligibilityCondition {
     @Column(name = "cibil_min")
     private Integer cibilMin;
 
-    @Column(name = "foir_max", precision = 5, scale = 4)
-    private BigDecimal foirMax;
-
-    @Column(name = "min_tenure")
-    private Integer minTenure;
-
-    @Column(name = "max_tenure")
-    private Integer maxTenure;
-
-    @Column(name = "min_loan_amount", precision = 15, scale = 2)
-    private BigDecimal minLoanAmount;
-
-    @Column(name = "max_loan_amount", precision = 15, scale = 2)
-    private BigDecimal maxLoanAmount;
 
 
 
@@ -86,7 +72,14 @@ public class EligibilityCondition {
     @Column(name = "ltv_allowed", precision = 5, scale = 4)
     private BigDecimal ltvAllowed;
 
+    @Column(name = "ltv_grid", columnDefinition = "jsonb")
+    private String ltvGrid;
 
+    @Column(name = "self_employed_professionals", columnDefinition = "text")
+    private String selfEmployedProfessionals;
+
+    @Column(name = "formulae", columnDefinition = "text")
+    private String formulae;
 
     @Column(name = "deviation_formulae", columnDefinition = "text")
     private String deviationFormulae;
@@ -139,9 +132,6 @@ public class EligibilityCondition {
     @Builder.Default
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
-
-    @Column(name = "bundle_id", length = 255)
-    private String bundleId;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

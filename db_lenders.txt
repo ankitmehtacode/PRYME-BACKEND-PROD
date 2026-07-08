@@ -1,0 +1,15 @@
+ ICICI Bank|105
+ IDFC|209
+ HDFC Bank|1
+ YES BANK|205
+ SBI|102
+ Bandhan Bank|200
+ IDBI|207
+ Bajaj Finance|203
+ Aditya Birla Finance Limited|201
+ JIO Finance|206
+ ICICI HFC|204
+ Tata Capital|208
+ Bank of Baroda|202
+ L&T Finance|101
+

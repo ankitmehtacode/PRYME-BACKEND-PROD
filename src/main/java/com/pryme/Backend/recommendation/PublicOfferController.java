@@ -26,7 +26,7 @@ public class PublicOfferController {
     private final LoanProductRepository loanProductRepository;
     private final HeroOfferConfigRepository heroOfferConfigRepository;
 
-    @Operation(summary = "Get top hero offers (custom configured or lowest ROI)")
+    @Operation(summary = "One-line description of this endpoint")
     @GetMapping("/hero")
     @Cacheable(cacheNames = "banks:recommendation", key = "'hero-offers'")
     @Timed(value = "pryme.api.public.hero_offers", description = "Public hero offers latency")
@@ -78,10 +78,10 @@ public class PublicOfferController {
                 product.getLenderId(),
                 lenderName,
                 "Instant " + displayType + " limit up to INR 50,00,000",
-                "• Rates from " + product.getRoi() + "%\n• Processing fee from " + product.getProcessingFee() + "%",
+                "• Rates from " + product.getRoi() + "%",
                 "LIVE BANK OFFER",
                 product.getRoi(),
-                product.getProcessingFee(),
+                null, // Processing fee is dynamic now
                 product.getLoginFees() != null ? product.getLoginFees() : BigDecimal.ZERO,
                 displayType,
                 null,

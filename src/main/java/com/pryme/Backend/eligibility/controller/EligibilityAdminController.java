@@ -5,8 +5,6 @@ import com.pryme.Backend.eligibility.entity.EligibilityCondition;
 import com.pryme.Backend.eligibility.repository.EligibilityConditionRepository;
 import com.pryme.Backend.loanproduct.entity.LoanProduct;
 import com.pryme.Backend.loanproduct.repository.LoanProductRepository;
-import com.pryme.Backend.eligibility.policy.event.PolicyCachesClearedEvent;
-import org.springframework.context.ApplicationEventPublisher;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +36,6 @@ public class EligibilityAdminController {
 
     private final EligibilityConditionRepository repository;
     private final LoanProductRepository loanProductRepository;
-    private final ApplicationEventPublisher eventPublisher;
 
     @Operation(summary = "List eligibility engine rules (defaults to active-only)")
     @GetMapping
@@ -76,7 +73,6 @@ public class EligibilityAdminController {
                     .ifPresent(product -> rule.setBankName(product.getLenderName()));
         }
         EligibilityCondition saved = repository.save(rule);
-        eventPublisher.publishEvent(new PolicyCachesClearedEvent(this));
         log.info("🧠 ENGINE RULE CREATED [id={}] [productCode={}] by [{}]",
                 saved.getId(), saved.getProductCode(), auth.getName());
         return ResponseEntity.ok(saved);
@@ -100,7 +96,6 @@ public class EligibilityAdminController {
                                 .ifPresent(product -> incoming.setBankName(product.getLenderName()));
                     }
                     EligibilityCondition saved = repository.save(incoming);
-                    eventPublisher.publishEvent(new PolicyCachesClearedEvent(this));
                     log.info("🧠 ENGINE RULE UPDATED [id={}] [productCode={}] by [{}]",
                             saved.getId(), saved.getProductCode(), auth.getName());
                     return ResponseEntity.ok(saved);
@@ -130,7 +125,6 @@ public class EligibilityAdminController {
                             rule.getWorkExpYears(),
                             rule.getBusinessAgeYears(),
                             rule.getCibilMin(),
-                            rule.getFoirMax(),
                             rule.getLtvAllowed(),
                             rule.getBankName() != null && !rule.getBankName().isBlank() ? rule.getBankName() : (product != null ? product.getLenderName() : null),
                             rule.getLoanType(),
@@ -153,12 +147,14 @@ public class EligibilityAdminController {
                             rule.getBankStatementRequirement(),
                             rule.getSalarySlipRequirement(),
                             rule.getGstReturnRequirement(),
+                            rule.getLtvGrid(),
+                            rule.getSelfEmployedProfessionals(),
+                            rule.getFormulae(),
                             
                             product != null ? product.getProductName() : null,
                             product != null ? product.getLenderName() : null,
                             product != null ? product.getInterestType() : null,
                             product != null ? product.getRoi() : null,
-                            product != null ? product.getProcessingFee() : null,
                             product != null ? product.getPrepaymentCharges() : null,
                             product != null ? product.getForeclosureCharges() : null,
                             product != null ? product.getLoginFees() : null,
@@ -210,7 +206,6 @@ public class EligibilityAdminController {
             return ResponseEntity.notFound().build();
         }
         repository.deleteById(id);
-        eventPublisher.publishEvent(new PolicyCachesClearedEvent(this));
         log.info("🧠 ENGINE RULE DELETED [id={}] by [{}]", id, auth.getName());
         return ResponseEntity.ok(Map.of("message", "Rule deleted.", "id", id));
     }

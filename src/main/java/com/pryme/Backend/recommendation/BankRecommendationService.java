@@ -50,7 +50,6 @@ public class BankRecommendationService {
         Comparator<LoanProduct> ranking = Comparator
                 .comparing((LoanProduct p) -> fitScore(p, salary, cibil), Comparator.reverseOrder())
                 .thenComparing(p -> safe(p.getRoi()))
-                .thenComparing(p -> safe(p.getProcessingFee()))
                 .thenComparing(p -> p.getLenderName() != null
                         ? p.getLenderName() : "UNKNOWN");
 
@@ -71,7 +70,7 @@ public class BankRecommendationService {
         BigDecimal minLoanAmount = safe(product.getMinLoanAmount());
         int minCibil = product.getMinCibil() != null ? product.getMinCibil() : 300;
         BigDecimal roi = safe(product.getRoi());
-        BigDecimal fee = safe(product.getProcessingFee());
+        BigDecimal fee = BigDecimal.ZERO; // Processing fee is dynamic now
 
         BigDecimal salaryHeadroom = salary.subtract(minLoanAmount).max(BigDecimal.ZERO);
         BigDecimal salaryRatio = salaryHeadroom

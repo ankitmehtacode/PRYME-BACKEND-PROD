@@ -384,6 +384,7 @@ public class DocumentVaultService {
         getAuthorizedApplication(safeApplicationId);
         return documentRecordRepository.findAllByLoanApplication_ApplicationIdOrderByCreatedAtDesc(safeApplicationId)
                 .stream()
+                .filter(doc -> doc.getStatus() == DocumentRecord.DocumentStatus.UPLOADED)
                 .map(this::toResponse)
                 .toList();
     }

@@ -1,0 +1,31 @@
+6 ---
+<USER_REQUEST>
+dont upadte the row such as bank_name	loan_type	product_code	employment_type	surrogate	cibil_min	min_income	min_age	max_age	min_tenure_months	max_tenure_months	min_loan_amount	max_loan_amount	 this already exists right just map the other things i.e Interest_Type , Property_Type, Negative_Property,Self Employed Professional which professions are allowed map it where there is na allow every profession ,margin by occupation where nothing is written its NA ,LTV WHERE AS PER LTV SHEET HERE IS THE DATA MAP IT MAP IT TO Ready Built Property		
+Min_LoanAmount	Max_LoanAmount	LTV
+0	3000000	90%
+3000001	7500000	80%
+7500001	No Limit	75%
+		
+		
+Plot		
+Min_LoanAmount	Max_LoanAmount	LTV
+0	No limit	70% USE THIS WHERE LTV SHEET IS MENTIONED ,Formulae MAP IT TO THE PRODUCTS ,Conditions Where nothing is metioned take it 0 ,Vintage years should be perfectly mapped ,ITR_Required should be mapped perfectly ,Provident_Fund_Mandatory map it too,Negative_Mode_Salary map it also,Bank_Statement	Salary_Slip_months	GST_Required_months	EMI_not_Obligated	Admin Fee	Insurance Charges	Legal and Technical Charges	Other_Expense	Stamp Duty	Prepayment Charges	Foreclosure Charges	Notes map it where notes are just personal memo every other thing metioned where maths is there should perfectly be mapped to the math and formula too
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-08T03:01:09+05:30.
+
+The user's current state is as follows:
+Active Document: /Users/manishmehta/Documents/PRYME-BACKEND-PROD/src/main/resources/db/migration/V53__reseed_login_fee_matrix.sql (LANGUAGE_SQL)
+Cursor is on line: 1
+Other open documents:
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/src/main/resources/db/migration/V53__reseed_login_fee_matrix.sql (LANGUAGE_SQL)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/components/loan/CibilTips.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/pages/Index.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/pages/tools/PrepaymentCalculatorPage.tsx (LANGUAGE_TSX)
+- /Users/manishmehta/Documents/PRYME-BACKEND-PROD/Pryme-Frontend/src/pages/tools/EMICalculatorPage.tsx (LANGUAGE_TSX)
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from Gemini 3.5 Flash (High) to Gemini 3.1 Pro (High). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>
+

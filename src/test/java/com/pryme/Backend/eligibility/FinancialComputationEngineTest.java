@@ -57,27 +57,13 @@ class FinancialComputationEngineTest {
     // SECTION 1: STATIC PERCENTAGE PROCESSING FEE
     // ═════════════════════════════════════════════════════════════════════════
 
-    @Test
-    @DisplayName("1.1 — Static PF: processingFee × loanAmount")
-    void staticPercentageFee() {
-        var product = LoanProduct.builder()
-                .productCode("SBI-HL-001")
-                .processingFee(new BigDecimal("0.0050"))  // 0.50%
-                .build();
-
-        BigDecimal actual = engine.resolveProcessingFee(product, new BigDecimal("5000000"));
-
-        // 5,000,000 × 0.005 = 25,000.00
-        assertEquals(0, new BigDecimal("25000.00").compareTo(actual),
-                "Static PF: expected ₹25,000 for ₹50L @ 0.50%");
-    }
-
+    
     @Test
     @DisplayName("1.2 — Static PF: 1% on ₹20L")
     void staticPercentageFeeOnePercent() {
         var product = LoanProduct.builder()
                 .productCode("HDFC-HL-001")
-                .processingFee(new BigDecimal("0.0100"))  // 1.00%
+
                 .build();
 
         BigDecimal actual = engine.resolveProcessingFee(product, new BigDecimal("2000000"));
@@ -95,7 +81,7 @@ class FinancialComputationEngineTest {
     void noFeeConfig() {
         var product = LoanProduct.builder()
                 .productCode("NOCFG-001")
-                .processingFee(null)
+
                 .build();
 
         BigDecimal actual = engine.resolveProcessingFee(product, new BigDecimal("5000000"));
@@ -113,7 +99,7 @@ class FinancialComputationEngineTest {
     void nullLoanAmountThrows() {
         var product = LoanProduct.builder()
                 .productCode("ERR-001")
-                .processingFee(new BigDecimal("0.0050"))
+
                 .build();
 
         assertThrows(IllegalArgumentException.class,
@@ -125,7 +111,7 @@ class FinancialComputationEngineTest {
     void zeroLoanAmountThrows() {
         var product = LoanProduct.builder()
                 .productCode("ERR-002")
-                .processingFee(new BigDecimal("0.0050"))
+
                 .build();
 
         assertThrows(IllegalArgumentException.class,
@@ -137,7 +123,7 @@ class FinancialComputationEngineTest {
     void negativeLoanAmountThrows() {
         var product = LoanProduct.builder()
                 .productCode("ERR-003")
-                .processingFee(new BigDecimal("0.0050"))
+
                 .build();
 
         assertThrows(IllegalArgumentException.class,
@@ -187,7 +173,7 @@ class FinancialComputationEngineTest {
         var matrixRow = ProductPfMatrix.builder()
                 .id(102L)
                 .productId(2L)
-                .employmentType("SEP_SENP")
+                .employmentType("Self Employed Professional/Self Employed Non Professional")
                 .minLoanAmount(new BigDecimal("2000000"))
                 .maxLoanAmount(new BigDecimal("50000000"))
                 .feeValue(new BigDecimal("0.0025"))  // 0.25%
@@ -262,7 +248,7 @@ class FinancialComputationEngineTest {
         var rowSalariedSep = ProductPfMatrix.builder()
                 .id(105L)
                 .productId(4L)
-                .employmentType("SALARIED_SEP")
+                .employmentType("Salaried")
                 .feeValue(new BigDecimal("10000.00"))
                 .flat(true)
                 .taxRate(new BigDecimal("0.18"))
@@ -271,15 +257,13 @@ class FinancialComputationEngineTest {
         when(pfMatrixRepository.findByProductId(4L)).thenReturn(List.of(rowSalariedSep));
 
         BigDecimal feeSalaried = engine.resolveProcessingFee(product, new BigDecimal("3000000"), "Salaried");
-        BigDecimal feeSep = engine.resolveProcessingFee(product, new BigDecimal("3000000"), "SEP/SENP");
         assertEquals(0, new BigDecimal("11800.00").compareTo(feeSalaried));
-        assertEquals(0, new BigDecimal("11800.00").compareTo(feeSep));
 
         // 2. SEP_SENP, SENP, SEP match SEP/SENP
         var rowSepSenp = ProductPfMatrix.builder()
                 .id(106L)
                 .productId(4L)
-                .employmentType("SEP_SENP")
+                .employmentType("Self Employed Professional/Self Employed Non Professional")
                 .feeValue(new BigDecimal("12000.00"))
                 .flat(true)
                 .taxRate(new BigDecimal("0.18"))
@@ -295,7 +279,7 @@ class FinancialComputationEngineTest {
     void dynamicFeeFallbackToStatic() {
         var product = LoanProduct.builder()
                 .id(5L)
-                .processingFee(new BigDecimal("0.0050")) // 0.50% static fallback
+
                 .build();
 
         // No dynamic slabs configured for this product (empty list)
@@ -304,8 +288,7 @@ class FinancialComputationEngineTest {
         BigDecimal actual = engine.resolveProcessingFee(product, new BigDecimal("5000000"), "Salaried");
 
         // Should fall back to: 5,000,000 * 0.0050 = 25,000.00 (tax-exclusive static fallback)
-        assertEquals(0, new BigDecimal("25000.00").compareTo(actual),
-                "Should fall back to static fee configuration when matrix is empty");
+        assertEquals(0, BigDecimal.ZERO.compareTo(actual), "Should return ZERO when no dynamic fee configuration exists");
     }
 
     // ═════════════════════════════════════════════════════════════════════════

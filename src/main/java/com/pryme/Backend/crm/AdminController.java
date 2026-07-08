@@ -82,7 +82,7 @@ public class AdminController {
     // ==========================================
     // 2. STATE TRANSITION ENGINE (APPROVE / REJECT)
     // ==========================================
-    @Operation(summary = "Transition application status with audit trail")
+    @Operation(summary = "One-line description of this endpoint")
     @PatchMapping("/{applicationId}/status")
     public ResponseEntity<Map<String, Object>> updateApplicationStatus(
             @PathVariable String applicationId,
@@ -106,7 +106,7 @@ public class AdminController {
     // ==========================================
     // 3. ASSIGNMENT ROUTING ENGINE
     // ==========================================
-    @Operation(summary = "Route application to designated underwriter")
+    @Operation(summary = "One-line description of this endpoint")
     @PatchMapping("/{applicationId}/assign")
     public ResponseEntity<Map<String, Object>> assignApplication(
             @PathVariable String applicationId,

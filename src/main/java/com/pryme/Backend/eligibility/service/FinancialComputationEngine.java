@@ -2,10 +2,14 @@ package com.pryme.Backend.eligibility.service;
 
 import com.pryme.Backend.eligibility.dto.ApplicantProfile;
 import com.pryme.Backend.loanproduct.entity.LoanProduct;
+import com.pryme.Backend.loanproduct.entity.ProductLoginFeeMatrix;
+import com.pryme.Backend.loanproduct.entity.ProductPfMatrix;
 import com.pryme.Backend.loanproduct.entity.ProductRoiMatrix;
+import com.pryme.Backend.loanproduct.repository.ProductLoginFeeMatrixRepository;
+import com.pryme.Backend.loanproduct.repository.ProductPfMatrixRepository;
 import com.pryme.Backend.loanproduct.repository.ProductRoiMatrixRepository;
-import com.pryme.Backend.eligibility.policy.provider.ActiveBundlePolicyProvider;
-import com.pryme.Backend.eligibility.policy.model.PolicyBundle;
+import com.pryme.Backend.loanproduct.entity.ProductFoirMatrix;
+import com.pryme.Backend.loanproduct.repository.ProductFoirMatrixRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,7 +23,7 @@ import java.util.List;
  * 🧠 FINANCIAL COMPUTATION ENGINE — DYNAMIC RESOLVER
  * ═══════════════════════════════════════════════════════════════════════════════
  *
- * Resolves processing fees and interest rates (ROI) at runtime using active PolicyBundle in memory.
+ * Resolves processing fees and interest rates (ROI) at runtime using product-specific matrices.
  * Fallback to base product parameters.
  *
  * @since 2026-06-12
@@ -30,31 +34,9 @@ import java.util.List;
 public class FinancialComputationEngine {
 
     private final ProductRoiMatrixRepository roiMatrixRepository;
-    private final ActiveBundlePolicyProvider activeBundlePolicyProvider;
-    private final CentralizedNormalizer centralizedNormalizer;
-    private final java.util.Map<String, List<ProductRoiMatrix>> roiCache = new java.util.concurrent.ConcurrentHashMap<>();
-
-    @org.springframework.context.event.EventListener
-    public void handleCachesCleared(com.pryme.Backend.eligibility.policy.event.PolicyCachesClearedEvent event) {
-        clearCaches();
-    }
-
-    public void clearCaches() {
-        roiCache.clear();
-    }
-
-    public void warmupCaches() {
-        clearCaches();
-        List<ProductRoiMatrix> all = roiMatrixRepository.findAll();
-        for (var r : all) {
-            String activeKey = r.getProductId() + ":" + r.getBundleId();
-            roiCache.computeIfAbsent(activeKey, k -> new java.util.ArrayList<>()).add(r);
-
-            // Also store under product ID for absolute fallback
-            String fallbackKey = r.getProductId() + ":ALL";
-            roiCache.computeIfAbsent(fallbackKey, k -> new java.util.ArrayList<>()).add(r);
-        }
-    }
+    private final ProductPfMatrixRepository pfMatrixRepository;
+    private final ProductLoginFeeMatrixRepository loginFeeMatrixRepository;
+    private final ProductFoirMatrixRepository foirMatrixRepository;
 
     /** Scale for all INR fee outputs. */
     private static final int FEE_SCALE = 2;
@@ -65,6 +47,12 @@ public class FinancialComputationEngine {
 
     /**
      * Resolves the absolute processing fee (in ₹) for a given product, loan amount, and employment type.
+     *
+     * @param product        the LoanProduct entity (must not be null)
+     * @param loanAmount     the applicant's requested loan amount (must be > 0)
+     * @param employmentType the applicant's employment type (e.g. 'Salaried', 'SEP/SENP')
+     * @return               absolute processing fee as BigDecimal, scale=2, never null
+     * @throws IllegalArgumentException if loanAmount is null or non-positive
      */
     public BigDecimal resolveProcessingFee(LoanProduct product, BigDecimal loanAmount, String employmentType) {
         if (loanAmount == null || loanAmount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -72,36 +60,44 @@ public class FinancialComputationEngine {
                     "loanAmount must be a positive value; received: " + loanAmount);
         }
 
-        var active = activeBundlePolicyProvider.getActiveBundle();
-        if (active != null && active.pfRules() != null && employmentType != null) {
-            for (var row : active.pfRules()) {
-                if (product.getProductCode() != null && product.getProductCode().equalsIgnoreCase(row.productName())) {
+        if (product.getId() != null && employmentType != null) {
+            List<ProductPfMatrix> matrixRows = pfMatrixRepository.findByProductId(product.getId());
+            if (matrixRows != null && !matrixRows.isEmpty()) {
+                for (ProductPfMatrix row : matrixRows) {
                     // 1. Check Employment Type
-                    String rowEmpType = row.employmentType();
-                    if (rowEmpType != null) {
-                        if (!centralizedNormalizer.matchRoiEmploymentType(rowEmpType, employmentType, product.getLenderName())) {
+                    String rowEmpType = row.getEmploymentType();
+                        boolean match = EligibilityEngineService.matchEmploymentType(rowEmpType, employmentType);
+                        
+                        if (!match) {
                             continue;
                         }
-                    }
 
                     // 2. Check Loan Amount Slabs
-                    BigDecimal minAmt = row.minLoanAmount() != null ? row.minLoanAmount() : BigDecimal.ZERO;
-                    BigDecimal maxAmt = row.maxLoanAmount() != null ? row.maxLoanAmount() : new BigDecimal("999999999");
-                    if (loanAmount.compareTo(minAmt) < 0 || loanAmount.compareTo(maxAmt) > 0) {
+                    if (row.getMinLoanAmount() != null && loanAmount.compareTo(row.getMinLoanAmount()) < 0) {
+                        continue;
+                    }
+                    if (row.getMaxLoanAmount() != null && loanAmount.compareTo(row.getMaxLoanAmount()) > 0) {
                         continue;
                     }
 
                     // Found matching slab!
-                    BigDecimal feeVal = row.pf();
                     BigDecimal baseFee;
-                    if (feeVal.compareTo(BigDecimal.ONE) < 0) {
-                        baseFee = loanAmount.multiply(feeVal);
+                    if (row.isFlat()) {
+                        baseFee = row.getFeeValue();
                     } else {
-                        baseFee = feeVal;
+                        baseFee = loanAmount.multiply(row.getFeeValue());
+                    }
+
+                    // Apply Min/Max Fee limits
+                    if (row.getMinFee() != null && baseFee.compareTo(row.getMinFee()) < 0) {
+                        baseFee = row.getMinFee();
+                    }
+                    if (row.getMaxFee() != null && baseFee.compareTo(row.getMaxFee()) > 0) {
+                        baseFee = row.getMaxFee();
                     }
 
                     // Apply Tax Rate (total = baseFee * (1 + taxRate))
-                    BigDecimal taxRate = row.tax() != null ? row.tax() : new BigDecimal("0.1800");
+                    BigDecimal taxRate = row.getTaxRate() != null ? row.getTaxRate() : new BigDecimal("0.1800");
                     BigDecimal multiplier = BigDecimal.ONE.add(taxRate);
                     BigDecimal totalFee = baseFee.multiply(multiplier);
 
@@ -113,15 +109,9 @@ public class FinancialComputationEngine {
             }
         }
 
-        // Fallback to static percentage: loanAmount × staticRate (tax-exclusive)
-        if (product.getProcessingFee() != null) {
-            return loanAmount.multiply(product.getProcessingFee())
-                    .setScale(FEE_SCALE, RoundingMode.HALF_UP);
-        }
-
-        // No fee configured
-        log.debug("No static/dynamic fee for product={}. Returning ZERO.",
-                product.getProductCode());
+        // No dynamic fee configured in the matrix
+        log.debug("No dynamic processing fee matrix entry found for product={} and employment={}. Returning ZERO.",
+                product.getProductCode(), employmentType);
         return BigDecimal.ZERO;
     }
 
@@ -135,35 +125,19 @@ public class FinancialComputationEngine {
     /**
      * Resolves the Interest Rate (ROI) for an applicant using the product's ROI matrix.
      * If no matching matrix row is found, it falls back to the base product.getRoi().
+     *
+     * @param product   the loan product
+     * @param applicant the applicant profile
+     * @return the resolved ROI (e.g., 0.0825 for 8.25%)
      */
     public BigDecimal resolveRoi(LoanProduct product, ApplicantProfile applicant, BigDecimal requestedAmount) {
         if (product.getId() == null) {
             return product.getRoi();
         }
 
-        String activeBundleId = activeBundlePolicyProvider.getActiveBundleId();
-        String key1 = product.getId() + ":" + activeBundleId;
-        List<ProductRoiMatrix> matrixRows = roiCache.get(key1);
-        if (matrixRows == null || matrixRows.isEmpty()) {
-            String key2 = product.getId() + ":BASE";
-            matrixRows = roiCache.get(key2);
-            if (matrixRows == null || matrixRows.isEmpty()) {
-                String key3 = product.getId() + ":ALL";
-                matrixRows = roiCache.get(key3);
-            }
-        }
-
-        if (matrixRows == null || matrixRows.isEmpty()) {
-            matrixRows = roiMatrixRepository.findByProductIdAndBundleId(product.getId(), activeBundleId);
-            if (matrixRows.isEmpty()) {
-                matrixRows = roiMatrixRepository.findByProductIdAndBundleId(product.getId(), "BASE");
-                if (matrixRows.isEmpty()) {
-                    matrixRows = roiMatrixRepository.findByProductId(product.getId()); // absolute fallback
-                }
-            }
-        }
-
-        if (matrixRows == null || matrixRows.isEmpty()) {
+        List<ProductRoiMatrix> matrixRows = roiMatrixRepository.findByProductId(product.getId());
+        
+        if (matrixRows.isEmpty()) {
             return product.getRoi();
         }
 
@@ -176,6 +150,8 @@ public class FinancialComputationEngine {
         for (ProductRoiMatrix row : matrixRows) {
             // Check NTC flag
             if (row.isNtc() != isNtc) {
+                // If the row is specifically for NTC, but applicant isn't NTC (or vice versa), skip.
+                // However, if the row has isNtc=false, it means it's for regular applicants.
                 if (row.isNtc() && !isNtc) continue;
                 if (!row.isNtc() && isNtc) continue;
             }
@@ -183,7 +159,8 @@ public class FinancialComputationEngine {
             // Check Employment Type
             String rowEmpType = row.getEmploymentType();
             if (rowEmpType != null) {
-                if (!centralizedNormalizer.matchRoiEmploymentType(rowEmpType, empType, product.getLenderName())) {
+                boolean match = EligibilityEngineService.matchEmploymentType(rowEmpType, empType);
+                if (!match) {
                     continue;
                 }
             }
@@ -218,6 +195,12 @@ public class FinancialComputationEngine {
 
     /**
      * Resolves the absolute login fee (in ₹) for a given product, loan amount, and employment type.
+     *
+     * @param product        the LoanProduct entity (must not be null)
+     * @param loanAmount     the applicant's requested loan amount (must be > 0)
+     * @param employmentType the applicant's employment type (e.g. 'Salaried', 'SEP/SENP')
+     * @return               absolute login fee as BigDecimal, scale=2, never null
+     * @throws IllegalArgumentException if loanAmount is null or non-positive
      */
     public BigDecimal resolveLoginFee(LoanProduct product, BigDecimal loanAmount, String employmentType) {
         if (loanAmount == null || loanAmount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -225,27 +208,29 @@ public class FinancialComputationEngine {
                     "loanAmount must be a positive value; received: " + loanAmount);
         }
 
-        var active = activeBundlePolicyProvider.getActiveBundle();
-        if (active != null && active.loginFeeRules() != null && employmentType != null) {
-            for (var row : active.loginFeeRules()) {
-                if (product.getProductCode() != null && product.getProductCode().equalsIgnoreCase(row.productName())) {
+        if (product.getId() != null && employmentType != null) {
+            List<ProductLoginFeeMatrix> matrixRows = loginFeeMatrixRepository.findByProductId(product.getId());
+            if (matrixRows != null && !matrixRows.isEmpty()) {
+                for (ProductLoginFeeMatrix row : matrixRows) {
                     // 1. Check Employment Type
-                    String rowEmpType = row.employmentType();
+                    String rowEmpType = row.getEmploymentType();
                     if (rowEmpType != null) {
-                        if (!centralizedNormalizer.matchRoiEmploymentType(rowEmpType, employmentType, product.getLenderName())) {
+                        boolean match = EligibilityEngineService.matchEmploymentType(rowEmpType, employmentType);
+                        if (!match) {
                             continue;
                         }
                     }
 
                     // 2. Check Loan Amount Slabs
-                    BigDecimal minAmt = row.minLoanAmount() != null ? row.minLoanAmount() : BigDecimal.ZERO;
-                    BigDecimal maxAmt = row.maxLoanAmount() != null ? row.maxLoanAmount() : new BigDecimal("999999999");
-                    if (loanAmount.compareTo(minAmt) < 0 || loanAmount.compareTo(maxAmt) > 0) {
+                    if (row.getMinLoanAmount() != null && loanAmount.compareTo(row.getMinLoanAmount()) < 0) {
+                        continue;
+                    }
+                    if (row.getMaxLoanAmount() != null && loanAmount.compareTo(row.getMaxLoanAmount()) > 0) {
                         continue;
                     }
 
                     // Found matching slab!
-                    BigDecimal fee = row.loginFees();
+                    BigDecimal fee = row.getLoginFee();
                     log.debug("Dynamic Login Fee resolved: product={} loanAmount={} → loginFee={}",
                             product.getProductCode(), loanAmount, fee);
                     return fee != null ? fee.setScale(FEE_SCALE, RoundingMode.HALF_UP) : BigDecimal.ZERO;
@@ -267,6 +252,72 @@ public class FinancialComputationEngine {
     /**
      * Overloaded method for backward-compatibility. Bypasses dynamic matrix and uses static base login fee.
      */
+    
+    /**
+     * Resolves the maximum allowed FOIR for an applicant using the product's FOIR matrix.
+     * Incorporates deviation limits if configured.
+     * Fallback to product.getMaxEmiNmiRatio() or default 0.65.
+     */
+    public BigDecimal resolveFoir(LoanProduct product, ApplicantProfile applicant, BigDecimal effectiveIncome, String surrogate) {
+        if (product.getId() == null) {
+            return null;
+        }
+
+        List<ProductFoirMatrix> matrixRows = foirMatrixRepository.findByProductId(product.getId());
+        
+        if (matrixRows == null || matrixRows.isEmpty()) {
+            return null;
+        }
+
+        String empType = applicant.empType();
+
+        System.out.println("====== [DEBUG] FOIR MATCHING FOR PRODUCT: " + product.getProductCode() + " ======");
+        System.out.println("  Required EmpType: " + empType);
+        System.out.println("  Required Surrogate: " + surrogate);
+        System.out.println("  Effective Income: " + effectiveIncome);
+        for (ProductFoirMatrix row : matrixRows) {
+            System.out.println("  --> MATRIX ROW: " + row.getId() + " | Emp: " + row.getEmploymentType() + " | Surr: " + row.getSurrogate() + " | Min: " + row.getMinSalary() + " | Max: " + row.getMaxSalary() + " | Foir: " + row.getFoir());
+        }
+
+        for (ProductFoirMatrix row : matrixRows) {
+            // Check Employment Type
+            String rowEmpType = row.getEmploymentType();
+            if (rowEmpType != null && !rowEmpType.isEmpty()) {
+                boolean match = EligibilityEngineService.matchEmploymentType(rowEmpType, empType);
+                if (!match) continue;
+            }
+
+            // Check Surrogate
+            String rowSurrogate = row.getSurrogate();
+            if (rowSurrogate != null && !rowSurrogate.isEmpty()) {
+                if (surrogate == null || !rowSurrogate.equalsIgnoreCase(surrogate)) {
+                    continue;
+                }
+            }
+
+            // Check Income Slabs
+            if (row.getMinSalary() != null && effectiveIncome.compareTo(row.getMinSalary()) < 0) {
+                continue;
+            }
+            if (row.getMaxSalary() != null && effectiveIncome.compareTo(row.getMaxSalary()) > 0) {
+                continue;
+            }
+
+            // Match found!
+            BigDecimal finalFoir = row.getFoir();
+            if (row.getDeviation() != null) {
+                finalFoir = finalFoir.add(row.getDeviation());
+            }
+            
+            log.debug("Found matching FOIR matrix row for product {} -> baseFOIR: {}, dev: {}, final: {}", 
+                product.getProductCode(), row.getFoir(), row.getDeviation(), finalFoir);
+            return finalFoir;
+        }
+
+        // Fallback
+        return null;
+    }
+
     public BigDecimal resolveLoginFee(LoanProduct product, BigDecimal loanAmount) {
         return resolveLoginFee(product, loanAmount, null);
     }

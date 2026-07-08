@@ -56,7 +56,7 @@ public class EligibilityBoundaryIntegrationTest {
                 .interestType("FLOATING")
                 .minCibil(650).maxCibil(900)
                 .roi(new BigDecimal("0.0925"))
-                .processingFee(new BigDecimal("0.0050"))
+
                 .minTenureMonths(12).maxTenureMonths(360)
                 .minLoanAmount(new BigDecimal("100000.00"))
                 .maxLoanAmount(new BigDecimal("999999999.00"))
@@ -72,7 +72,6 @@ public class EligibilityBoundaryIntegrationTest {
         cond1.setEmploymentType("SALARIED_SEP");
         cond1.setSurrogate("NIP");
         cond1.setMinIncome(new BigDecimal("30000.00"));
-        cond1.setFoirMax(new BigDecimal("0.5000"));
         cond1.setLtvAllowed(new BigDecimal("0.8000"));
         cond1.setMinAge(21);
         cond1.setMaxAge(65);
@@ -90,7 +89,6 @@ public class EligibilityBoundaryIntegrationTest {
         cond2.setEmploymentType("SALARIED_SEP");
         cond2.setSurrogate("NIP");
         cond2.setMinIncome(new BigDecimal("60001.00"));
-        cond2.setFoirMax(new BigDecimal("0.6000"));
         cond2.setLtvAllowed(new BigDecimal("0.8000"));
         cond2.setMinAge(21);
         cond2.setMaxAge(65);
@@ -108,7 +106,6 @@ public class EligibilityBoundaryIntegrationTest {
         cond3.setEmploymentType("SALARIED_SEP");
         cond3.setSurrogate("NIP");
         cond3.setMinIncome(new BigDecimal("100001.00"));
-        cond3.setFoirMax(new BigDecimal("0.6500"));
         cond3.setLtvAllowed(new BigDecimal("0.8000"));
         cond3.setMinAge(21);
         cond3.setMaxAge(65);

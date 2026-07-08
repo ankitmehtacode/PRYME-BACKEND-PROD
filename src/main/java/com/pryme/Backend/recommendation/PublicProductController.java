@@ -26,7 +26,7 @@ public class PublicProductController {
 
     private final LoanProductRepository loanProductRepository;
 
-    @Operation(summary = "Get snapshot of best products grouped by loan type")
+    @Operation(summary = "One-line description of this endpoint")
     @GetMapping
     @Cacheable(cacheNames = "banks:recommendation", key = "'product-grid'")
     @Timed(value = "pryme.api.public.products", description = "Public product grid latency")
@@ -74,7 +74,7 @@ public class PublicProductController {
                         product.getLoanType(),
                         new LoanProductSnapshot(
                                 product.getRoi(),
-                                product.getProcessingFee(),
+                                null, // Processing fee is dynamic now
                                 product.getLoginFees() != null ? product.getLoginFees() : BigDecimal.ZERO
                         ),
                         this::preferLowerRoi
