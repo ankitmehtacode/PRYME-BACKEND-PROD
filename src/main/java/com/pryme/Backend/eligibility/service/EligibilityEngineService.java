@@ -233,12 +233,11 @@ public class EligibilityEngineService {
                     if (reqAmt == null || reqAmt.compareTo(BigDecimal.ZERO) <= 0)
                         return true; // No amount → don't filter
                     boolean aboveMin = p.getMinLoanAmount() == null || reqAmt.compareTo(p.getMinLoanAmount()) >= 0;
-                    boolean belowMax = p.getMaxLoanAmount() == null || reqAmt.compareTo(p.getMaxLoanAmount()) <= 0;
-                    if (!aboveMin || !belowMax) {
-                        log.info("   ⛔ LOAN_AMOUNT_RANGE: product={} excluded — requested={} not in [{}, {}]",
-                                p.getProductCode(), reqAmt, p.getMinLoanAmount(), p.getMaxLoanAmount());
+                    if (!aboveMin) {
+                        log.info("   ⛔ LOAN_AMOUNT_RANGE: product={} excluded — requested={} is below minimum allowed ({})",
+                                p.getProductCode(), reqAmt, p.getMinLoanAmount());
                     }
-                    return aboveMin && belowMax;
+                    return aboveMin; // We now cap the maximum amount dynamically instead of rejecting
                 })
                 .toList();
         log.info("   After loanType='{}' + active + loanAmount filter: {} candidates", normalizedLoanType,
@@ -552,39 +551,43 @@ public class EligibilityEngineService {
                 product.getProductCode(), effectiveRoi);
 
         // e. Calculate proposed EMI using closed-form PMT formula
-        var proposedEmi = calculateProposedEmiWithRate(request.loanAmount(), effectiveRoi,
-                request.requestedTenureMonths());
+        // f. Maximum eligible loan amount (income × FOIR − existing EMI)
+        var maxEligibleAmount = calculateMaxEligibleAmount(
+                effectiveIncome, request.existingEmiTotal(), effectiveFoir, effectiveRoi, request.requestedTenureMonths());
 
-        // f. FOIR check
-        if (!checkFoir(request.existingEmiTotal(), proposedEmi, effectiveIncome, effectiveFoir)) {
+        // g. LTV check — USES effectiveLtv (condition-level override)
+        BigDecimal maxLtvAmount = request.propertyValue().multiply(effectiveLtv, MathContext.DECIMAL128);
+        boolean ltvDeviated = request.loanAmount().compareTo(maxLtvAmount) > 0;
+
+        // Cap the requested amount by LTV, FOIR, and product maximum limit to show the maximum possible offer
+        var finalLoanAmount = request.loanAmount()
+                .min(maxLtvAmount)
+                .min(maxEligibleAmount);
+        
+        if (product.getMaxLoanAmount() != null) {
+            finalLoanAmount = finalLoanAmount.min(product.getMaxLoanAmount());
+        }
+
+        if (finalLoanAmount.compareTo(BigDecimal.ZERO) <= 0) {
             return EligibilityResult.ineligible(
                     product.getProductCode(),
                     product.getLenderName(),
-                    List.of(String.format("FOIR exceeded: effective limit is %.0f%%",
+                    List.of(String.format("FOIR exceeded: existing obligations consume full limit of %.0f%%",
                             effectiveFoir.multiply(BigDecimal.valueOf(100)))),
                     "Total EMI obligations exceed the program FOIR limit");
         }
 
-        // g. Maximum eligible loan amount (income × FOIR − existing EMI)
-        var maxEligibleAmount = calculateMaxEligibleAmount(
-                effectiveIncome, request.existingEmiTotal(), effectiveFoir, effectiveRoi, request.requestedTenureMonths());
-
-        // h. LTV check — USES effectiveLtv (condition-level override)
-        BigDecimal maxLtvAmount = request.propertyValue().multiply(effectiveLtv, MathContext.DECIMAL128);
-        boolean ltvDeviated = request.loanAmount().compareTo(maxLtvAmount) > 0;
-
-        if (ltvDeviated) {
+        if (product.getMinLoanAmount() != null && finalLoanAmount.compareTo(product.getMinLoanAmount()) < 0) {
             return EligibilityResult.ineligible(
                     product.getProductCode(),
                     product.getLenderName(),
-                    List.of(String.format("LTV_EXCEEDED: requested %.2f, allowed %.2f (LTV limit: %.0f%%)",
-                            request.loanAmount(), maxLtvAmount, effectiveLtv.multiply(BigDecimal.valueOf(100)))),
-                    "Requested loan amount exceeds the maximum allowed LTV for this product");
+                    List.of(String.format("Maximum eligible amount (%.2f) is below product minimum (%.2f)",
+                            finalLoanAmount, product.getMinLoanAmount())),
+                    "Maximum eligible loan amount is below the minimum ticket size for this product");
         }
 
-        var finalLoanAmount = request.loanAmount()
-                .min(maxLtvAmount)
-                .min(maxEligibleAmount);
+        // Calculate the actual proposed EMI based on the capped final loan amount
+        var proposedEmi = calculateProposedEmiWithRate(finalLoanAmount, effectiveRoi, request.requestedTenureMonths());
 
         // ── Processing Fee: dynamic resolution ──────────────────────────────
         final BigDecimal processingFee = financialComputationEngine.resolveProcessingFee(
